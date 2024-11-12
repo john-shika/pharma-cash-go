@@ -268,7 +268,7 @@ func runTask(processTasks *ProcessTasks, task *Config) error {
 	return nil
 }
 
-var mainTask = func(p *ProcessTasks, t *Config) error {
+var mainTask = func(processTasks *ProcessTasks, task *Config) error {
 	var err error
 	var args []string
 	var workDir nokocore.WorkingDirImpl
@@ -281,13 +281,13 @@ var mainTask = func(p *ProcessTasks, t *Config) error {
 	}
 
 	// initial execute and arguments it-self
-	t.Exec = os.Args[0]
-	t.Args = args
+	task.Exec = os.Args[0]
+	task.Args = args
 
 	// set value for NOKOWEBAPI_SELF_RUNNING env
-	t.Environ = append(t.Environ, "NOKOWEBAPI_SELF_RUNNING=1")
+	task.Environ = append(task.Environ, "NOKOWEBAPI_SELF_RUNNING=1")
 
-	return runTask(p, t)
+	return runTask(processTasks, task)
 }
 
 type ProcessTasks struct {
@@ -379,36 +379,36 @@ func (p *ProcessTasks) GetDependsOnProcessTask(task *Config) []*ProcessTask {
 	return temp
 }
 
-func makeProcessFromTask(p *ProcessTasks, t *Config) error {
+func makeProcessFromTask(processTasks *ProcessTasks, task *Config) error {
 	var err error
 	var workDir nokocore.WorkingDirImpl
 	nokocore.KeepVoid(err, workDir)
 
-	if p.GetProcessTask(t.Name) != nil {
+	if processTasks.GetProcessTask(task.Name) != nil {
 		return nil
 	}
 
-	fmt.Printf("[RUN] Task '%s' started.\n", t.Name)
+	fmt.Printf("[RUN] Task '%s' started.\n", task.Name)
 
-	if strings.EqualFold(t.Name, "self") {
-		if err = p.RunSelf(t); err != nil {
+	if strings.EqualFold(task.Name, "self") {
+		if err = processTasks.RunSelf(task); err != nil {
 			return err
 		}
 		return nil
 	}
 
-	return runTask(p, t)
+	return runTask(processTasks, task)
 }
 
-func makeProcessFromTaskAsync(p *ProcessTasks, t *Config, err chan<- error) {
-	err <- makeProcessFromTask(p, t)
+func makeProcessFromTaskAsync(processTasks *ProcessTasks, task *Config, err chan<- error) {
+	err <- makeProcessFromTask(processTasks, task)
 }
 
-func waitRun(tasks *Tasks, p *ProcessTasks, t *Config) error {
+func waitRun(tasks *Tasks, processTasks *ProcessTasks, task *Config) error {
 	var err error
 	nokocore.KeepVoid(err)
 
-	for i, dependsOnTask := range tasks.GetDependsOnTask(t) {
+	for i, dependsOnTask := range tasks.GetDependsOnTask(task) {
 		nokocore.KeepVoid(i)
 
 		target := dependsOnTask.GetTask()
@@ -416,11 +416,11 @@ func waitRun(tasks *Tasks, p *ProcessTasks, t *Config) error {
 		params := dependsOnTask.GetParams()
 
 		// Detect circular dependency between tasks
-		if strings.EqualFold(target.Name, t.Name) {
+		if strings.EqualFold(target.Name, task.Name) {
 			return errors.New("circular dependency detected")
 		}
 
-		if err = waitRun(tasks, p, target); err != nil {
+		if err = waitRun(tasks, processTasks, target); err != nil {
 			return err
 		}
 
@@ -435,19 +435,19 @@ func waitRun(tasks *Tasks, p *ProcessTasks, t *Config) error {
 		}
 	}
 
-	if err = makeProcessFromTask(p, t); err != nil {
-		fmt.Printf("[RUN] Task '%s' failed.\n", t.Name)
+	if err = makeProcessFromTask(processTasks, task); err != nil {
+		fmt.Printf("[RUN] Task '%s' failed.\n", task.Name)
 		return err
 	}
 	return nil
 }
 
-func waitRunTask(tasks *Tasks, p *ProcessTasks, t *Config) error {
+func waitRunTask(tasks *Tasks, processTasks *ProcessTasks, task *Config) error {
 	var ok bool
 	var err error
 	nokocore.KeepVoid(ok, err)
 
-	dependsOnTasks := tasks.GetDependsOnTask(t)
+	dependsOnTasks := tasks.GetDependsOnTask(task)
 
 	for i, dependsOnTask := range dependsOnTasks {
 		nokocore.KeepVoid(i)
@@ -457,11 +457,11 @@ func waitRunTask(tasks *Tasks, p *ProcessTasks, t *Config) error {
 		params := dependsOnTask.GetParams()
 
 		// detect circular dependency between tasks
-		if strings.EqualFold(target.Name, t.Name) {
+		if strings.EqualFold(target.Name, task.Name) {
 			return errors.New("circular dependency detected")
 		}
 
-		if err = waitRunTask(tasks, p, target); err != nil {
+		if err = waitRunTask(tasks, processTasks, target); err != nil {
 			return err
 		}
 
@@ -479,7 +479,7 @@ func waitRunTask(tasks *Tasks, p *ProcessTasks, t *Config) error {
 	errorStack := make(chan error)
 	defer close(errorStack)
 
-	go makeProcessFromTaskAsync(p, t, errorStack)
+	go makeProcessFromTaskAsync(processTasks, task, errorStack)
 
 	for {
 		select {
@@ -489,7 +489,7 @@ func waitRunTask(tasks *Tasks, p *ProcessTasks, t *Config) error {
 				return nil
 			}
 			if err != nil {
-				fmt.Printf("[RUN] Task '%s' failed.\n", t.Name)
+				fmt.Printf("[RUN] Task '%s' failed.\n", task.Name)
 				return err
 			}
 			return nil

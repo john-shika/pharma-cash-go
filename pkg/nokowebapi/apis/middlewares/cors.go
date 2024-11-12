@@ -18,7 +18,7 @@ type CORSConfig struct {
 	MaxAge        int      `mapstructure:"max_age" yaml:"max_age" json:"maxAge"`
 }
 
-var DefaultCORSConfig = CORSConfig{
+var defaultCORSConfig = &CORSConfig{
 	Origins:     []string{"*"},
 	Methods:     []string{"GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"},
 	Headers:     []string{"Accept", "Accept-Language", "Content-Language", "Content-Type"},
@@ -81,18 +81,18 @@ func matchSubdomain(domain, pattern string) bool {
 }
 
 func CORS() echo.MiddlewareFunc {
-	return CORSWithConfig(DefaultCORSConfig)
+	return CORSWithConfig(defaultCORSConfig)
 }
 
-func CORSWithConfig(config CORSConfig) echo.MiddlewareFunc {
+func CORSWithConfig(config *CORSConfig) echo.MiddlewareFunc {
 	if len(config.Origins) == 0 {
-		config.Origins = DefaultCORSConfig.Origins
+		config.Origins = defaultCORSConfig.Origins
 	}
 
 	hasCustomAllowMethods := true
 	if len(config.Methods) == 0 {
 		hasCustomAllowMethods = false
-		config.Methods = DefaultCORSConfig.Methods
+		config.Methods = defaultCORSConfig.Methods
 	}
 
 	var allowOriginPatterns []string
@@ -116,9 +116,9 @@ func CORSWithConfig(config CORSConfig) echo.MiddlewareFunc {
 	}
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			req := c.Request()
-			res := c.Response()
+		return func(ctx echo.Context) error {
+			req := ctx.Request()
+			res := ctx.Response()
 
 			allowOrigin := ""
 			origin := req.Header.Get(echo.HeaderOrigin)
@@ -128,18 +128,18 @@ func CORSWithConfig(config CORSConfig) echo.MiddlewareFunc {
 
 			routerAllowMethods := ""
 			if preflight {
-				tmpAllowMethods, ok := c.Get(echo.ContextKeyHeaderAllow).(string)
+				tmpAllowMethods, ok := ctx.Get(echo.ContextKeyHeaderAllow).(string)
 				if ok && tmpAllowMethods != "" {
 					routerAllowMethods = tmpAllowMethods
-					c.Response().Header().Set(echo.HeaderAllow, routerAllowMethods)
+					ctx.Response().Header().Set(echo.HeaderAllow, routerAllowMethods)
 				}
 			}
 
 			if origin == "" {
 				if !preflight {
-					return next(c)
+					return next(ctx)
 				}
-				return c.NoContent(http.StatusNoContent)
+				return ctx.NoContent(http.StatusNoContent)
 			}
 
 			for i, o := range config.Origins {
@@ -175,9 +175,9 @@ func CORSWithConfig(config CORSConfig) echo.MiddlewareFunc {
 
 			if allowOrigin == "" {
 				if !preflight {
-					return next(c)
+					return next(ctx)
 				}
-				return c.NoContent(http.StatusNoContent)
+				return ctx.NoContent(http.StatusNoContent)
 			}
 
 			res.Header().Set(echo.HeaderAccessControlAllowOrigin, allowOrigin)
@@ -189,7 +189,7 @@ func CORSWithConfig(config CORSConfig) echo.MiddlewareFunc {
 				if exposeHeaders != "" {
 					res.Header().Set(echo.HeaderAccessControlExposeHeaders, exposeHeaders)
 				}
-				return next(c)
+				return next(ctx)
 			}
 
 			res.Header().Add(echo.HeaderVary, echo.HeaderAccessControlRequestMethod)
@@ -215,7 +215,7 @@ func CORSWithConfig(config CORSConfig) echo.MiddlewareFunc {
 				res.Header().Set(echo.HeaderAccessControlMaxAge, maxAge)
 			}
 
-			return c.NoContent(http.StatusNoContent)
+			return ctx.NoContent(http.StatusNoContent)
 		}
 	}
 }

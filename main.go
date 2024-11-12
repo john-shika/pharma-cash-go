@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/viper"
 	"nokotan/app"
+	"nokowebapi/console"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
 	"nokowebapi/task"
@@ -23,6 +24,10 @@ func main() {
 	if err = viper.ReadInConfig(); err != nil {
 		panic(fmt.Errorf("fatal error config file: %w", err))
 	}
+	
+	console.Dir(globals.GetJwtConfig())
+
+	return
 
 	if nokoWebApiSelfRunEnv, ok = os.LookupEnv("NOKOWEBAPI_SELF_RUNNING"); ok {
 		nokocore.NoErr(os.Setenv("NOKOWEBAPI_SELF_RUNNING", "1"))

@@ -6,9 +6,8 @@ import (
 	"nokowebapi/apis/extras"
 )
 
-// BaseControllerImpl interface for a defined router as extras.EchoRouterImpl and database with gorm.DB
+// BaseControllerImpl interface for a defined group as extras.EchoGroupImpl and database with gorm.DB
 type BaseControllerImpl interface {
-	Router() extras.EchoRouterImpl
 	DB() *gorm.DB
 	Use(middleware ...echo.MiddlewareFunc)
 	Connect(path string, handler echo.HandlerFunc, middlewares ...echo.MiddlewareFunc)
@@ -25,19 +24,15 @@ type BaseControllerImpl interface {
 }
 
 type BaseController struct {
-	router extras.EchoRouterImpl
-	db     *gorm.DB
+	group extras.EchoGroupImpl
+	db    *gorm.DB
 }
 
-func NewBaseController(router extras.EchoRouterImpl, db *gorm.DB) BaseControllerImpl {
+func NewBaseController(group extras.EchoGroupImpl, db *gorm.DB) BaseControllerImpl {
 	return &BaseController{
-		router: router,
-		db:     db,
+		group: group,
+		db:    db,
 	}
-}
-
-func (c *BaseController) Router() extras.EchoRouterImpl {
-	return c.router
 }
 
 func (c *BaseController) DB() *gorm.DB {
@@ -45,49 +40,49 @@ func (c *BaseController) DB() *gorm.DB {
 }
 
 func (c *BaseController) Use(middleware ...echo.MiddlewareFunc) {
-	c.router.Use(middleware...)
+	c.group.Use(middleware...)
 }
 
 func (c *BaseController) Connect(path string, handler echo.HandlerFunc, middlewares ...echo.MiddlewareFunc) {
-	c.router.CONNECT(path, handler, middlewares...)
+	c.group.CONNECT(path, handler, middlewares...)
 }
 
 func (c *BaseController) Head(path string, handler echo.HandlerFunc, middlewares ...echo.MiddlewareFunc) {
-	c.router.HEAD(path, handler, middlewares...)
+	c.group.HEAD(path, handler, middlewares...)
 }
 
 func (c *BaseController) Options(path string, handler echo.HandlerFunc, middlewares ...echo.MiddlewareFunc) {
-	c.router.OPTIONS(path, handler, middlewares...)
+	c.group.OPTIONS(path, handler, middlewares...)
 }
 
 func (c *BaseController) Get(path string, handler echo.HandlerFunc, middlewares ...echo.MiddlewareFunc) {
-	c.router.GET(path, handler, middlewares...)
+	c.group.GET(path, handler, middlewares...)
 }
 
 func (c *BaseController) Post(path string, handler echo.HandlerFunc, middlewares ...echo.MiddlewareFunc) {
-	c.router.POST(path, handler, middlewares...)
+	c.group.POST(path, handler, middlewares...)
 }
 
 func (c *BaseController) Put(path string, handler echo.HandlerFunc, middlewares ...echo.MiddlewareFunc) {
-	c.router.PUT(path, handler, middlewares...)
+	c.group.PUT(path, handler, middlewares...)
 }
 
 func (c *BaseController) Delete(path string, handler echo.HandlerFunc, middlewares ...echo.MiddlewareFunc) {
-	c.router.DELETE(path, handler, middlewares...)
+	c.group.DELETE(path, handler, middlewares...)
 }
 
 func (c *BaseController) Patch(path string, handler echo.HandlerFunc, middlewares ...echo.MiddlewareFunc) {
-	c.router.PATCH(path, handler, middlewares...)
+	c.group.PATCH(path, handler, middlewares...)
 }
 
 func (c *BaseController) Any(path string, handler echo.HandlerFunc, middlewares ...echo.MiddlewareFunc) {
-	c.router.Any(path, handler, middlewares...)
+	c.group.Any(path, handler, middlewares...)
 }
 
 func (c *BaseController) Group(prefix string, middleware ...echo.MiddlewareFunc) *echo.Group {
-	return c.router.Group(prefix, middleware...)
+	return c.group.Group(prefix, middleware...)
 }
 
 func (c *BaseController) RouteNotFound(path string, handler echo.HandlerFunc, middlewares ...echo.MiddlewareFunc) {
-	c.router.RouteNotFound(path, handler, middlewares...)
+	c.group.RouteNotFound(path, handler, middlewares...)
 }

@@ -156,6 +156,19 @@ func Unwrap2[T1, T2 any, E ErrOrOkImpl](value1 T1, value2 T2, eOk E) (T1, T2) {
 	return value1, value2
 }
 
+func HandlePanic() {
+	if err := recover(); err != nil {
+		switch val := err.(type) {
+		case error:
+			fmt.Printf("[RECOVERY] Panic: %s\n", val.Error())
+		case string:
+			fmt.Printf("[RECOVERY] Panic: %s\n", val)
+		default:
+			fmt.Println("[RECOVERY] Panic.")
+		}
+	}
+}
+
 type StackCollectionImpl[T any] interface {
 	*T | []T
 }
@@ -383,6 +396,7 @@ type ArrayImpl[T any] interface {
 
 type Array[T any] []T
 type ArrayAny = Array[any]
+type ArrayStr = Array[string]
 
 func NewArray[T any](size int) ArrayImpl[T] {
 	return make(Array[T], size)

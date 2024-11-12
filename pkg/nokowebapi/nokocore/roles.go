@@ -7,3 +7,5 @@ const (
 	RoleUser  RoleTyped = "User"
 	RoleAdmin RoleTyped = "Admin"
 )
+
+// TODO: role string can be snippet with multiple roles

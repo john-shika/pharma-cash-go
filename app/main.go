@@ -3,6 +3,7 @@ package app
 import (
 	"github.com/labstack/echo/v4"
 	"golang.org/x/net/http2"
+	"nokotan/app/controllers"
 	"nokowebapi/apis/middlewares"
 	"nokowebapi/console"
 	"nokowebapi/globals"
@@ -16,27 +17,21 @@ func Main(args []string) nokocore.ExitCode {
 	//e.HideBanner = true
 	//e.HidePort = false
 
-	corsConfig := middlewares.CORSConfig{
+	// Alt-Svc: h3-25=":443"; ma=3600, h2=":443"; ma=3600
+	// "Accept", "Accept-Language", "Content-Language", "Content-Type"
+	// "Authorization", "Cache-Control", "Content-Language", "Content-Type", "Expires", "Last-Modified", "Pragma"
+
+	e.Use(middlewares.CORSWithConfig(&middlewares.CORSConfig{
 		Origins:     []string{"*"},
 		Methods:     []string{"GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"},
 		Headers:     []string{"Accept", "Accept-Language", "Content-Language", "Content-Type"},
 		Credentials: true,
 		MaxAge:      86400,
-	}
+	}))
 
-	// Alt-Svc: h3-25=":443"; ma=3600, h2=":443"; ma=3600
-	// "Accept", "Accept-Language", "Content-Language", "Content-Type"
-	// "Authorization", "Cache-Control", "Content-Language", "Content-Type", "Expires", "Last-Modified", "Pragma"
+	g := e.Group("/api/v1")
 
-	e.Use(middlewares.CORSWithConfig(corsConfig))
-
-	r := e.Router()
-
-	r.Add("GET", "/", func(c echo.Context) error {
-		return c.JSON(200, nokocore.MapAny{
-			"message": "Hello, World!",
-		})
-	})
+	controllers.AnonymousController(g)
 
 	h2s := &http2.Server{
 		MaxConcurrentStreams: 100,

@@ -10,24 +10,24 @@ import (
 	"time"
 )
 
-var ErrJwtTokenNotFound = errors.New("jwt token not found")
-var ErrJwtClaimsInvalid = errors.New("invalid JWT claims")
+var ErrJwtTokenInvalid = errors.New("invalid jwt token")
+var ErrJwtClaimsInvalid = errors.New("invalid jwt claims")
 var ErrJwtIdentityNotFound = errors.New("jwt identity not found")
 var ErrJwtIssuedAtNotFound = errors.New("jwt issued at not found")
 var ErrJwtIssuerNotFound = errors.New("jwt issuer not found")
 var ErrJwtSubjectNotFound = errors.New("jwt subject not found")
 var ErrJwtExpiresNotFound = errors.New("jwt expires not found")
 var ErrJwtSessionIdNotFound = errors.New("jwt session id not found")
-var ErrJwtUserInvalid = errors.New("jwt user not found")
-var ErrJwtEmailInvalid = errors.New("jwt email not found")
+var ErrJwtUserNotFound = errors.New("jwt user not found")
+var ErrJwtEmailNotFound = errors.New("jwt email not found")
 var ErrJwtSecretKeyNotFound = errors.New("jwt secret key not found")
 
 type JwtConfig struct {
-	Algorithm string `mapstructure:"algorithm,required" json:"algorithm,required"`
-	SecretKey string `mapstructure:"secret_key,required" json:"secretKey,required"`
-	Audience  string `mapstructure:"audience,required" json:"audience,required"`
-	Issuer    string `mapstructure:"issuer,required" json:"issuer,required"`
-	ExpiresIn string `mapstructure:"expires_in,required" json:"expiresIn,required"`
+	Algorithm string   `mapstructure:"algorithm,required" json:"algorithm,required"`
+	SecretKey string   `mapstructure:"secret_key,required" json:"secretKey,required"`
+	Audience  []string `mapstructure:"audience,required" json:"audience,required"`
+	Issuer    string   `mapstructure:"issuer,required" json:"issuer,required"`
+	ExpiresIn string   `mapstructure:"expires_in,required" json:"expiresIn,required"`
 }
 
 func NewJwtConfig() *JwtConfig {
@@ -69,6 +69,10 @@ func (j *JwtConfig) GetSigningMethod() jwt.SigningMethod {
 	}
 }
 
+func (j *JwtConfig) GetExpiresIn() time.Duration {
+	return Unwrap(time.ParseDuration(j.ExpiresIn))
+}
+
 type JwtClaimNamed string
 
 const (
@@ -78,7 +82,7 @@ const (
 	JwtClaimIssuedAt  JwtClaimNamed = "iat"
 	JwtClaimIssuer    JwtClaimNamed = "iss"
 	JwtClaimAudience  JwtClaimNamed = "aud"
-	JwtClaimExpiresAt JwtClaimNamed = "exp"
+	JwtClaimExpires   JwtClaimNamed = "exp"
 	JwtClaimUser      JwtClaimNamed = "user"
 	JwtClaimEmail     JwtClaimNamed = "email"
 	JwtClaimPhone     JwtClaimNamed = "phone"
@@ -152,34 +156,38 @@ func GetJwtNumericDateFromStrict[V TimeOrJwtNumericDateImpl](value V) *jwt.Numer
 }
 
 type JwtClaimsImpl interface {
+	GetSigningMethod() jwt.SigningMethod
+	SetSigningMethod(method jwt.SigningMethod)
 	GetDataAccess() *JwtClaimsDataAccess
 	Get(key string) (any, bool)
 	Set(key string, value any) bool
 	ToJwtToken() JwtTokenImpl
-	ToJwtTokenString(secretKey string) (string, error)
-	ParseNumericDate(key string) (*jwt.NumericDate, error)
-	ParseString(key string) (string, error)
-	ParseStringMany(key string) ([]string, error)
-	GetIdentity() (string, error)
-	SetIdentity(identity string) bool
-	GetSubject() (string, error)
-	SetSubject(subject string) bool
-	GetIssued() (*jwt.NumericDate, error)
-	SetIssuedAt(date any) bool
-	GetIssuer() (string, error)
-	SetIssuer(issuer string) bool
-	GetAudience() ([]string, error)
-	SetAudience(audience []string) bool
-	GetExpires() (*jwt.NumericDate, error)
-	SetExpiresAt(date any) bool
-	GetSessionId() (string, error)
-	SetSessionId(sessionId string) bool
-	GetUser() (string, error)
-	SetUser(user string) bool
-	GetRole() (string, error)
-	SetRole(role string) bool
-	GetEmail() (string, error)
-	SetEmail(email string) bool
+	ToJwtTokenString(secretKey string) string
+	ParseNumericDate(key JwtClaimNamed) *jwt.NumericDate
+	ParseString(key JwtClaimNamed) string
+	ParseManyString(key JwtClaimNamed) []string
+	GetIdentity() string
+	SetIdentity(identity string)
+	GetSubject() string
+	SetSubject(subject string)
+	GetIssued() *jwt.NumericDate
+	SetIssuedAt(date any)
+	GetIssuer() string
+	SetIssuer(issuer string)
+	GetAudience() []string
+	SetAudience(audience []string)
+	GetExpires() *jwt.NumericDate
+	SetExpires(date any)
+	GetSessionId() string
+	SetSessionId(sessionId string)
+	GetUser() string
+	SetUser(user string)
+	GetEmail() string
+	SetEmail(email string)
+	GetPhone() string
+	SetPhone(phone string)
+	GetRole() string
+	SetRole(role string)
 }
 
 type JwtClaimsDataAccessImpl interface {
@@ -199,24 +207,27 @@ type JwtClaimsDataAccessImpl interface {
 	SetSessionId(sessionId string)
 	GetUser() string
 	SetUser(user string)
-	GetRole() string
-	SetRole(role string)
 	GetEmail() string
 	SetEmail(email string)
+	GetPhone() string
+	SetPhone(phone string)
+	GetRole() string
+	SetRole(role string)
 }
 
 type JwtClaimsDataAccess struct {
-	ID        string           `json:"jti,omitempty"`
-	Issuer    string           `json:"iss,omitempty"`
-	Subject   string           `json:"sub,omitempty"`
-	Audience  []string         `json:"aud,omitempty"`
-	NotBefore *jwt.NumericDate `json:"nbf,omitempty"`
-	IssuedAt  *jwt.NumericDate `json:"iat,omitempty"`
-	ExpiresAt *jwt.NumericDate `json:"exp,omitempty"`
-	SessionId string           `json:"sid,omitempty"`
-	User      string           `json:"name,omitempty"`
-	Email     string           `json:"email,omitempty"`
-	Role      string           `json:"role,omitempty"`
+	ID        string           `mapstructure:"jti" json:"jti,omitempty" yaml:"jti,omitempty"`
+	Issuer    string           `mapstructure:"iss" json:"iss,omitempty" yaml:"iss,omitempty"`
+	Subject   string           `mapstructure:"sub" json:"sub,omitempty" yaml:"sub,omitempty"`
+	Audience  []string         `mapstructure:"aud" json:"aud,omitempty" yaml:"aud,omitempty"`
+	NotBefore *jwt.NumericDate `mapstructure:"nbf" json:"nbf,omitempty" yaml:"nbf,omitempty"`
+	IssuedAt  *jwt.NumericDate `mapstructure:"iat" json:"iat,omitempty" yaml:"iat,omitempty"`
+	ExpiresAt *jwt.NumericDate `mapstructure:"exp" json:"exp,omitempty" yaml:"exp,omitempty"`
+	SessionId string           `mapstructure:"sid" json:"sid,omitempty" yaml:"sid,omitempty"`
+	User      string           `mapstructure:"name" json:"name,omitempty" yaml:"name,omitempty"`
+	Email     string           `mapstructure:"email" json:"email,omitempty" yaml:"email,omitempty"`
+	Phone     string           `mapstructure:"phone" json:"phone,omitempty" yaml:"phone,omitempty"`
+	Role      string           `mapstructure:"role" json:"role,omitempty" yaml:"role,omitempty"`
 }
 
 func NewJwtClaimsDataAccess(claims *jwt.RegisteredClaims) JwtClaimsDataAccessImpl {
@@ -299,20 +310,28 @@ func (claimsDataAccess *JwtClaimsDataAccess) SetUser(user string) {
 	claimsDataAccess.User = user
 }
 
-func (claimsDataAccess *JwtClaimsDataAccess) GetRole() string {
-	return claimsDataAccess.Role
-}
-
-func (claimsDataAccess *JwtClaimsDataAccess) SetRole(role string) {
-	claimsDataAccess.Role = role
-}
-
 func (claimsDataAccess *JwtClaimsDataAccess) GetEmail() string {
 	return claimsDataAccess.Email
 }
 
 func (claimsDataAccess *JwtClaimsDataAccess) SetEmail(email string) {
 	claimsDataAccess.Email = email
+}
+
+func (claimsDataAccess *JwtClaimsDataAccess) GetPhone() string {
+	return claimsDataAccess.Phone
+}
+
+func (claimsDataAccess *JwtClaimsDataAccess) SetPhone(phone string) {
+	claimsDataAccess.Phone = phone
+}
+
+func (claimsDataAccess *JwtClaimsDataAccess) GetRole() string {
+	return claimsDataAccess.Role
+}
+
+func (claimsDataAccess *JwtClaimsDataAccess) SetRole(role string) {
+	claimsDataAccess.Role = role
 }
 
 func encodeSecretKey(secretKey string, jwtSigningMethod jwt.SigningMethod) []byte {
@@ -348,7 +367,7 @@ func JwtClaimsEmpty(jwtSigningMethod jwt.SigningMethod) JwtClaimsImpl {
 	}
 }
 
-func GetJwtClaimsFromJwtToken(token JwtTokenImpl, jwtSigningMethod jwt.SigningMethod) (JwtClaimsImpl, error) {
+func GetJwtClaimsFromJwtToken(token JwtTokenImpl) (JwtClaimsImpl, error) {
 	var ok bool
 	var claims jwt.MapClaims
 	KeepVoid(ok, claims)
@@ -358,7 +377,7 @@ func GetJwtClaimsFromJwtToken(token JwtTokenImpl, jwtSigningMethod jwt.SigningMe
 		return nil, ErrJwtClaimsInvalid
 	}
 
-	return NewJwtClaims(claims, jwtSigningMethod), nil
+	return NewJwtClaims(claims, jwtToken.Method), nil
 }
 
 func (j *JwtClaims) GetSigningMethod() jwt.SigningMethod {
@@ -371,16 +390,16 @@ func (j *JwtClaims) SetSigningMethod(method jwt.SigningMethod) {
 
 func (j *JwtClaims) GetDataAccess() *JwtClaimsDataAccess {
 	return &JwtClaimsDataAccess{
-		ID:        Unwrap(j.GetIdentity()),
-		Subject:   Unwrap(j.GetSubject()),
-		Issuer:    Unwrap(j.GetIssuer()),
-		Audience:  Unwrap(j.GetAudience()),
-		IssuedAt:  Unwrap(j.GetIssued()),
-		ExpiresAt: Unwrap(j.GetExpires()),
-		SessionId: Unwrap(j.GetIdentity()),
-		User:      Unwrap(j.GetUser()),
-		Role:      Unwrap(j.GetRole()),
-		Email:     Unwrap(j.GetEmail()),
+		ID:        j.GetIdentity(),
+		Subject:   j.GetSubject(),
+		Issuer:    j.GetIssuer(),
+		Audience:  j.GetAudience(),
+		IssuedAt:  j.GetIssued(),
+		ExpiresAt: j.GetExpires(),
+		SessionId: j.GetIdentity(),
+		User:      j.GetUser(),
+		Role:      j.GetRole(),
+		Email:     j.GetEmail(),
 	}
 }
 
@@ -394,14 +413,6 @@ func (j *JwtClaims) Get(key string) (any, bool) {
 }
 
 func (j *JwtClaims) Set(key string, value any) bool {
-	var ok bool
-	var temp any
-	KeepVoid(ok, temp)
-
-	if temp, ok = j.claims[key]; !ok {
-		return false
-	}
-
 	j.claims[key] = value
 	return true
 }
@@ -410,17 +421,10 @@ func (j *JwtClaims) ToJwtToken() JwtTokenImpl {
 	return jwt.NewWithClaims(j.method, j.claims)
 }
 
-func (j *JwtClaims) ToJwtTokenString(secretKey string) (string, error) {
-	var err error
-	var tokenString string
-	KeepVoid(err, tokenString)
-
+func (j *JwtClaims) ToJwtTokenString(secretKey string) string {
 	token := j.ToJwtToken()
 	dataSecretKey := encodeSecretKey(secretKey, j.method)
-	if tokenString, err = token.SignedString(dataSecretKey); err != nil {
-		return "", err
-	}
-	return tokenString, nil
+	return Unwrap(token.SignedString(dataSecretKey))
 }
 
 func NewNumericDateFromSeconds(f float64) *jwt.NumericDate {
@@ -428,60 +432,38 @@ func NewNumericDateFromSeconds(f float64) *jwt.NumericDate {
 	return jwt.NewNumericDate(time.Unix(int64(round), int64(frac*1e9)))
 }
 
-func (j *JwtClaims) ParseNumericDate(key string) (*jwt.NumericDate, error) {
+func (j *JwtClaims) ParseNumericDate(key JwtClaimNamed) *jwt.NumericDate {
 	var ok bool
 	var err error
-	var value any
-	KeepVoid(ok, err, value)
+	KeepVoid(ok, err)
 
-	if value, ok = j.Get(key); !ok {
-		return nil, NewThrow(fmt.Sprintf("%s is invalid", key), ErrDataTypeInvalid)
-	}
+	value := Unwrap(j.Get(string(key)))
 
 	switch exp := value.(type) {
 	case float64:
-		if exp == 0 {
-			return nil, nil
+		if exp != 0 {
+			return NewNumericDateFromSeconds(exp)
 		}
 
-		return NewNumericDateFromSeconds(exp), nil
+		panic("zero value")
 	case json.Number:
-		if value, err = exp.Float64(); err != nil {
-			return nil, NewThrow(fmt.Sprintf("%s is invalid", key), ErrDataTypeInvalid)
-		}
-
-		return NewNumericDateFromSeconds(value.(float64)), nil
+		val := Unwrap(exp.Float64())
+		return NewNumericDateFromSeconds(val)
+	default:
+		panic("invalid data type")
 	}
-
-	return nil, NewThrow(fmt.Sprintf("%s is invalid", key), ErrDataTypeInvalid)
 }
 
-func (j *JwtClaims) ParseString(key string) (string, error) {
-	var ok bool
-	var value any
-	var temp string
-	KeepVoid(ok, value, temp)
-
-	if value, ok = j.Get(key); !ok {
-		return EmptyString, ErrDataTypeInvalid
-	}
-
-	if temp, ok = value.(string); !ok {
-		return EmptyString, NewThrow(fmt.Sprintf("%s is invalid", key), ErrDataTypeInvalid)
-	}
-
-	return temp, nil
+func (j *JwtClaims) ParseString(key JwtClaimNamed) string {
+	return Unwrap(j.Get(string(key))).(string)
 }
 
-func (j *JwtClaims) ParseStringMany(key string) ([]string, error) {
+func (j *JwtClaims) ParseManyString(key JwtClaimNamed) []string {
 	var ok bool
-	var value any
 	var temp []string
-	KeepVoid(ok, value, temp)
+	KeepVoid(ok, temp)
 
-	if value, ok = j.Get(key); !ok {
-		return nil, ErrDataTypeInvalid
-	}
+	value := Unwrap(j.Get(string(key)))
 
 	switch value.(type) {
 	case string:
@@ -492,113 +474,101 @@ func (j *JwtClaims) ParseStringMany(key string) ([]string, error) {
 		values := value.([]any)
 		temp = make([]string, len(values))
 		for i, v := range values {
-			if temp[i], ok = v.(string); !ok {
-				return nil, NewThrow(fmt.Sprintf("%s is invalid", key), ErrDataTypeInvalid)
-			}
+			temp[i] = v.(string)
 		}
 	default:
-		return nil, NewThrow(fmt.Sprintf("%s is invalid", key), ErrDataTypeInvalid)
+		panic("invalid data type")
 	}
 
-	return temp, nil
+	return temp
 }
 
-func (j *JwtClaims) GetIdentity() (string, error) {
-	return j.ParseString(string(JwtClaimIdentity))
+func (j *JwtClaims) GetIdentity() string {
+	return j.ParseString(JwtClaimIdentity)
 }
 
-func (j *JwtClaims) SetIdentity(identity string) bool {
-	return j.Set(string(JwtClaimIdentity), identity)
+func (j *JwtClaims) SetIdentity(identity string) {
+	j.Set(string(JwtClaimIdentity), identity)
 }
 
-func (j *JwtClaims) GetSubject() (string, error) {
-	return j.ParseString(string(JwtClaimSubject))
+func (j *JwtClaims) GetSubject() string {
+	return j.ParseString(JwtClaimSubject)
 }
 
-func (j *JwtClaims) SetSubject(subject string) bool {
-	return j.Set(string(JwtClaimSubject), subject)
+func (j *JwtClaims) SetSubject(subject string) {
+	j.Set(string(JwtClaimSubject), subject)
 }
 
-func (j *JwtClaims) GetIssued() (*jwt.NumericDate, error) {
-	var err error
-	var temp *jwt.NumericDate
-	KeepVoid(err, temp)
-
-	temp, err = j.ParseNumericDate(string(JwtClaimIssuedAt))
-	return temp, err
+func (j *JwtClaims) GetIssued() *jwt.NumericDate {
+	return j.ParseNumericDate(JwtClaimIssuedAt)
 }
 
-func (j *JwtClaims) SetIssuedAt(date any) bool {
-	return j.Set(string(JwtClaimIssuedAt), GetJwtNumericDateFromAny(date))
+func (j *JwtClaims) SetIssuedAt(date any) {
+	j.Set(string(JwtClaimIssuedAt), GetJwtNumericDateFromAny(date))
 }
 
-func (j *JwtClaims) GetIssuer() (string, error) {
-	return j.ParseString(string(JwtClaimIssuer))
+func (j *JwtClaims) GetIssuer() string {
+	return j.ParseString(JwtClaimIssuer)
 }
 
-func (j *JwtClaims) SetIssuer(issuer string) bool {
-	return j.Set(string(JwtClaimIssuer), issuer)
+func (j *JwtClaims) SetIssuer(issuer string) {
+	j.Set(string(JwtClaimIssuer), issuer)
 }
 
-func (j *JwtClaims) GetAudience() ([]string, error) {
-	return j.ParseStringMany(string(JwtClaimAudience))
+func (j *JwtClaims) GetAudience() []string {
+	return j.ParseManyString(JwtClaimAudience)
 }
 
-func (j *JwtClaims) SetAudience(audience []string) bool {
-	return j.Set(string(JwtClaimAudience), audience)
+func (j *JwtClaims) SetAudience(audience []string) {
+	j.Set(string(JwtClaimAudience), audience)
 }
 
-func (j *JwtClaims) GetExpires() (*jwt.NumericDate, error) {
-	var err error
-	var temp *jwt.NumericDate
-	KeepVoid(err, temp)
-
-	temp, err = j.ParseNumericDate(string(JwtClaimExpiresAt))
-	return temp, err
+func (j *JwtClaims) GetExpires() *jwt.NumericDate {
+	return j.ParseNumericDate(JwtClaimExpires)
 }
 
-func (j *JwtClaims) SetExpiresAt(date any) bool {
-	return j.Set(string(JwtClaimExpiresAt), GetJwtNumericDateFromAny(date))
+func (j *JwtClaims) SetExpires(date any) {
+	j.Set(string(JwtClaimExpires), GetJwtNumericDateFromAny(date))
 }
 
-func (j *JwtClaims) GetSessionId() (string, error) {
-	return j.ParseString(string(JwtClaimSessionId))
+func (j *JwtClaims) GetSessionId() string {
+	return j.ParseString(JwtClaimSessionId)
 }
 
-func (j *JwtClaims) SetSessionId(sessionId string) bool {
-	return j.Set(string(JwtClaimSessionId), sessionId)
+func (j *JwtClaims) SetSessionId(sessionId string) {
+	j.Set(string(JwtClaimSessionId), sessionId)
 }
 
-func (j *JwtClaims) GetUser() (string, error) {
-	return j.ParseString(string(JwtClaimUser))
+func (j *JwtClaims) GetUser() string {
+	return j.ParseString(JwtClaimUser)
 }
 
-func (j *JwtClaims) SetUser(user string) bool {
-	return j.Set(string(JwtClaimUser), user)
+func (j *JwtClaims) SetUser(user string) {
+	j.Set(string(JwtClaimUser), user)
 }
 
-func (j *JwtClaims) GetRole() (string, error) {
-	return j.ParseString(string(JwtClaimRole))
+func (j *JwtClaims) GetEmail() string {
+	return j.ParseString(JwtClaimEmail)
 }
 
-func (j *JwtClaims) SetRole(role string) bool {
-	return j.Set(string(JwtClaimRole), role)
+func (j *JwtClaims) SetEmail(email string) {
+	j.Set(string(JwtClaimEmail), email)
 }
 
-func (j *JwtClaims) GetEmail() (string, error) {
-	return j.ParseString(string(JwtClaimEmail))
+func (j *JwtClaims) GetPhone() string {
+	return j.ParseString(JwtClaimPhone)
 }
 
-func (j *JwtClaims) SetEmail(email string) bool {
-	return j.Set(string(JwtClaimEmail), email)
+func (j *JwtClaims) SetPhone(email string) {
+	j.Set(string(JwtClaimPhone), email)
 }
 
-func (j *JwtClaims) GetPhone() (string, error) {
-	return j.ParseString(string(JwtClaimPhone))
+func (j *JwtClaims) GetRole() string {
+	return j.ParseString(JwtClaimRole)
 }
 
-func (j *JwtClaims) SetPhone(phone string) bool {
-	return j.Set(string(JwtClaimPhone), phone)
+func (j *JwtClaims) SetRole(role string) {
+	j.Set(string(JwtClaimRole), role)
 }
 
 func ParseJwtTokenUnverified(token string) (JwtTokenImpl, error) {
@@ -611,7 +581,7 @@ func ParseJwtTokenUnverified(token string) (JwtTokenImpl, error) {
 	claims := make(jwt.MapClaims)
 
 	if jwtToken, parts, err = parser.ParseUnverified(token, claims); err != nil {
-		return nil, ErrJwtTokenNotFound
+		return nil, ErrJwtTokenInvalid
 	}
 
 	return jwtToken, nil
@@ -634,38 +604,40 @@ func ParseJwtToken(token string, secretKey string, jwtSigningMethod jwt.SigningM
 	}
 
 	if jwtToken, err = parser.ParseWithClaims(token, claims, keyFunc); err != nil {
-		return nil, ErrJwtTokenNotFound
+		return nil, ErrJwtTokenInvalid
 	}
 
 	return jwtToken, nil
 }
 
-func CvtJwtClaimsAccessDataToJwtClaims(claimsDataAccess *JwtClaimsDataAccess, jwtSigningMethod jwt.SigningMethod) JwtClaimsImpl {
+func CvtJwtClaimsAccessDataToJwtClaims(claimsDataAccess JwtClaimsDataAccessImpl, jwtSigningMethod jwt.SigningMethod) JwtClaimsImpl {
 	claims := NewJwtClaims(jwt.MapClaims{}, jwtSigningMethod)
 	claims.SetIdentity(claimsDataAccess.GetIdentity())
 	claims.SetSubject(claimsDataAccess.GetSubject())
 	claims.SetIssuer(claimsDataAccess.GetIssuer())
 	claims.SetAudience(claimsDataAccess.GetAudience())
 	claims.SetIssuedAt(claimsDataAccess.GetIssued())
-	claims.SetExpiresAt(claimsDataAccess.GetExpires())
+	claims.SetExpires(claimsDataAccess.GetExpires())
 	claims.SetSessionId(claimsDataAccess.GetSessionId())
 	claims.SetUser(claimsDataAccess.GetUser())
-	claims.SetRole(claimsDataAccess.GetRole())
 	claims.SetEmail(claimsDataAccess.GetEmail())
+	claims.SetPhone(claimsDataAccess.GetPhone())
+	claims.SetRole(claimsDataAccess.GetRole())
 	return claims
 }
 
-func CvtJwtClaimsToJwtClaimsAccessData(claims JwtClaimsImpl) *JwtClaimsDataAccess {
+func CvtJwtClaimsToJwtClaimsAccessData(claims JwtClaimsImpl) (JwtClaimsDataAccessImpl, jwt.SigningMethod) {
 	claimsDataAccess := new(JwtClaimsDataAccess)
-	claimsDataAccess.SetIdentity(Unwrap(claims.GetIdentity()))
-	claimsDataAccess.SetSubject(Unwrap(claims.GetSubject()))
-	claimsDataAccess.SetIssuer(Unwrap(claims.GetIssuer()))
-	claimsDataAccess.SetAudience(Unwrap(claims.GetAudience()))
-	claimsDataAccess.SetIssuedAt(Unwrap(claims.GetIssued()))
-	claimsDataAccess.SetExpiresAt(Unwrap(claims.GetExpires()))
-	claimsDataAccess.SetSessionId(Unwrap(claims.GetSessionId()))
-	claimsDataAccess.SetUser(Unwrap(claims.GetUser()))
-	claimsDataAccess.SetRole(Unwrap(claims.GetRole()))
-	claimsDataAccess.SetEmail(Unwrap(claims.GetEmail()))
-	return claimsDataAccess
+	claimsDataAccess.SetIdentity(claims.GetIdentity())
+	claimsDataAccess.SetSubject(claims.GetSubject())
+	claimsDataAccess.SetIssuer(claims.GetIssuer())
+	claimsDataAccess.SetAudience(claims.GetAudience())
+	claimsDataAccess.SetIssuedAt(claims.GetIssued())
+	claimsDataAccess.SetExpiresAt(claims.GetExpires())
+	claimsDataAccess.SetSessionId(claims.GetSessionId())
+	claimsDataAccess.SetUser(claims.GetUser())
+	claimsDataAccess.SetEmail(claims.GetEmail())
+	claimsDataAccess.SetPhone(claims.GetPhone())
+	claimsDataAccess.SetRole(claims.GetRole())
+	return claimsDataAccess, claims.GetSigningMethod()
 }

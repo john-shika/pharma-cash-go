@@ -1,7 +1,6 @@
 package globals
 
 import (
-	"github.com/go-viper/mapstructure/v2"
 	"github.com/spf13/viper"
 	"nokowebapi/nokocore"
 	"nokowebapi/task"
@@ -20,8 +19,10 @@ var defaultConfig = nokocore.MapAny{
 		"production":  false,
 	},
 	"jwt": nokocore.MapAny{
-		"algorithm":  nil,
-		"audience":   "your-audience",
+		"algorithm": "HS256",
+		"audience": nokocore.ArrayStr{
+			"your-audience",
+		},
 		"issuer":     "your-issuer",
 		"secret_key": "your-super-secret-key-keep-it-mind-dont-tell-anyone",
 		"expires_in": "1h",
@@ -180,18 +181,22 @@ func GetConfigGlobals[T any]() *T {
 	}
 
 	// TODO: Implement support for setting values in nested maps within nested structs.
-	//nokocore.ForEachStructFieldsReflect(config, false, func(name string, sFieldX nokocore.StructFieldExpandedImpl) {
-	//	if sFieldX.IsZero() {
-	//		nokocore.SetValueReflect(sFieldX.GetValue(), locals.Get(name))
-	//		//val := nokocore.GetValueReflect(locals.Get(name))
-	//		//sFieldX.Set(val)
-	//		return
-	//	}
-	//	locals.Set(name, sFieldX.Interface())
-	//})
+	options := nokocore.NewForEachStructFieldsOptions()
+	options.Matched = false
 
-	nokocore.NoErr(mapstructure.Decode(config, &locals))
-	defaultConfig.Set(key, locals)
+	nokocore.ForEachStructFieldsReflect(config, options, func(name string, sFieldX nokocore.StructFieldExpandedImpl) {
+		if sFieldX.IsZero() {
+			//nokocore.SetValueReflect(sFieldX.GetValue(), locals.(nokocore.MapAny).Get(name))
+			val := nokocore.GetValueReflect(locals.(nokocore.MapAny).Get(name))
+			sFieldX.Set(val)
+			return
+		}
+		locals.(nokocore.MapAny).Set(name, sFieldX.Interface())
+	})
+
+	//nokocore.NoErr(mapstructure.Decode(locals, config))
+	//nokocore.NoErr(mapstructure.Decode(config, &locals))
+	//defaultConfig.Set(key, locals)
 
 	return config
 }

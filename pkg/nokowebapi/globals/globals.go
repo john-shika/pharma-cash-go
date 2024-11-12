@@ -14,7 +14,7 @@ var defaultConfig = nokocore.MapAny{
 		"name":        "nokowebapi",
 		"description": "Nokotan Backend Web API",
 		"version":     "v1.0.0-dev",
-		"author":      "<ahmadasysyafiq@proton.me>",
+		"author":      "ahmadasysyafiq@proton.me",
 		"url":         "https://github.com/john-shika/nokotan-backend-go",
 		"license_url": "https://www.apache.org/licenses/LICENSE-2.0",
 		"license":     "Apache-2.0",

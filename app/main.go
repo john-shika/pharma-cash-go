@@ -3,11 +3,11 @@ package app
 import (
 	"github.com/labstack/echo/v4"
 	"golang.org/x/net/http2"
-	"nokotan/app/controllers"
 	"nokowebapi/apis/middlewares"
 	"nokowebapi/console"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
+	"pharma-cash-go/app/controllers"
 	"time"
 )
 

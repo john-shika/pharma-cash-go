@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 	"github.com/spf13/viper"
-	"nokotan/app"
 	"nokowebapi/console"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
 	"nokowebapi/task"
 	"os"
+	"pharma-cash-go/app"
 )
 
 func main() {

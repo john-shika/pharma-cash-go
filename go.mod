@@ -1,4 +1,4 @@
-module nokotan
+module pharma-cash-go
 
 go 1.23.2
 

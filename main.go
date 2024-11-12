@@ -33,8 +33,8 @@ func main() {
 	}
 
 	processTasks := task.NewProcessTasks(nil)
-	nokocore.NoErr(globals.GetTasks().ExecuteAsync(processTasks).Wait())
-	//nokocore.NoErr(globals.GetTasks().Execute(processTasks))
+	//nokocore.NoErr(globals.GetTasks().ExecuteAsync(processTasks).Wait())
+	nokocore.NoErr(globals.GetTasks().Execute(processTasks))
 	nokocore.NoErr(processTasks.Wait())
 
 	return

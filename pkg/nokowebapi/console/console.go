@@ -12,28 +12,8 @@ import (
 
 var WriterSyncer zapcore.WriteSyncer
 
-var Logger *zap.Logger
-var Locker nokocore.LockerImpl
-
-func GetLocker() nokocore.LockerImpl {
-	if Locker != nil {
-		return Locker
-	}
-	Locker = nokocore.NewLocker()
-	return Locker
-}
-
 func updateWriterSyncer(stdout io.Writer) zapcore.WriteSyncer {
-	var ok bool
-	nokocore.KeepVoid(ok)
-
-	if stdout, ok = stdout.(zapcore.WriteSyncer); ok {
-		WriterSyncer = zapcore.Lock(stdout.(zapcore.WriteSyncer))
-	} else {
-		WriterSyncer = zapcore.AddSync(stdout)
-	}
-
-	return WriterSyncer
+	return zapcore.Lock(zapcore.AddSync(stdout))
 }
 
 func NewWriterSyncer(stdout io.Writer) zapcore.WriteSyncer {
@@ -81,65 +61,34 @@ func makeLogger() *zap.Logger {
 	return logger
 }
 
-func NewLogger() *zap.Logger {
-	if Logger != nil {
-		return Logger
-	}
-	Logger = makeLogger()
-	return Logger
-}
+var Logger = makeLogger()
 
 func Dir(obj any, fields ...zap.Field) {
-	locker := GetLocker()
-	locker.Lock(func() {
-		logger := NewLogger()
-		data := "\n" + nokocore.ShikaYamlEncode(obj)
-		logger.Info(data, fields...)
-	})
+	Logger.Info(nokocore.ShikaYamlEncode(obj), fields...)
 }
 
 func Log(msg string, fields ...zap.Field) {
-	locker := GetLocker()
-	locker.Lock(func() {
-		logger := NewLogger()
-		logger.Info(msg, fields...)
-	})
+	Logger.Info(msg, fields...)
 }
 
 func Logf(format string, args ...any) {
-	locker := GetLocker()
-	locker.Lock(func() {
-		logger := NewLogger()
-		logger.Info(fmt.Sprintf(format, args...))
-	})
+	Logger.Info(fmt.Sprintf(format, args...))
 }
 
 func Warn(msg string, fields ...zap.Field) {
-	locker := GetLocker()
-	locker.Lock(func() {
-		logger := NewLogger()
-		logger.Warn(msg, fields...)
-	})
+	Logger.Warn(msg, fields...)
 }
 
 func Error(msg string, fields ...zap.Field) {
-	locker := GetLocker()
-	locker.Lock(func() {
-		defer updateWriterSyncer(xterm.Stdout)
-		updateWriterSyncer(xterm.Stderr)
+	defer updateWriterSyncer(xterm.Stdout)
+	updateWriterSyncer(xterm.Stderr)
 
-		logger := NewLogger()
-		logger.Error(msg, fields...)
-	})
+	Logger.Error(msg, fields...)
 }
 
 func Fatal(msg string, fields ...zap.Field) {
-	locker := GetLocker()
-	locker.Lock(func() {
-		defer updateWriterSyncer(xterm.Stdout)
-		updateWriterSyncer(xterm.Stderr)
+	defer updateWriterSyncer(xterm.Stdout)
+	updateWriterSyncer(xterm.Stderr)
 
-		logger := NewLogger()
-		logger.Fatal(msg, fields...)
-	})
+	Logger.Fatal(msg, fields...)
 }

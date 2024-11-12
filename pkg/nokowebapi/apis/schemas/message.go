@@ -49,61 +49,61 @@ func NewMessageBodyEarlyHints(message string, data any) *MessageBody {
 func NewMessageBodyOk(message string, data any) *MessageBody {
 	httpStatusCode := nokocore.HttpStatusCodeOk
 	httpStatusCodeValue := nokocore.GetValueFromHttpStatusCode(httpStatusCode)
-	return NewMessageBody(false, int(httpStatusCode), string(httpStatusCodeValue), message, data)
+	return NewMessageBody(true, int(httpStatusCode), string(httpStatusCodeValue), message, data)
 }
 
 func NewMessageBodyCreated(message string, data any) *MessageBody {
 	httpStatusCode := nokocore.HttpStatusCodeCreated
 	httpStatusCodeValue := nokocore.GetValueFromHttpStatusCode(httpStatusCode)
-	return NewMessageBody(false, int(httpStatusCode), string(httpStatusCodeValue), message, data)
+	return NewMessageBody(true, int(httpStatusCode), string(httpStatusCodeValue), message, data)
 }
 
 func NewMessageBodyAccepted(message string, data any) *MessageBody {
 	httpStatusCode := nokocore.HttpStatusCodeAccepted
 	httpStatusCodeValue := nokocore.GetValueFromHttpStatusCode(httpStatusCode)
-	return NewMessageBody(false, int(httpStatusCode), string(httpStatusCodeValue), message, data)
+	return NewMessageBody(true, int(httpStatusCode), string(httpStatusCodeValue), message, data)
 }
 
 func NewMessageBodyNonAuthoritativeInformation(message string, data any) *MessageBody {
 	httpStatusCode := nokocore.HttpStatusCodeNonAuthoritativeInformation
 	httpStatusCodeValue := nokocore.GetValueFromHttpStatusCode(httpStatusCode)
-	return NewMessageBody(false, int(httpStatusCode), string(httpStatusCodeValue), message, data)
+	return NewMessageBody(true, int(httpStatusCode), string(httpStatusCodeValue), message, data)
 }
 
 func NewMessageBodyNoContent(message string, data any) *MessageBody {
 	httpStatusCode := nokocore.HttpStatusCodeNoContent
 	httpStatusCodeValue := nokocore.GetValueFromHttpStatusCode(httpStatusCode)
-	return NewMessageBody(false, int(httpStatusCode), string(httpStatusCodeValue), message, data)
+	return NewMessageBody(true, int(httpStatusCode), string(httpStatusCodeValue), message, data)
 }
 
 func NewMessageBodyResetContent(message string, data any) *MessageBody {
 	httpStatusCode := nokocore.HttpStatusCodeResetContent
 	httpStatusCodeValue := nokocore.GetValueFromHttpStatusCode(httpStatusCode)
-	return NewMessageBody(false, int(httpStatusCode), string(httpStatusCodeValue), message, data)
+	return NewMessageBody(true, int(httpStatusCode), string(httpStatusCodeValue), message, data)
 }
 
 func NewMessageBodyPartialContent(message string, data any) *MessageBody {
 	httpStatusCode := nokocore.HttpStatusCodePartialContent
 	httpStatusCodeValue := nokocore.GetValueFromHttpStatusCode(httpStatusCode)
-	return NewMessageBody(false, int(httpStatusCode), string(httpStatusCodeValue), message, data)
+	return NewMessageBody(true, int(httpStatusCode), string(httpStatusCodeValue), message, data)
 }
 
 func NewMessageBodyMultiStatus(message string, data any) *MessageBody {
 	httpStatusCode := nokocore.HttpStatusCodeMultiStatus
 	httpStatusCodeValue := nokocore.GetValueFromHttpStatusCode(httpStatusCode)
-	return NewMessageBody(false, int(httpStatusCode), string(httpStatusCodeValue), message, data)
+	return NewMessageBody(true, int(httpStatusCode), string(httpStatusCodeValue), message, data)
 }
 
 func NewMessageBodyAlreadyReported(message string, data any) *MessageBody {
 	httpStatusCode := nokocore.HttpStatusCodeAlreadyReported
 	httpStatusCodeValue := nokocore.GetValueFromHttpStatusCode(httpStatusCode)
-	return NewMessageBody(false, int(httpStatusCode), string(httpStatusCodeValue), message, data)
+	return NewMessageBody(true, int(httpStatusCode), string(httpStatusCodeValue), message, data)
 }
 
 func NewMessageBodyImUsed(message string, data any) *MessageBody {
 	httpStatusCode := nokocore.HttpStatusCodeImUsed
 	httpStatusCodeValue := nokocore.GetValueFromHttpStatusCode(httpStatusCode)
-	return NewMessageBody(false, int(httpStatusCode), string(httpStatusCodeValue), message, data)
+	return NewMessageBody(true, int(httpStatusCode), string(httpStatusCodeValue), message, data)
 }
 
 func NewMessageBodyMultipleChoices(message string, data any) *MessageBody {

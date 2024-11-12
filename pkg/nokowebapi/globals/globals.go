@@ -1,12 +1,14 @@
 package globals
 
 import (
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/spf13/viper"
 	"nokowebapi/nokocore"
 	"nokowebapi/task"
 	"strings"
 )
 
+// WARN: except 'nokowebapi' will be overwritten.
 var defaultConfig = nokocore.MapAny{
 	"nokowebapi": nokocore.MapAny{
 		"name":        "nokowebapi",
@@ -180,23 +182,24 @@ func GetConfigGlobals[T any]() *T {
 		panic("failed to unmarshal viper config")
 	}
 
+	// TODO: Implement support for array, slice.
 	// TODO: Implement support for setting values in nested maps within nested structs.
-	options := nokocore.NewForEachStructFieldsOptions()
-	options.Matched = false
+	//options := nokocore.NewForEachStructFieldsOptions()
+	//options.Matched = false
 
-	nokocore.ForEachStructFieldsReflect(config, options, func(name string, sFieldX nokocore.StructFieldExpandedImpl) {
-		if sFieldX.IsZero() {
-			//nokocore.SetValueReflect(sFieldX.GetValue(), locals.(nokocore.MapAny).Get(name))
-			val := nokocore.GetValueReflect(locals.(nokocore.MapAny).Get(name))
-			sFieldX.Set(val)
-			return
-		}
-		locals.(nokocore.MapAny).Set(name, sFieldX.Interface())
-	})
+	//nokocore.ForEachStructFieldsReflect(config, options, func(name string, sFieldX nokocore.StructFieldExpandedImpl) {
+	//	if sFieldX.IsZero() {
+	//		//nokocore.SetValueReflect(sFieldX.GetValue(), locals.(nokocore.MapAny).Get(name))
+	//		val := nokocore.GetValueReflect(locals.(nokocore.MapAny).Get(name))
+	//		sFieldX.Set(val)
+	//		return
+	//	}
+	//	locals.(nokocore.MapAny).Set(name, sFieldX.Interface())
+	//})
 
 	//nokocore.NoErr(mapstructure.Decode(locals, config))
-	//nokocore.NoErr(mapstructure.Decode(config, &locals))
-	//defaultConfig.Set(key, locals)
+	nokocore.NoErr(mapstructure.Decode(config, &locals))
+	defaultConfig.Set(key, locals)
 
 	return config
 }

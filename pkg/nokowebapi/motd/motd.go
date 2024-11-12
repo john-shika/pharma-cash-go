@@ -7,13 +7,13 @@ import (
 )
 
 func Motd() {
-	name := globals.Globals().Get("nokowebapi.name").(string)
-	description := globals.Globals().Get("nokowebapi.description").(string)
-	version := globals.Globals().Get("nokowebapi.version").(string)
-	author := globals.Globals().Get("nokowebapi.author").(string)
-	url := globals.Globals().Get("nokowebapi.url").(string)
-	license := globals.Globals().Get("nokowebapi.license").(string)
-	licenseUrl := globals.Globals().Get("nokowebapi.license_url").(string)
+	name := globals.Get("nokowebapi.name").(string)
+	description := globals.Get("nokowebapi.description").(string)
+	version := globals.Get("nokowebapi.version").(string)
+	author := globals.Get("nokowebapi.author").(string)
+	url := globals.Get("nokowebapi.url").(string)
+	license := globals.Get("nokowebapi.license").(string)
+	licenseUrl := globals.Get("nokowebapi.license_url").(string)
 	banners := []string{
 		"\n" +
 			" /$$   /$$           /$$                 /$$      /$$           /$$        /$$$$$$            /$$\n" +

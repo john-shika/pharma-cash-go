@@ -48,8 +48,8 @@ func makeLogger() *zap.Logger {
 	var logger *zap.Logger
 	nokocore.KeepVoid(logger)
 
-	isDevelopment := globals.Globals().IsDevelopment()
-	loggerConfig := globals.Globals().GetLoggerConfig()
+	isDevelopment := globals.IsDevelopment()
+	loggerConfig := globals.GetLoggerConfig()
 	writerSyncer := NewWriterSyncer(xterm.Stdout)
 	level := loggerConfig.GetLevel()
 

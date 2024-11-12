@@ -62,6 +62,6 @@ func main() {
 	motd.Motd()
 
 	temp := make(map[string]any)
-	nokocore.NoErr(mapstructure.Decode(globals.Globals().GetJwtConfig(), &temp))
+	nokocore.NoErr(mapstructure.Decode(globals.GetJwtConfig(), &temp))
 	fmt.Println(nokocore.ShikaYamlEncode(temp))
 }

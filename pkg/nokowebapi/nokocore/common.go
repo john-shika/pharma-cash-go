@@ -169,12 +169,10 @@ type MapImpl[T any] interface {
 	Values() []T
 	HasKey(key string) bool
 	ContainKeys(keys ...string) bool
-	GetValueByKey(key string) T
 	Get(key string) any
-	SetValueByKey(key string, value T) bool
 	Set(key string, value any) bool
-	RemoveByKey(key string) bool
-	Remove(key string) bool
+	delVal(key string) bool
+	Del(key string) bool
 }
 
 type MapAnyImpl interface {
@@ -239,7 +237,7 @@ func (m Map[T]) ContainKeys(keys ...string) bool {
 	return true
 }
 
-func (m Map[T]) GetValueByKey(key string) T {
+func (m Map[T]) getVal(key string) T {
 	var ok bool
 	var value T
 	KeepVoid(ok, value)
@@ -268,7 +266,7 @@ func (m Map[T]) Get(key string) any {
 
 		// find by key name
 		if idx, err = strconv.Atoi(token); err != nil {
-			temp = Unwrap(Cast[MapAny](temp)).GetValueByKey(token)
+			temp = Unwrap(Cast[MapAny](temp)).getVal(token)
 			continue
 		}
 
@@ -279,7 +277,7 @@ func (m Map[T]) Get(key string) any {
 	return temp
 }
 
-func (m Map[T]) SetValueByKey(key string, value T) bool {
+func (m Map[T]) setVal(key string, value T) bool {
 	m[key] = value
 	return true
 }
@@ -305,9 +303,9 @@ func (m Map[T]) Set(key string, value any) bool {
 		// find by key name
 		if idx, err = strconv.Atoi(token); err != nil {
 			if n == i+1 {
-				return Unwrap(Cast[MapAny](temp)).SetValueByKey(token, value)
+				return Unwrap(Cast[MapAny](temp)).setVal(token, value)
 			}
-			temp = Unwrap(Cast[MapAny](temp)).GetValueByKey(token)
+			temp = Unwrap(Cast[MapAny](temp)).getVal(token)
 			continue
 		}
 
@@ -321,7 +319,7 @@ func (m Map[T]) Set(key string, value any) bool {
 	return false
 }
 
-func (m Map[T]) RemoveByKey(key string) bool {
+func (m Map[T]) delVal(key string) bool {
 	var ok bool
 	var temp T
 	KeepVoid(ok, temp)
@@ -334,7 +332,7 @@ func (m Map[T]) RemoveByKey(key string) bool {
 	return true
 }
 
-func (m Map[T]) Remove(key string) bool {
+func (m Map[T]) Del(key string) bool {
 	tokens := strings.Split(strings.Trim(key, "."), ".")
 	if len(tokens) == 0 {
 		panic("invalid key")
@@ -355,9 +353,9 @@ func (m Map[T]) Remove(key string) bool {
 		// find by key name
 		if idx, err = strconv.Atoi(token); err != nil {
 			if n == i+1 {
-				return Unwrap(Cast[MapAny](temp)).RemoveByKey(token)
+				return Unwrap(Cast[MapAny](temp)).delVal(token)
 			}
-			temp = Unwrap(Cast[MapAny](temp)).GetValueByKey(token)
+			temp = Unwrap(Cast[MapAny](temp)).getVal(token)
 			continue
 		}
 

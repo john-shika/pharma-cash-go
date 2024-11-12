@@ -26,7 +26,7 @@ func AuthJWT(db *gorm.DB) echo.MiddlewareFunc {
 				return c.JSON(http.StatusUnauthorized, schemas.NewMessageBodyUnauthorized(err.Error(), nil))
 			}
 
-			jwtConfig := globals.Globals().GetJwtConfig()
+			jwtConfig := globals.GetJwtConfig()
 			if jwtToken, err = nokocore.ParseJwtToken(token, jwtConfig.SecretKey, jwt.SigningMethodHS256); err != nil {
 				return c.JSON(http.StatusUnauthorized, schemas.NewMessageBodyUnauthorized(err.Error(), nil))
 			}

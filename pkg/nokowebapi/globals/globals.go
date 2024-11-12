@@ -48,7 +48,7 @@ func getNameKey(obj any) string {
 	return name
 }
 
-type ConfigurationImpl interface {
+type ConfigImpl interface {
 	IsDevelopment() bool
 	GetJwtConfig() *nokocore.JwtConfig
 	GetLoggerConfig() *nokocore.LoggerConfig
@@ -58,15 +58,15 @@ type ConfigurationImpl interface {
 	Get(key string) any
 }
 
-type Configuration struct {
+type Config struct {
 	jwtConfig    *nokocore.JwtConfig
 	loggerConfig *nokocore.LoggerConfig
 	tasks        *task.Tasks
 	locker       nokocore.LockerImpl
 }
 
-func NewConfiguration() ConfigurationImpl {
-	return &Configuration{
+func NewConfig() ConfigImpl {
+	return &Config{
 		jwtConfig:    nil,
 		loggerConfig: nil,
 		tasks:        nil,
@@ -74,11 +74,11 @@ func NewConfiguration() ConfigurationImpl {
 	}
 }
 
-func (c *Configuration) IsDevelopment() bool {
+func (c *Config) IsDevelopment() bool {
 	return !c.Get("nokowebapi.production").(bool)
 }
 
-func (c *Configuration) GetJwtConfig() *nokocore.JwtConfig {
+func (c *Config) GetJwtConfig() *nokocore.JwtConfig {
 	c.locker.Lock(func() {
 		if c.jwtConfig != nil {
 			return
@@ -89,7 +89,7 @@ func (c *Configuration) GetJwtConfig() *nokocore.JwtConfig {
 	return c.jwtConfig
 }
 
-func (c *Configuration) GetLoggerConfig() *nokocore.LoggerConfig {
+func (c *Config) GetLoggerConfig() *nokocore.LoggerConfig {
 	c.locker.Lock(func() {
 		if c.loggerConfig != nil {
 			return
@@ -100,7 +100,7 @@ func (c *Configuration) GetLoggerConfig() *nokocore.LoggerConfig {
 	return c.loggerConfig
 }
 
-func (c *Configuration) GetTasks() *task.Tasks {
+func (c *Config) GetTasks() *task.Tasks {
 	c.locker.Lock(func() {
 		if c.tasks != nil {
 			return
@@ -110,28 +110,46 @@ func (c *Configuration) GetTasks() *task.Tasks {
 	return c.tasks
 }
 
-func (c *Configuration) Keys() []string {
+func (c *Config) Keys() []string {
 	return defaultConfig.Keys()
 }
 
-func (c *Configuration) Values() []any {
+func (c *Config) Values() []any {
 	return defaultConfig.Values()
 }
 
-func (c *Configuration) Get(key string) any {
+func (c *Config) Get(key string) any {
 	return defaultConfig.Get(key)
 }
 
-var globals ConfigurationImpl
-var locker = nokocore.NewLocker()
+var globals = NewConfig()
 
-func Globals() ConfigurationImpl {
-	locker.Lock(func() {
-		if globals == nil {
-			globals = NewConfiguration()
-		}
-	})
-	return globals
+func IsDevelopment() bool {
+	return globals.IsDevelopment()
+}
+
+func GetJwtConfig() *nokocore.JwtConfig {
+	return globals.GetJwtConfig()
+}
+
+func GetLoggerConfig() *nokocore.LoggerConfig {
+	return globals.GetLoggerConfig()
+}
+
+func GetTasks() *task.Tasks {
+	return globals.GetTasks()
+}
+
+func Keys() []string {
+	return globals.Keys()
+}
+
+func Values() []any {
+	return globals.Values()
+}
+
+func Get(key string) any {
+	return globals.Get(key)
 }
 
 func ViperConfigUnmarshal[T any]() (*T, error) {
@@ -155,7 +173,7 @@ func GetConfigGlobals[T any]() *T {
 	config := new(T)
 
 	key := getNameKey(config)
-	locals := defaultConfig.GetValueByKey(key)
+	locals := defaultConfig.Get(key)
 
 	if config, err = ViperConfigUnmarshal[T](); err != nil {
 		panic("failed to unmarshal viper config")
@@ -164,16 +182,16 @@ func GetConfigGlobals[T any]() *T {
 	// TODO: Implement support for setting values in nested maps within nested structs.
 	//nokocore.ForEachStructFieldsReflect(config, false, func(name string, sFieldX nokocore.StructFieldExpandedImpl) {
 	//	if sFieldX.IsZero() {
-	//		nokocore.SetValueReflect(sFieldX.GetValue(), locals.GetValueByKey(name))
-	//		//val := nokocore.GetValueReflect(locals.GetValueByKey(name))
+	//		nokocore.SetValueReflect(sFieldX.GetValue(), locals.Get(name))
+	//		//val := nokocore.GetValueReflect(locals.Get(name))
 	//		//sFieldX.Set(val)
 	//		return
 	//	}
-	//	locals.SetValueByKey(name, sFieldX.Interface())
+	//	locals.Set(name, sFieldX.Interface())
 	//})
 
-	// TODO: Use mapstructure.Decoder
 	nokocore.NoErr(mapstructure.Decode(config, &locals))
+	defaultConfig.Set(key, locals)
 
 	return config
 }

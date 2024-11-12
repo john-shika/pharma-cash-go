@@ -44,7 +44,7 @@ func Main(args []string) nokocore.ExitCode {
 		IdleTimeout:          10 * time.Second,
 	}
 
-	if taskConfig := globals.Globals().GetTasks().GetTask("self"); taskConfig != nil {
+	if taskConfig := globals.GetTasks().GetTask("self"); taskConfig != nil {
 		if taskConfig.Network != nil {
 			host := taskConfig.Network.GetHost()
 			nokocore.NoErr(e.StartH2CServer(host, h2s))

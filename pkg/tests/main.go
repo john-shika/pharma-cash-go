@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	config := globals.Globals().GetJwtConfig()
+	config := globals.GetJwtConfig()
 	fmt.Printf("%+v\n", config)
 
 	temp := nokocore.MapAny{

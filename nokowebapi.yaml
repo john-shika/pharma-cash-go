@@ -1,0 +1,42 @@
+app:
+  name: nokotan-backend
+  description: Nokotan Backend Web API
+  license: Apache-2.0
+  version: 1.0.0
+  author: ahmadasysyafiq@proton.me
+jwt:
+  algorithm: HS256
+  secret_key: im-secret-key
+  audience: im-audience
+  issuer: im-issuer
+  expires_in: 16m
+logger:
+  development: true
+  level: debug
+  encoding: text/plain
+  stack_trace_enabled: true
+  colorable: true
+tasks:
+  - name: self
+    workdir: '.'
+    stdout: console
+    stderr: console
+    network:
+      scheme: http
+      protocol: tcp
+      address: 0.0.0.0
+      port: 8080
+  - name: electron
+    workdir: './bin/electron-app'
+    environ:
+#      - 'ELECTRON_RUN_AS_NODE=1'
+    exec: './nokowebview.exe'
+    args: []
+    stdout: console
+    stderr: console
+    depends_on:
+      - target: self
+        waiter: 'wait-for-http-alive'
+        params:
+          iterations: 4
+          duration: 1s

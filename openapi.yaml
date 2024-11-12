@@ -1,0 +1,321 @@
+openapi: 3.0.0
+paths:
+  /message:
+    get:
+      operationId: AppController_getMessage
+      parameters: []
+      responses:
+        default:
+          description: Get hello message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmptyMessageBodySerialize"
+      tags:
+        - App
+        - Anonymous
+  /test/{id}:
+    get:
+      operationId: AppController_getText
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: number
+      responses:
+        default:
+          description: Get hello message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmptyMessageBodySerialize"
+      tags:
+        - App
+        - Anonymous
+  /api/v1/openapi.json:
+    get:
+      operationId: ApiController_getOpenApiJSON
+      parameters: []
+      responses:
+        default:
+          description: Get Open API Reference JSON
+          content:
+            application/json:
+              schema:
+                type: string
+  /api/v1/openapi.yaml:
+    get:
+      operationId: ApiController_getOpenApiYAML
+      parameters: []
+      responses:
+        default:
+          description: Get Open API Reference YAML
+          content:
+            application/json:
+              schema:
+                type: string
+  /api/scalar:
+    get:
+      operationId: ApiController_getScalarHTML
+      parameters: []
+      responses:
+        default:
+          description: Get Scalar API Reference
+          content:
+            application/json:
+              schema:
+                type: string
+  /auth/login:
+    post:
+      operationId: AuthController_signIn
+      parameters: []
+      responses:
+        default:
+          description: Login Account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessJwtTokenMessageBodySerialize"
+      tags:
+        - Auth
+  /auth/register:
+    post:
+      operationId: AuthController_signUp
+      parameters: []
+      responses:
+        default:
+          description: Register New Account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessJwtTokenMessageBodySerialize"
+      tags:
+        - Auth
+  /auth/logout:
+    get:
+      operationId: AuthController_signOut
+      parameters: []
+      responses:
+        default:
+          description: Logout Account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmptyMessageBodySerialize"
+      security:
+        - bearer: []
+      tags:
+        - Auth
+        - JWT
+  /auth/refresh:
+    get:
+      operationId: AuthController_refreshToken
+      parameters: []
+      responses:
+        default:
+          description: Refresh Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessJwtTokenMessageBodySerialize"
+      security:
+        - bearer: []
+      tags:
+        - Auth
+        - JWT
+  /auth/sessions:
+    get:
+      operationId: AuthController_getUserSessions
+      parameters: []
+      responses:
+        default:
+          description: User Session Lookup Many
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSessionLookupManyMessageBodySerialize"
+      security:
+        - bearer: []
+      tags:
+        - Auth
+        - JWT
+  /auth/user:
+    get:
+      operationId: AuthController_getUserInfo
+      parameters: []
+      responses:
+        default:
+          description: User Info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfoMessageBodySerialize"
+      security:
+        - bearer: []
+      tags:
+        - Auth
+        - JWT
+info:
+  title: Nokotan Backend Api
+  description: A Nokotan Backend Api Documentation
+  version: "1.0"
+  contact: {}
+tags: []
+servers: []
+components:
+  securitySchemes:
+    bearer:
+      scheme: Bearer
+      description: "Please enter token in following format: Bearer <JWT>"
+      type: http
+  schemas:
+    EmptyMessageBodySerialize:
+      type: object
+      properties:
+        statusOk:
+          type: boolean
+        statusCode:
+          type: number
+        status:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+        data:
+          type: object
+      required:
+        - statusOk
+        - statusCode
+        - status
+        - message
+        - timestamp
+        - data
+    AccessJwtTokenDataSerialize:
+      type: object
+      properties:
+        accessToken:
+          type: string
+      required:
+        - accessToken
+    AccessJwtTokenMessageBodySerialize:
+      type: object
+      properties:
+        statusOk:
+          type: boolean
+        statusCode:
+          type: number
+        status:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+        data:
+          $ref: "#/components/schemas/AccessJwtTokenDataSerialize"
+      required:
+        - statusOk
+        - statusCode
+        - status
+        - message
+        - timestamp
+        - data
+    UserSessionLookupDataSerialize:
+      type: object
+      properties:
+        uuid:
+          type: string
+        used:
+          type: boolean
+        admin:
+          type: boolean
+        ipAddr:
+          type: string
+        userAgent:
+          type: string
+        expiredAt:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        deletedAt:
+          type: string
+      required:
+        - uuid
+        - used
+        - admin
+        - ipAddr
+        - userAgent
+        - expiredAt
+        - createdAt
+        - updatedAt
+        - deletedAt
+    UserSessionLookupManyMessageBodySerialize:
+      type: object
+      properties:
+        statusOk:
+          type: boolean
+        statusCode:
+          type: number
+        status:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserSessionLookupDataSerialize"
+      required:
+        - statusOk
+        - statusCode
+        - status
+        - message
+        - timestamp
+        - data
+    UserInfoDataSerialize:
+      type: object
+      properties:
+        fullname:
+          type: object
+        username:
+          type: string
+        email:
+          type: object
+        phone:
+          type: object
+        admin:
+          type: boolean
+      required:
+        - fullname
+        - username
+        - email
+        - phone
+        - admin
+    UserInfoMessageBodySerialize:
+      type: object
+      properties:
+        statusOk:
+          type: boolean
+        statusCode:
+          type: number
+        status:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserInfoDataSerialize"
+      required:
+        - statusOk
+        - statusCode
+        - status
+        - message
+        - timestamp
+        - data

@@ -12,16 +12,22 @@ import (
 
 var WriterSyncer zapcore.WriteSyncer
 
-func updateWriterSyncer(stdout io.Writer) zapcore.WriteSyncer {
-	return zapcore.Lock(zapcore.AddSync(stdout))
-}
+func updateWriterSyncer(stdout any) zapcore.WriteSyncer {
+	var ok bool
+	var writer io.Writer
+	var writeSyncer zapcore.WriteSyncer
+	nokocore.KeepVoid(ok, writer, writeSyncer)
 
-func NewWriterSyncer(stdout io.Writer) zapcore.WriteSyncer {
-	if WriterSyncer != nil {
+	if writeSyncer, ok = stdout.(zapcore.WriteSyncer); !ok {
+		if writer, ok = stdout.(io.Writer); !ok {
+			panic("failed to convert stdout to either zapcore.WriteSyncer or io.Writer")
+		}
+		WriterSyncer = zapcore.Lock(zapcore.AddSync(writer))
 		return WriterSyncer
 	}
 
-	return updateWriterSyncer(stdout)
+	WriterSyncer = writeSyncer
+	return WriterSyncer
 }
 
 func makeLogger() *zap.Logger {
@@ -30,12 +36,12 @@ func makeLogger() *zap.Logger {
 
 	isDevelopment := globals.IsDevelopment()
 	loggerConfig := globals.GetLoggerConfig()
-	writerSyncer := NewWriterSyncer(xterm.Stdout)
+	writerSyncer := updateWriterSyncer(xterm.Stdout)
 	level := loggerConfig.GetLevel()
 
 	options := []zap.Option{
 		zap.AddCaller(),
-		zap.AddCallerSkip(4),
+		zap.AddCallerSkip(1),
 	}
 
 	if loggerConfig.StackTraceEnabled {

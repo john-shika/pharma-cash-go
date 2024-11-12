@@ -283,18 +283,18 @@ func MakePointerReflect(value any) reflect.Value {
 
 	switch val.Kind() {
 	case reflect.Interface:
-		fmt.Println("[WARN] value is an interface value. The result is a pointer to the value stored in the interface.")
+		fmt.Println("[WARN] Value is an interface value. The result is a pointer to the value stored in the interface.")
 		return MakePointerReflect(val.Elem())
 	case reflect.Pointer:
 		return val
 	case reflect.Func:
-		fmt.Println("[WARN] the returned pointer is an underlying code pointer, but not necessarily enough to identify a single function uniquely.")
+		fmt.Println("[WARN] The returned pointer is an underlying code pointer, but not necessarily enough to identify a single function uniquely.")
 		return reflect.NewAt(val.Type(), val.UnsafePointer())
 	case reflect.Slice:
-		fmt.Println("[WARN] the returned pointer is to the first element of the slice.")
+		fmt.Println("[WARN] The returned pointer is to the first element of the slice.")
 		return reflect.NewAt(val.Type(), val.UnsafePointer())
 	case reflect.String:
-		fmt.Println("[WARN] the returned pointer is to the first element of the underlying bytes of string.")
+		fmt.Println("[WARN] The returned pointer is to the first element of the underlying bytes of string.")
 		return reflect.NewAt(val.Type(), val.UnsafePointer())
 	case reflect.Chan, reflect.Map, reflect.UnsafePointer:
 		return reflect.NewAt(val.Type(), val.UnsafePointer())

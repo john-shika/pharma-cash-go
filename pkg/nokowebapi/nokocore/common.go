@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"io"
 	"strconv"
 	"strings"
 	"sync"
@@ -401,7 +402,7 @@ func (a Array[T]) Set(index int, value T) bool {
 }
 
 func (a Array[T]) Del(index int) bool {
-	fmt.Println("[WARN] array deletion for slices is not supported. Use a dynamic array implementation instead.")
+	fmt.Println("[WARN] Array deletion for slices is not supported. Use a dynamic array collections instead.")
 	KeepVoid(index)
 	return false
 }
@@ -1098,4 +1099,40 @@ func (a *StateActionParamsReturn[P, R]) Func() func(args ...P) R {
 
 func (a *StateActionParamsReturn[P, R]) Call(args ...P) R {
 	return a.state.Get().Call(args...)
+}
+
+type SafeReader struct {
+	mutex  *sync.Mutex
+	reader io.Reader
+}
+
+func NewSafeReader(writer io.Reader) *SafeReader {
+	return &SafeReader{
+		reader: writer,
+		mutex:  &sync.Mutex{},
+	}
+}
+
+func (sw *SafeReader) Read(p []byte) (n int, err error) {
+	sw.mutex.Lock()
+	defer sw.mutex.Unlock()
+	return sw.reader.Read(p)
+}
+
+type SafeWriter struct {
+	mutex  *sync.Mutex
+	writer io.Writer
+}
+
+func NewSafeWriter(writer io.Writer) *SafeWriter {
+	return &SafeWriter{
+		writer: writer,
+		mutex:  &sync.Mutex{},
+	}
+}
+
+func (sw *SafeWriter) Write(p []byte) (n int, err error) {
+	sw.mutex.Lock()
+	defer sw.mutex.Unlock()
+	return sw.writer.Write(p)
 }

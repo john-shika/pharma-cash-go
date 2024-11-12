@@ -88,7 +88,7 @@ func NewConfig() *Config {
 func (t *Config) GetStdin() io.Reader {
 	switch strings.ToLower(strings.TrimSpace(t.Stdin)) {
 	case "console":
-		return xterm.Stdin
+		return nokocore.NewSafeReader(xterm.Stdin)
 	default:
 		return nil
 	}
@@ -97,7 +97,7 @@ func (t *Config) GetStdin() io.Reader {
 func (t *Config) GetStdout() io.Writer {
 	switch strings.ToLower(strings.TrimSpace(t.Stdout)) {
 	case "console":
-		return xterm.Stdout
+		return nokocore.NewSafeWriter(xterm.Stdout)
 	default:
 		return nil
 	}
@@ -106,7 +106,7 @@ func (t *Config) GetStdout() io.Writer {
 func (t *Config) GetStderr() io.Writer {
 	switch strings.ToLower(strings.TrimSpace(t.Stderr)) {
 	case "console":
-		return xterm.Stderr
+		return nokocore.NewSafeWriter(xterm.Stderr)
 	default:
 		return nil
 	}
@@ -227,46 +227,38 @@ func (s MainTaskFunc) Call(processTasks *ProcessTasks, task *Config) error {
 	return s(processTasks, task)
 }
 
-var mainTask = func(p *ProcessTasks, t *Config) error {
+func runTask(processTasks *ProcessTasks, task *Config) error {
 	var err error
-	var args []string
 	var workDir nokocore.WorkingDirImpl
-	nokocore.KeepVoid(err, args, workDir)
+	nokocore.KeepVoid(err, workDir)
 
 	// try to dial url it-self
-	if t.Network != nil {
-		if nokocore.TryFetchUrl(t.Network.GetURL()) {
+	if task.Network != nil {
+		if nokocore.TryFetchUrl(task.Network.GetURL()) {
 			return nil
 		}
 	}
 
-	// check if there are any command-line arguments provided.
-	// if none, return an error indicating the source root directory cannot be determined.
-	if len(os.Args) == 0 {
-		return errors.New("can't get source root dir")
-	}
-
-	path := os.Args[0]
-
 	workFunc := func(workDir nokocore.WorkingDirImpl) error {
-		if err = os.Chdir(t.Workdir); err != nil {
+		if err = os.Chdir(task.Workdir); err != nil {
 			return err
 		}
 
-		process := NewProcess(path, args...)
+		process := NewProcess(task.Exec, task.Args...)
 
-		stdin := t.GetStdin()
-		stdout := t.GetStdout()
-		stderr := t.GetStderr()
-		environ := t.Environ
+		stdin := task.GetStdin()
+		stdout := task.GetStdout()
+		stderr := task.GetStderr()
+		environ := task.Environ
 
+		// binding stdin, stdout, stderr
 		process.SetStdin(stdin)
 		process.SetStdout(stdout)
 		process.SetStderr(stderr)
 		process.SetEnviron(environ)
 
-		processTask := NewProcessTask(process, t)
-		return p.StartProcessTask(processTask)
+		processTask := NewProcessTask(process, task)
+		return processTasks.StartProcessTask(processTask)
 	}
 
 	if workDir, err = nokocore.SetWorkingDir(workFunc); err != nil {
@@ -274,6 +266,24 @@ var mainTask = func(p *ProcessTasks, t *Config) error {
 	}
 
 	return nil
+}
+
+var mainTask = func(p *ProcessTasks, t *Config) error {
+	var err error
+	var args []string
+	var workDir nokocore.WorkingDirImpl
+	nokocore.KeepVoid(err, args, workDir)
+
+	// check if there are any command-line arguments provided.
+	// if none, return an error indicating the source root directory cannot be determined.
+	if len(os.Args) == 0 {
+		return errors.New("can't get source root dir")
+	}
+
+	t.Exec = os.Args[0]
+	t.Args = args
+
+	return runTask(p, t)
 }
 
 type ProcessTasks struct {
@@ -341,8 +351,7 @@ func (p *ProcessTasks) Wait() error {
 		nokocore.KeepVoid(i)
 
 		if state, err = process.Process.Wait(); err != nil {
-			fmt.Printf("[ERROR] task '%s' failed.\n", process.Task.Name)
-			fmt.Printf("[ERROR] %s\n", err.Error())
+			fmt.Printf("[ERROR] Task '%s' failed.\n", process.Task.Name)
 			return err
 		}
 
@@ -367,69 +376,36 @@ func (p *ProcessTasks) GetDependsOnProcessTask(task *Config) []*ProcessTask {
 	return temp
 }
 
-func makeProcessFromTask(processTasks *ProcessTasks, task *Config) error {
+func makeProcessFromTask(p *ProcessTasks, t *Config) error {
 	var err error
 	var workDir nokocore.WorkingDirImpl
 	nokocore.KeepVoid(err, workDir)
 
-	if processTasks.GetProcessTask(task.Name) != nil {
+	if p.GetProcessTask(t.Name) != nil {
 		return nil
 	}
 
-	fmt.Printf("[RUN] task '%s' started.\n", task.Name)
+	fmt.Printf("[RUN] Task '%s' started.\n", t.Name)
 
-	if strings.EqualFold(task.Name, "self") {
-		if err = processTasks.RunSelf(task); err != nil {
+	if strings.EqualFold(t.Name, "self") {
+		if err = p.RunSelf(t); err != nil {
 			return err
 		}
 		return nil
 	}
 
-	// try to dial url it-self
-	if task.Network != nil {
-		if nokocore.TryFetchUrl(task.Network.GetURL()) {
-			return nil
-		}
-	}
-
-	workFunc := func(workDir nokocore.WorkingDirImpl) error {
-		if err = os.Chdir(task.Workdir); err != nil {
-			return err
-		}
-
-		process := NewProcess(task.Exec, task.Args...)
-
-		stdin := task.GetStdin()
-		stdout := task.GetStdout()
-		stderr := task.GetStderr()
-		environ := task.Environ
-
-		// binding stdin, stdout, stderr
-		process.SetStdin(stdin)
-		process.SetStdout(stdout)
-		process.SetStderr(stderr)
-		process.SetEnviron(environ)
-
-		processTask := NewProcessTask(process, task)
-		return processTasks.StartProcessTask(processTask)
-	}
-
-	if workDir, err = nokocore.SetWorkingDir(workFunc); err != nil {
-		return err
-	}
-
-	return nil
+	return runTask(p, t)
 }
 
-func makeProcessFromTaskAsync(processTasks *ProcessTasks, task *Config, err chan<- error) {
-	err <- makeProcessFromTask(processTasks, task)
+func makeProcessFromTaskAsync(p *ProcessTasks, t *Config, err chan<- error) {
+	err <- makeProcessFromTask(p, t)
 }
 
-func waitRun(tasks *Tasks, processTasks *ProcessTasks, task *Config) error {
+func waitRun(tasks *Tasks, p *ProcessTasks, t *Config) error {
 	var err error
 	nokocore.KeepVoid(err)
 
-	for i, dependsOnTask := range tasks.GetDependsOnTask(task) {
+	for i, dependsOnTask := range tasks.GetDependsOnTask(t) {
 		nokocore.KeepVoid(i)
 
 		target := dependsOnTask.GetTask()
@@ -437,11 +413,11 @@ func waitRun(tasks *Tasks, processTasks *ProcessTasks, task *Config) error {
 		params := dependsOnTask.GetParams()
 
 		// Detect circular dependency between tasks
-		if strings.EqualFold(target.Name, task.Name) {
+		if strings.EqualFold(target.Name, t.Name) {
 			return errors.New("circular dependency detected")
 		}
 
-		if err = waitRun(tasks, processTasks, target); err != nil {
+		if err = waitRun(tasks, p, target); err != nil {
 			return err
 		}
 
@@ -456,15 +432,19 @@ func waitRun(tasks *Tasks, processTasks *ProcessTasks, task *Config) error {
 		}
 	}
 
-	return makeProcessFromTask(processTasks, task)
+	if err = makeProcessFromTask(p, t); err != nil {
+		fmt.Printf("[RUN] Task '%s' failed.\n", t.Name)
+		return err
+	}
+	return nil
 }
 
-func waitRunTask(tasks *Tasks, processTasks *ProcessTasks, task *Config) error {
+func waitRunTask(tasks *Tasks, p *ProcessTasks, t *Config) error {
 	var ok bool
 	var err error
 	nokocore.KeepVoid(ok, err)
 
-	dependsOnTasks := tasks.GetDependsOnTask(task)
+	dependsOnTasks := tasks.GetDependsOnTask(t)
 
 	for i, dependsOnTask := range dependsOnTasks {
 		nokocore.KeepVoid(i)
@@ -474,11 +454,11 @@ func waitRunTask(tasks *Tasks, processTasks *ProcessTasks, task *Config) error {
 		params := dependsOnTask.GetParams()
 
 		// detect circular dependency between tasks
-		if strings.EqualFold(target.Name, task.Name) {
+		if strings.EqualFold(target.Name, t.Name) {
 			return errors.New("circular dependency detected")
 		}
 
-		if err = waitRunTask(tasks, processTasks, target); err != nil {
+		if err = waitRunTask(tasks, p, target); err != nil {
 			return err
 		}
 
@@ -496,20 +476,19 @@ func waitRunTask(tasks *Tasks, processTasks *ProcessTasks, task *Config) error {
 	errorStack := make(chan error)
 	defer close(errorStack)
 
-	fmt.Printf("[RUN] task '%s' after all dependencies.\n", task.Name)
-	go makeProcessFromTaskAsync(processTasks, task, errorStack)
+	go makeProcessFromTaskAsync(p, t, errorStack)
 
 	for {
 		select {
 		case err, ok = <-errorStack:
 			if !ok {
+				fmt.Println("[WARN] Channel closed.")
 				return nil
 			}
 			if err != nil {
-				fmt.Printf("[RUN] task '%s' failed.\n", task.Name)
+				fmt.Printf("[RUN] Task '%s' failed.\n", t.Name)
 				return err
 			}
-			fmt.Printf("[RUN] task '%s' finished.\n\n", task.Name)
 			return nil
 		}
 	}

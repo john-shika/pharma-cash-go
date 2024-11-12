@@ -451,9 +451,7 @@ func PassPtrShikaObjectPropertyReflect(value any) ShikaObjectPropertyImpl {
 		case reflect.Struct:
 			// warning: ensure to use a proper pointer instead of a pseudo struct pointer.
 			// convert the interface value to ShikaObjectProperty and return its pointer.
-			fmt.Println("[WARN] must use a real pointer instead of a pseudo struct pointer.")
-			//temp := val.Interface().(ShikaObjectProperty)
-			//return &temp
+			fmt.Println("[WARN] Use a generic pointer instead of creating a new struct pointer with reflection.")
 			temp := MakePointerReflect(val)
 			return temp.Interface().(ShikaObjectPropertyImpl)
 

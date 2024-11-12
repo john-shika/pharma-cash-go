@@ -280,8 +280,12 @@ var mainTask = func(p *ProcessTasks, t *Config) error {
 		return errors.New("can't get source root dir")
 	}
 
+	// initial execute and arguments it-self
 	t.Exec = os.Args[0]
 	t.Args = args
+
+	// set value for NOKOWEBAPI_SELF_RUNNING env
+	t.Environ = append(t.Environ, "NOKOWEBAPI_SELF_RUNNING=1")
 
 	return runTask(p, t)
 }
@@ -307,7 +311,6 @@ func (p *ProcessTasks) RunSelf(task *Config) error {
 	var err error
 	nokocore.KeepVoid(err)
 
-	task.Environ = append(task.Environ, "NOKOWEBAPI_SELF_RUNNING=1")
 	if err = p.mainTask.Call(p, task); err != nil {
 		return err
 	}

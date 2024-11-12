@@ -232,7 +232,8 @@ var mainTask = func(p *ProcessTasks, t *Config) error {
 	var args []string
 	var workDir nokocore.WorkingDirImpl
 	nokocore.KeepVoid(err, args, workDir)
-	
+
+	// try to dial url it-self
 	if t.Network != nil {
 		if nokocore.TryFetchUrl(t.Network.GetURL()) {
 			return nil
@@ -382,6 +383,13 @@ func makeProcessFromTask(processTasks *ProcessTasks, task *Config) error {
 			return err
 		}
 		return nil
+	}
+
+	// try to dial url it-self
+	if task.Network != nil {
+		if nokocore.TryFetchUrl(task.Network.GetURL()) {
+			return nil
+		}
 	}
 
 	workFunc := func(workDir nokocore.WorkingDirImpl) error {

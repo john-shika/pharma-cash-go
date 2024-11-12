@@ -5,7 +5,6 @@ import (
 )
 
 type LoggerConfig struct {
-	Development       bool   `mapstructure:"development" json:"development" yaml:"development"`
 	Encoding          string `mapstructure:"encoding" json:"encoding" yaml:"encoding"`
 	Level             string `mapstructure:"level" json:"level" yaml:"level"`
 	StackTraceEnabled bool   `mapstructure:"stack_trace_enabled" json:"stackTraceEnabled" yaml:"stack_trace_enabled"`

@@ -48,6 +48,7 @@ func makeLogger() *zap.Logger {
 	var logger *zap.Logger
 	nokocore.KeepVoid(logger)
 
+	isDevelopment := globals.Globals().IsDevelopment()
 	loggerConfig := globals.Globals().GetLoggerConfig()
 	writerSyncer := NewWriterSyncer(xterm.Stdout)
 	level := loggerConfig.GetLevel()
@@ -63,7 +64,7 @@ func makeLogger() *zap.Logger {
 
 	options = append(options, zap.IncreaseLevel(level))
 
-	if loggerConfig.Development {
+	if isDevelopment {
 		encoderConfig := zap.NewProductionEncoderConfig()
 		encoder := loggerConfig.GetEncoder(encoderConfig)
 		core := zapcore.NewCore(encoder, writerSyncer, level)

@@ -57,7 +57,7 @@ func TryFetchUrl(URL *url.URL) bool {
 func TryFetchUrlWaitForAlive(URL *url.URL, n int, duration time.Duration) bool {
 	for i := 0; i < n; i++ {
 		j := i + 1
-		fmt.Printf("-> try fetch URL = %s, %d times\n", URL.String(), j)
+		fmt.Printf("[FETCH] Attempting to dial URL: %s. (attemp=%d)\n", URL.String(), j)
 		if TryFetchUrl(URL) {
 			return true
 		}

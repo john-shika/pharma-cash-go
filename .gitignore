@@ -1,4 +1,5 @@
 .idea/
+*~
 *.exe
 *.exe~
 *.dll
@@ -8,5 +9,6 @@
 *.out
 go.work
 go.work.sum
-!nokowebapi.yaml
+nokowebapi.yaml
+!nokowebapi.yaml.example
 example.sqlite3

@@ -1,12 +1,12 @@
 package app
 
 import (
-	"fmt"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/net/http2"
 	"nokowebapi/apis/middlewares"
+	"nokowebapi/console"
+	"nokowebapi/globals"
 	"nokowebapi/nokocore"
-	"os"
 	"time"
 )
 
@@ -43,10 +43,15 @@ func Main(args []string) nokocore.ExitCode {
 		MaxReadFrameSize:     16384,
 		IdleTimeout:          10 * time.Second,
 	}
-	
-	fmt.Println("Current working directory:", nokocore.Unwrap(os.Getwd()))
 
-	nokocore.NoErr(e.StartH2CServer(":8080", h2s))
+	if taskConfig := globals.Globals().GetTasks().GetTask("self"); taskConfig != nil {
+		if taskConfig.Network != nil {
+			host := taskConfig.Network.GetHost()
+			nokocore.NoErr(e.StartH2CServer(host, h2s))
+			return nokocore.ExitCodeSuccess
+		}
+	}
 
-	return nokocore.ExitCodeSuccess
+	console.Error("failed to start server.")
+	return nokocore.ExitCodeFailure
 }

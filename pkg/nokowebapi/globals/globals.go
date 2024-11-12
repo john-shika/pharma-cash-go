@@ -27,7 +27,6 @@ var defaultConfig = nokocore.MapAny{
 		"expires_in": "1h",
 	},
 	"logger": nokocore.MapAny{
-		"development":         true,
 		"level":               "debug",
 		"encoding":            "console",
 		"stack_trace_enabled": true,

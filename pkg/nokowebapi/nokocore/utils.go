@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 )
 
 func HexEncodeToString(data []byte) string {
@@ -123,11 +125,75 @@ func GetNameType(obj any) string {
 	return GetNameTypeReflect(obj)
 }
 
-func ParseEnvBool(value string) bool {
+func ParseEnvToBool(value string) bool {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "1", "y", "yes", "true":
 		return true
 	default:
 		return false
 	}
+}
+
+func ParseEnvToInt(value string) int64 {
+	var err error
+	var val int64
+	KeepVoid(err, val)
+
+	if val, err = strconv.ParseInt(value, 10, 64); err != nil {
+		return 0
+	}
+
+	return val
+}
+
+func ParseEnvToUint(value string) uint64 {
+	var err error
+	var val uint64
+	KeepVoid(err, val)
+
+	if val, err = strconv.ParseUint(value, 10, 64); err != nil {
+		return 0
+	}
+
+	return val
+}
+
+func ParseEnvToFloat(value string) float64 {
+	var err error
+	var val float64
+	KeepVoid(err, val)
+
+	if val, err = strconv.ParseFloat(value, 64); err != nil {
+		return 0
+	}
+
+	return val
+}
+
+func ParseEnvToComplex(value string) complex128 {
+	var err error
+	var val complex128
+	KeepVoid(err, val)
+
+	if val, err = strconv.ParseComplex(value, 128); err != nil {
+		return 0
+	}
+
+	return val
+}
+
+func ParseEnvToString(value string) string {
+	return strings.TrimSpace(value)
+}
+
+func ParseEnvToDuration(value string) time.Duration {
+	var err error
+	var val time.Duration
+	KeepVoid(err, val)
+
+	if val, err = time.ParseDuration(value); err != nil {
+		return 0
+	}
+
+	return val
 }

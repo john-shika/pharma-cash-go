@@ -46,60 +46,88 @@ func (shikaObjectDataTypeKind ShikaObjectDataTypeKind) ToString() string {
 	switch shikaObjectDataTypeKind {
 	case ShikaObjectDataTypeUndefined:
 		return "undefined"
+
 	case ShikaObjectDataTypeNull:
 		return "null"
+
 	case ShikaObjectDataTypeBool:
 		return "bool"
+
 	case ShikaObjectDataTypeInt:
 		return "int"
+
 	case ShikaObjectDataTypeUint:
 		return "uint"
+
 	case ShikaObjectDataTypeInt8:
 		return "int8"
+
 	case ShikaObjectDataTypeUint8:
 		return "uint8"
+
 	case ShikaObjectDataTypeInt16:
 		return "int16"
+
 	case ShikaObjectDataTypeUint16:
 		return "uint16"
+
 	case ShikaObjectDataTypeInt32:
 		return "int32"
+
 	case ShikaObjectDataTypeUint32:
 		return "uint32"
+
 	case ShikaObjectDataTypeInt64:
 		return "int64"
+
 	case ShikaObjectDataTypeUint64:
 		return "uint64"
+
 	case ShikaObjectDataTypeFloat:
 		return "float"
+
 	case ShikaObjectDataTypeFloat32:
 		return "float32"
+
 	case ShikaObjectDataTypeFloat64:
 		return "float64"
+
 	case ShikaObjectDataTypeComplex64:
 		return "complex64"
+
 	case ShikaObjectDataTypeComplex128:
 		return "complex128"
+
 	case ShikaObjectDataTypeString:
 		return "string"
+
 	case ShikaObjectDataTypeArray:
 		return "array"
+
 	case ShikaObjectDataTypeObject:
 		return "object"
+
 	case ShikaObjectDataTypeNamespace:
 		return "namespace"
+
 	case ShikaObjectDataTypeInterface:
 		return "interface"
+
 	case ShikaObjectDataTypeStruct:
 		return "struct"
+
 	case ShikaObjectDataTypeClass:
 		return "class"
+
 	case ShikaObjectDataTypeFunction:
 		return "function"
+
 	case ShikaObjectDataTypeAttribute:
 		return "attribute"
+
 	case ShikaObjectDataTypeTime:
 		return "time"
+
 	default:
 		return "unknown"
 	}
@@ -360,7 +388,12 @@ func (shikaVarObject *ShikaVarObject) RemovePropertyByName(name string) {
 
 		if shikaVarObj.GetName() == name {
 			j := i + 1
-			shikaVarObject.Properties = append(shikaVarObject.Properties[:i], shikaVarObject.Properties[j:]...)
+			if j <= len(shikaVarObject.Properties) {
+				temp := shikaVarObject.Properties[j:]
+				shikaVarObject.Properties = append(shikaVarObject.Properties[:i], temp...)
+				return
+			}
+			shikaVarObject.Properties = shikaVarObject.Properties[:i]
 			return
 		}
 	}
@@ -433,7 +466,12 @@ func (shikaVarObject *ShikaVarObject) RemoveAttributeByName(name string) {
 
 		if shikaObjAttr.GetName() == name {
 			j := i + 1
-			shikaVarObject.Attributes = append(shikaVarObject.Attributes[:i], shikaVarObject.Attributes[j:]...)
+			if j <= len(shikaVarObject.Attributes) {
+				temp := shikaVarObject.Attributes[j:]
+				shikaVarObject.Attributes = append(shikaVarObject.Attributes[:i], temp...)
+				return
+			}
+			shikaVarObject.Attributes = shikaVarObject.Attributes[:i]
 			return
 		}
 	}
@@ -448,6 +486,7 @@ func PassPtrShikaObjectPropertyReflect(value any) ShikaObjectPropertyImpl {
 		switch val.Kind() {
 		case reflect.Pointer:
 			return val.Interface().(ShikaObjectPropertyImpl)
+
 		case reflect.Struct:
 			// warning: ensure to use a proper pointer instead of a pseudo struct pointer.
 			// convert the interface value to ShikaObjectProperty and return its pointer.
@@ -459,6 +498,7 @@ func PassPtrShikaObjectPropertyReflect(value any) ShikaObjectPropertyImpl {
 			panic("invalid type")
 		}
 	}
+
 	return nil
 }
 
@@ -466,35 +506,38 @@ func GetShikaObjectProperty(obj any) ShikaObjectPropertyImpl {
 	if obj == nil {
 		return NewShikaObjectProperty(nil, ShikaObjectDataTypeNull)
 	}
+
 	if val, ok := obj.(StringableImpl); ok {
 		return NewShikaObjectProperty(val.ToString(), ShikaObjectDataTypeString)
 	}
+
 	val := PassValueIndirectReflect(obj)
 	if !val.IsValid() {
 		return NewShikaObjectProperty(nil, ShikaObjectDataTypeNull)
 	}
+
 	switch val.Kind() {
 	case reflect.Bool:
-		v := val.Bool()
-		return NewShikaObjectProperty(v, ShikaObjectDataTypeBool)
+		return NewShikaObjectProperty(val.Bool(), ShikaObjectDataTypeBool)
+
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		v := val.Int()
-		return NewShikaObjectProperty(v, ShikaObjectDataTypeInt64)
+		return NewShikaObjectProperty(val.Int(), ShikaObjectDataTypeInt64)
+
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		v := val.Uint()
-		return NewShikaObjectProperty(v, ShikaObjectDataTypeUint64)
+		return NewShikaObjectProperty(val.Uint(), ShikaObjectDataTypeUint64)
+
 	case reflect.Uintptr:
-		v := Unwrap(Cast[uintptr](val.Interface()))
-		return NewShikaObjectProperty(v, ShikaObjectDataTypeUintptr)
+		return NewShikaObjectProperty(val.Uint(), ShikaObjectDataTypeUintptr)
+
 	case reflect.Float32, reflect.Float64:
-		v := val.Float()
-		return NewShikaObjectProperty(v, ShikaObjectDataTypeFloat64)
+		return NewShikaObjectProperty(val.Float(), ShikaObjectDataTypeFloat64)
+
 	case reflect.Complex64, reflect.Complex128:
-		v := val.Complex()
-		return NewShikaObjectProperty(v, ShikaObjectDataTypeComplex128)
+		return NewShikaObjectProperty(val.Complex(), ShikaObjectDataTypeComplex128)
+
 	case reflect.String:
-		v := val.String()
-		return NewShikaObjectProperty(v, ShikaObjectDataTypeString)
+		return NewShikaObjectProperty(val.String(), ShikaObjectDataTypeString)
+
 	case reflect.Struct:
 
 		// ensure to use a proper pointer instead of a pseudo struct pointer.
@@ -509,18 +552,21 @@ func GetShikaObjectProperty(obj any) ShikaObjectPropertyImpl {
 		temp := make([]ShikaVarObjectImpl, 0)
 
 		// create foreach struct fields options
-		options := NewForEachStructFieldsOptions()
-		options.Matched = true
+		options := &ForEachStructFieldsOptions{
+			Validation: true,
+		}
 
 		// get struct fields
-		ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExpandedImpl) {
+		NoErr(ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExpandedImpl) error {
 			shikaVarObject := NewShikaVarObject(name)
 			shikaObjectProperty := GetShikaObjectProperty(sFieldX.Interface())
 			shikaVarObject.SetOwnProperty(shikaObjectProperty)
 			temp = append(temp, shikaVarObject)
-		})
+			return nil
+		}))
 
 		return NewShikaObjectProperty(temp, ShikaObjectDataTypeObject)
+
 	case reflect.Array, reflect.Slice:
 		size := val.Len()
 		values := make([]ShikaObjectPropertyImpl, size)
@@ -529,6 +575,7 @@ func GetShikaObjectProperty(obj any) ShikaObjectPropertyImpl {
 			values[i] = GetShikaObjectProperty(elem)
 		}
 		return NewShikaObjectProperty(values, ShikaObjectDataTypeArray)
+
 	case reflect.Map:
 		size := val.Len()
 		iter := val.MapRange()
@@ -541,6 +588,7 @@ func GetShikaObjectProperty(obj any) ShikaObjectPropertyImpl {
 			values[i] = temp
 		}
 		return NewShikaObjectProperty(values, ShikaObjectDataTypeObject)
+
 	default:
 		return NewShikaObjectProperty(nil, ShikaObjectDataTypeUndefined)
 	}
@@ -563,8 +611,10 @@ func shikaJsonEncodeIndentPermutate(shikaObjectProperty ShikaObjectPropertyImpl,
 	switch shikaObjectProperty.GetKind() {
 	case ShikaObjectDataTypeUndefined:
 		return "undefined"
+
 	case ShikaObjectDataTypeNull:
 		return "null"
+
 	case ShikaObjectDataTypeBool:
 		v := Unwrap(Cast[bool](shikaObjectProperty.GetValue()))
 		return strconv.FormatBool(v)
@@ -573,6 +623,7 @@ func shikaJsonEncodeIndentPermutate(shikaObjectProperty ShikaObjectPropertyImpl,
 		// TODO: not implemented yet
 		v := Unwrap(Cast[int](shikaObjectProperty.GetValue()))
 		return strconv.FormatInt(int64(v), 10)
+
 	case ShikaObjectDataTypeUint:
 		// TODO: not implemented yet
 		v := Unwrap(Cast[uint](shikaObjectProperty.GetValue()))
@@ -581,27 +632,35 @@ func shikaJsonEncodeIndentPermutate(shikaObjectProperty ShikaObjectPropertyImpl,
 	case ShikaObjectDataTypeInt8:
 		v := Unwrap(Cast[int8](shikaObjectProperty.GetValue()))
 		return strconv.FormatInt(int64(v), 10)
+
 	case ShikaObjectDataTypeUint8:
 		v := Unwrap(Cast[uint8](shikaObjectProperty.GetValue()))
 		return strconv.FormatUint(uint64(v), 10)
+
 	case ShikaObjectDataTypeInt16:
 		v := Unwrap(Cast[int16](shikaObjectProperty.GetValue()))
 		return strconv.FormatInt(int64(v), 10)
+
 	case ShikaObjectDataTypeUint16:
 		v := Unwrap(Cast[uint16](shikaObjectProperty.GetValue()))
 		return strconv.FormatUint(uint64(v), 10)
+
 	case ShikaObjectDataTypeInt32:
 		v := Unwrap(Cast[int32](shikaObjectProperty.GetValue()))
 		return strconv.FormatInt(int64(v), 10)
+
 	case ShikaObjectDataTypeUint32:
 		v := Unwrap(Cast[uint32](shikaObjectProperty.GetValue()))
 		return strconv.FormatUint(uint64(v), 10)
+
 	case ShikaObjectDataTypeInt64:
 		v := Unwrap(Cast[int64](shikaObjectProperty.GetValue()))
 		return strconv.FormatInt(v, 10)
+
 	case ShikaObjectDataTypeUint64:
 		v := Unwrap(Cast[uint64](shikaObjectProperty.GetValue()))
 		return strconv.FormatUint(v, 10)
+
 	case ShikaObjectDataTypeUintptr:
 		v := Unwrap(Cast[uintptr](shikaObjectProperty.GetValue()))
 		return strconv.Quote(ToStringReflect(v))
@@ -614,18 +673,23 @@ func shikaJsonEncodeIndentPermutate(shikaObjectProperty ShikaObjectPropertyImpl,
 	case ShikaObjectDataTypeFloat32:
 		v := Unwrap(Cast[float32](shikaObjectProperty.GetValue()))
 		return strconv.FormatFloat(float64(v), 'f', -1, 32)
+
 	case ShikaObjectDataTypeFloat64:
 		v := Unwrap(Cast[float64](shikaObjectProperty.GetValue()))
 		return strconv.FormatFloat(v, 'f', -1, 64)
+
 	case ShikaObjectDataTypeComplex64:
 		v := Unwrap(Cast[complex64](shikaObjectProperty.GetValue()))
 		return strconv.FormatComplex(complex128(v), 'f', -1, 64)
+
 	case ShikaObjectDataTypeComplex128:
 		v := Unwrap(Cast[complex128](shikaObjectProperty.GetValue()))
 		return strconv.FormatComplex(v, 'f', -1, 128)
+
 	case ShikaObjectDataTypeString:
 		v := Unwrap(Cast[string](shikaObjectProperty.GetValue()))
 		return strconv.Quote(v)
+
 	case ShikaObjectDataTypeArray:
 		shikaObjectProperties := Unwrap(Cast[[]ShikaObjectPropertyImpl](shikaObjectProperty.GetValue()))
 		size := len(shikaObjectProperties)
@@ -643,6 +707,7 @@ func shikaJsonEncodeIndentPermutate(shikaObjectProperty ShikaObjectPropertyImpl,
 			return "[\n" + strings.Join(values, ",\n") + "\n" + whiteSpaceStart + "]"
 		}
 		return "[]"
+
 	case ShikaObjectDataTypeObject:
 		shikaVarObjects := Unwrap(Cast[[]ShikaVarObjectImpl](shikaObjectProperty.GetValue()))
 		size := len(shikaVarObjects)
@@ -657,12 +722,14 @@ func shikaJsonEncodeIndentPermutate(shikaObjectProperty ShikaObjectPropertyImpl,
 			return "{\n" + strings.Join(values, ",\n") + "\n" + whiteSpaceStart + "}"
 		}
 		return "{}"
+
 	case ShikaObjectDataTypeTime:
 		if t, err = GetTimeUtcISO8601(shikaObjectProperty.GetValue()); err != nil {
 			return "undefined"
 		}
 		v := ToTimeUtcStringISO8601(t)
 		return strconv.Quote(v)
+
 	default:
 		return "undefined"
 	}
@@ -699,8 +766,10 @@ func shikaYamlEncodeIndentPermutate(shikaObjectProperty ShikaObjectPropertyImpl,
 	switch shikaObjectProperty.GetKind() {
 	case ShikaObjectDataTypeUndefined:
 		return "undefined"
+
 	case ShikaObjectDataTypeNull:
 		return "null"
+
 	case ShikaObjectDataTypeBool:
 		v := Unwrap(Cast[bool](shikaObjectProperty.GetValue()))
 		return strconv.FormatBool(v)
@@ -709,6 +778,7 @@ func shikaYamlEncodeIndentPermutate(shikaObjectProperty ShikaObjectPropertyImpl,
 		// TODO: not implemented yet
 		v := Unwrap(Cast[int](shikaObjectProperty.GetValue()))
 		return strconv.FormatInt(int64(v), 10)
+
 	case ShikaObjectDataTypeUint:
 		// TODO: not implemented yet
 		v := Unwrap(Cast[uint](shikaObjectProperty.GetValue()))
@@ -717,27 +787,35 @@ func shikaYamlEncodeIndentPermutate(shikaObjectProperty ShikaObjectPropertyImpl,
 	case ShikaObjectDataTypeInt8:
 		v := Unwrap(Cast[int8](shikaObjectProperty.GetValue()))
 		return strconv.FormatInt(int64(v), 10)
+
 	case ShikaObjectDataTypeUint8:
 		v := Unwrap(Cast[uint8](shikaObjectProperty.GetValue()))
 		return strconv.FormatUint(uint64(v), 10)
+
 	case ShikaObjectDataTypeInt16:
 		v := Unwrap(Cast[int16](shikaObjectProperty.GetValue()))
 		return strconv.FormatInt(int64(v), 10)
+
 	case ShikaObjectDataTypeUint16:
 		v := Unwrap(Cast[uint16](shikaObjectProperty.GetValue()))
 		return strconv.FormatUint(uint64(v), 10)
+
 	case ShikaObjectDataTypeInt32:
 		v := Unwrap(Cast[int32](shikaObjectProperty.GetValue()))
 		return strconv.FormatInt(int64(v), 10)
+
 	case ShikaObjectDataTypeUint32:
 		v := Unwrap(Cast[uint32](shikaObjectProperty.GetValue()))
 		return strconv.FormatUint(uint64(v), 10)
+
 	case ShikaObjectDataTypeInt64:
 		v := Unwrap(Cast[int64](shikaObjectProperty.GetValue()))
 		return strconv.FormatInt(v, 10)
+
 	case ShikaObjectDataTypeUint64:
 		v := Unwrap(Cast[uint64](shikaObjectProperty.GetValue()))
 		return strconv.FormatUint(v, 10)
+
 	case ShikaObjectDataTypeUintptr:
 		v := Unwrap(Cast[uintptr](shikaObjectProperty.GetValue()))
 		return strconv.Quote(ToStringReflect(v))
@@ -750,18 +828,23 @@ func shikaYamlEncodeIndentPermutate(shikaObjectProperty ShikaObjectPropertyImpl,
 	case ShikaObjectDataTypeFloat32:
 		v := Unwrap(Cast[float32](shikaObjectProperty.GetValue()))
 		return strconv.FormatFloat(float64(v), 'f', -1, 32)
+
 	case ShikaObjectDataTypeFloat64:
 		v := Unwrap(Cast[float64](shikaObjectProperty.GetValue()))
 		return strconv.FormatFloat(v, 'f', -1, 64)
+
 	case ShikaObjectDataTypeComplex64:
 		v := Unwrap(Cast[complex64](shikaObjectProperty.GetValue()))
 		return strconv.FormatComplex(complex128(v), 'f', -1, 64)
+
 	case ShikaObjectDataTypeComplex128:
 		v := Unwrap(Cast[complex128](shikaObjectProperty.GetValue()))
 		return strconv.FormatComplex(v, 'f', -1, 128)
+
 	case ShikaObjectDataTypeString:
 		v := Unwrap(Cast[string](shikaObjectProperty.GetValue()))
 		return strconv.Quote(v)
+
 	case ShikaObjectDataTypeArray:
 
 		// modified white space for indentation string
@@ -795,6 +878,7 @@ func shikaYamlEncodeIndentPermutate(shikaObjectProperty ShikaObjectPropertyImpl,
 			return header + strings.Join(values, "\n")
 		}
 		return "[]"
+
 	case ShikaObjectDataTypeObject:
 		shikaVarObjects := Unwrap(Cast[[]ShikaVarObjectImpl](shikaObjectProperty.GetValue()))
 		size := len(shikaVarObjects)
@@ -809,12 +893,14 @@ func shikaYamlEncodeIndentPermutate(shikaObjectProperty ShikaObjectPropertyImpl,
 			return header + strings.Join(values, "\n")
 		}
 		return "{}"
+
 	case ShikaObjectDataTypeTime:
 		if t, err = GetTimeUtcISO8601(shikaObjectProperty.GetValue()); err != nil {
 			return "undefined"
 		}
 		v := ToTimeUtcStringISO8601(t)
 		return strconv.Quote(v)
+
 	default:
 		return "undefined"
 	}

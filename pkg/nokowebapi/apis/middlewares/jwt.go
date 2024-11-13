@@ -20,8 +20,10 @@ func JWTAuth(db *gorm.DB) echo.MiddlewareFunc {
 			nokocore.KeepVoid(err, token, jwtToken, session)
 
 			// don't panic
-			defer nokocore.HandlePanic()
-			nokocore.NoErr(extras.NewMessageBodyUnauthorized(ctx, "Recovery.", nil))
+			defer nokocore.HandlePanic(func(err error) {
+				nokocore.NoErr(extras.NewMessageBodyUnauthorized(ctx, "Recovery.", nil))
+				nokocore.KeepVoid(err)
+			})
 
 			if token, err = extras.GetJwtTokenFromEchoContext(ctx); err != nil {
 				return extras.NewMessageBodyUnauthorized(ctx, err.Error(), nil)

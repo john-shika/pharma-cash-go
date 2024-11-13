@@ -9,8 +9,8 @@ import (
 )
 
 // WARN: except 'nokowebapi' will be overwritten.
-var defaultConfig = nokocore.MapAny{
-	"nokowebapi": nokocore.MapAny{
+var defaultConfig = &nokocore.MapAny{
+	"nokowebapi": &nokocore.MapAny{
 		"name":        "nokowebapi",
 		"description": "Nokotan Backend Web API",
 		"version":     "v1.0.0-dev",
@@ -20,22 +20,24 @@ var defaultConfig = nokocore.MapAny{
 		"license":     "Apache-2.0",
 		"production":  false,
 	},
-	"jwt": nokocore.MapAny{
+	"jwt": &nokocore.MapAny{
 		"algorithm": "HS256",
-		"audience": nokocore.ArrayStr{
-			"your-audience",
+		"audience": &nokocore.ArrayStr{
+			"your-audience-1",
+			"your-audience-2",
+			"your-audience-3",
 		},
 		"issuer":     "your-issuer",
 		"secret_key": "your-super-secret-key-keep-it-mind-dont-tell-anyone",
 		"expires_in": "1h",
 	},
-	"logger": nokocore.MapAny{
+	"logger": &nokocore.MapAny{
 		"level":               "debug",
 		"encoding":            "console",
 		"stack_trace_enabled": true,
 		"colorable":           true,
 	},
-	"tasks": nokocore.ArrayAny{},
+	"tasks": &nokocore.ArrayAny{},
 }
 
 func getNameKeyType[T any]() string {
@@ -59,6 +61,8 @@ type ConfigImpl interface {
 	Keys() []string
 	Values() []any
 	Get(key string) any
+	Set(key string, value any) bool
+	Del(key string) bool
 }
 
 type Config struct {
@@ -125,6 +129,14 @@ func (c *Config) Get(key string) any {
 	return defaultConfig.Get(key)
 }
 
+func (c *Config) Set(key string, value any) bool {
+	return defaultConfig.Set(key, value)
+}
+
+func (c *Config) Del(key string) bool {
+	return defaultConfig.Del(key)
+}
+
 var globals = NewConfig()
 
 func IsDevelopment() bool {
@@ -155,6 +167,14 @@ func Get(key string) any {
 	return globals.Get(key)
 }
 
+func Set(key string, value any) bool {
+	return globals.Set(key, value)
+}
+
+func Del(key string) bool {
+	return globals.Del(key)
+}
+
 func ViperConfigUnmarshal[T any]() (*T, error) {
 	var err error
 	nokocore.KeepVoid(err)
@@ -174,9 +194,8 @@ func GetConfigGlobals[T any]() *T {
 	nokocore.KeepVoid(err)
 
 	config := new(T)
-
-	key := getNameKey(config)
-	locals := defaultConfig.Get(key)
+	keyName := getNameKey(config)
+	locals := defaultConfig.Get(keyName)
 
 	if config, err = ViperConfigUnmarshal[T](); err != nil {
 		panic("failed to unmarshal viper config")
@@ -185,7 +204,7 @@ func GetConfigGlobals[T any]() *T {
 	// TODO: Implement support for array, slice.
 	// TODO: Implement support for setting values in nested maps within nested structs.
 	//options := nokocore.NewForEachStructFieldsOptions()
-	//options.Matched = false
+	//options.Validation = false
 
 	//nokocore.ForEachStructFieldsReflect(config, options, func(name string, sFieldX nokocore.StructFieldExpandedImpl) {
 	//	if sFieldX.IsZero() {
@@ -199,7 +218,7 @@ func GetConfigGlobals[T any]() *T {
 
 	//nokocore.NoErr(mapstructure.Decode(locals, config))
 	nokocore.NoErr(mapstructure.Decode(config, &locals))
-	defaultConfig.Set(key, locals)
+	defaultConfig.Set(keyName, locals)
 
 	return config
 }

@@ -29,7 +29,7 @@ func main() {
 
 	if nokoWebApiSelfRunEnv, ok = os.LookupEnv("NOKOWEBAPI_SELF_RUNNING"); ok {
 		nokocore.NoErr(os.Setenv("NOKOWEBAPI_SELF_RUNNING", "1"))
-		if nokocore.ParseEnvBool(nokoWebApiSelfRunEnv) {
+		if nokocore.ParseEnvToBool(nokoWebApiSelfRunEnv) {
 			nokocore.ApplyMainFunc(app.Main)
 			return
 		}

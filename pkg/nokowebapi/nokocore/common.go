@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"io"
-	"strconv"
 	"strings"
 	"sync"
 )
@@ -156,15 +155,24 @@ func Unwrap2[T1, T2 any, E ErrOrOkImpl](value1 T1, value2 T2, eOk E) (T1, T2) {
 	return value1, value2
 }
 
-func HandlePanic() {
+func HandlePanic(handler func(error)) {
 	if err := recover(); err != nil {
 		switch val := err.(type) {
 		case error:
 			fmt.Printf("[RECOVERY] Panic: %s\n", val.Error())
+			if handler != nil {
+				handler(val)
+			}
 		case string:
 			fmt.Printf("[RECOVERY] Panic: %s\n", val)
+			if handler != nil {
+				handler(errors.New(val))
+			}
 		default:
 			fmt.Println("[RECOVERY] Panic.")
+			if handler != nil {
+				handler(errors.New("recovery"))
+			}
 		}
 	}
 }
@@ -183,9 +191,11 @@ type MapImpl[T any] interface {
 	Values() []T
 	HasKey(key string) bool
 	ContainKeys(keys ...string) bool
+	GetVal(key string) T
 	Get(key string) any
+	SetVal(key string, value T) bool
 	Set(key string, value any) bool
-	delVal(key string) bool
+	DelVal(key string) bool
 	Del(key string) bool
 }
 
@@ -251,136 +261,28 @@ func (m Map[T]) ContainKeys(keys ...string) bool {
 	return true
 }
 
-func (m Map[T]) getVal(key string) T {
-	var ok bool
-	var value T
-	KeepVoid(ok, value)
-
-	if value, ok = m[key]; !ok {
-		return Default[T]()
-	}
-	return value
+func (m Map[T]) GetVal(key string) T {
+	return GetMapValue(m, key)
 }
 
 func (m Map[T]) Get(key string) any {
-	tokens := strings.Split(strings.Trim(key, "."), ".")
-	if len(tokens) == 0 {
-		panic("invalid key")
-	}
-
-	var ok bool
-	var err error
-	var idx int
-	var temp any
-	KeepVoid(ok, idx, temp)
-
-	temp = m
-	for i, token := range tokens {
-		KeepVoid(i)
-
-		// find by key name
-		if idx, err = strconv.Atoi(token); err != nil {
-			temp = Unwrap(Cast[MapAny](temp)).getVal(token)
-			continue
-		}
-
-		// find by index
-		temp = Unwrap(Cast[ArrayAny](temp)).At(idx)
-	}
-
-	return temp
+	return GetMapValueWithSuperKeyReflect(m, key)
 }
 
-func (m Map[T]) setVal(key string, value T) bool {
-	m[key] = value
-	return true
+func (m Map[T]) SetVal(key string, value T) bool {
+	return SetMapValue(m, key, value)
 }
 
 func (m Map[T]) Set(key string, value any) bool {
-	tokens := strings.Split(strings.Trim(key, "."), ".")
-	if len(tokens) == 0 {
-		panic("invalid key")
-	}
-
-	var ok bool
-	var err error
-	var idx int
-	var temp any
-	KeepVoid(ok, idx, temp)
-
-	n := len(tokens)
-
-	temp = m
-	for i, token := range tokens {
-		KeepVoid(i)
-
-		// find by key name
-		if idx, err = strconv.Atoi(token); err != nil {
-			if n == i+1 {
-				return Unwrap(Cast[MapAny](temp)).setVal(token, value)
-			}
-			temp = Unwrap(Cast[MapAny](temp)).getVal(token)
-			continue
-		}
-
-		// find by index
-		if n == i+1 {
-			return Unwrap(Cast[ArrayAny](temp)).Set(idx, value)
-		}
-		temp = Unwrap(Cast[ArrayAny](temp)).At(idx)
-	}
-
-	return false
+	return SetMapValueWithSuperKeyReflect(m, key, value)
 }
 
-func (m Map[T]) delVal(key string) bool {
-	var ok bool
-	var temp T
-	KeepVoid(ok, temp)
-
-	if temp, ok = m[key]; !ok {
-		return false
-	}
-
-	delete(m, key)
-	return true
+func (m Map[T]) DelVal(key string) bool {
+	return DeleteMapValue(m, key)
 }
 
 func (m Map[T]) Del(key string) bool {
-	tokens := strings.Split(strings.Trim(key, "."), ".")
-	if len(tokens) == 0 {
-		panic("invalid key")
-	}
-
-	var ok bool
-	var err error
-	var idx int
-	var temp any
-	KeepVoid(ok, idx, temp)
-
-	n := len(tokens)
-
-	temp = m
-	for i, token := range tokens {
-		KeepVoid(i)
-
-		// find by key name
-		if idx, err = strconv.Atoi(token); err != nil {
-			if n == i+1 {
-				return Unwrap(Cast[MapAny](temp)).delVal(token)
-			}
-			temp = Unwrap(Cast[MapAny](temp)).getVal(token)
-			continue
-		}
-
-		// find by index
-		if n == i+1 {
-			return Unwrap(Cast[ArrayAny](temp)).Del(idx)
-		}
-		temp = Unwrap(Cast[ArrayAny](temp)).At(idx)
-	}
-
-	return false
+	return DeleteMapValueWithSuperKeyReflect(m, key)
 }
 
 // TODO: not implemented yet
@@ -416,7 +318,7 @@ func (a Array[T]) Set(index int, value T) bool {
 }
 
 func (a Array[T]) Del(index int) bool {
-	fmt.Println("[WARN] Array deletion for slices is not supported. Use a dynamic array collections instead.")
+	fmt.Println("[WARN] Array element deletion unsupported. Use a DeleteArrayItem instead.")
 	KeepVoid(index)
 	return false
 }

@@ -8,8 +8,8 @@ type Exception struct {
 	error
 }
 
-func (e Exception) GetName() string {
-	return "exception"
+func (e Exception) GetNameType() string {
+	return "Exception"
 }
 
 func NewThrow(message string, err error, more ...error) error {

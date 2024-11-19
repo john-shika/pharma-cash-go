@@ -70,10 +70,11 @@ func TestConfig(t *testing.T) {
 			Age      int       `mapstructure:"age"`
 			Gender   string    `mapstructure:"gender"`
 			Birthday time.Time `mapstructure:"birthday"`
+			Address  []string  `mapstructure:"address"`
 		}
 
 		type Family struct {
-			Members []Person `mapstructure:"members"`
+			Members []*Person `mapstructure:"members"`
 		}
 
 		family := &Family{}
@@ -98,5 +99,24 @@ func TestConfig(t *testing.T) {
 		}))
 
 		console.Dir(temp)
+
+		fmt.Println(nokocore.GetValueWithSuperKeyReflect(temp, "family.members.0.name"))
+		fmt.Println(nokocore.GetValueWithSuperKeyReflect(temp, "family.members.0.age.uint"))
+
+		fmt.Println(nokocore.GetValueWithSuperKeyReflect(temp, "family.members.0"))
+
+		nokocore.NoErr(nokocore.SetValueReflect(nokocore.GetValueWithSuperKeyReflect(temp, "family.members.0"), map[string]any{
+			"age": 31,
+			"address": &[]string{
+				"street 1",
+				"street 2",
+			},
+		}))
+
+		fmt.Println(nokocore.GetValueWithSuperKeyReflect(temp, "family.members.0"))
+
+		nokocore.NoErr(nokocore.SetValueReflect(nokocore.GetValueWithSuperKeyReflect2(temp, "family.members"), []any{}))
+
+		fmt.Println(nokocore.GetValueWithSuperKeyReflect(temp, "family.members"))
 	}()
 }

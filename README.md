@@ -25,9 +25,11 @@ go get -u // update all go packages
 
 ### Windows Problems
 
-- Install [TDM-GCC](https://jmeubank.github.io/tdm-gcc/) or [MinGW-X64](https://www.mingw-w64.org)
+- Install [MSYS2](https://www.msys2.org/) / [MinGW-X64](https://www.mingw-w64.org)
 
 ```powershell
-$env:CGO_ENABLED=1
-$env:CC="toolchains/mingw/bin/gcc"
+mingw64
+
+export CGO_ENABLED="1"
+export CC="$(which gcc)"
 ```

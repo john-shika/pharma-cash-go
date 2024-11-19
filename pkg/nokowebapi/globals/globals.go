@@ -57,7 +57,7 @@ type ConfigImpl interface {
 	IsDevelopment() bool
 	GetJwtConfig() *nokocore.JwtConfig
 	GetLoggerConfig() *nokocore.LoggerConfig
-	GetTasks() *task.Tasks
+	GetTasksConfig() *task.TasksConfig
 	Keys() []string
 	Values() []any
 	Get(key string) any
@@ -68,7 +68,7 @@ type ConfigImpl interface {
 type Config struct {
 	jwtConfig    *nokocore.JwtConfig
 	loggerConfig *nokocore.LoggerConfig
-	tasks        *task.Tasks
+	tasks        *task.TasksConfig
 	locker       nokocore.LockerImpl
 }
 
@@ -107,12 +107,12 @@ func (c *Config) GetLoggerConfig() *nokocore.LoggerConfig {
 	return c.loggerConfig
 }
 
-func (c *Config) GetTasks() *task.Tasks {
+func (c *Config) GetTasksConfig() *task.TasksConfig {
 	c.locker.Lock(func() {
 		if c.tasks != nil {
 			return
 		}
-		c.tasks = GetConfigGlobals[task.Tasks]()
+		c.tasks = GetConfigGlobals[task.TasksConfig]()
 	})
 	return c.tasks
 }
@@ -151,8 +151,8 @@ func GetLoggerConfig() *nokocore.LoggerConfig {
 	return globals.GetLoggerConfig()
 }
 
-func GetTasks() *task.Tasks {
-	return globals.GetTasks()
+func GetTasksConfig() *task.TasksConfig {
+	return globals.GetTasksConfig()
 }
 
 func Keys() []string {
@@ -206,7 +206,7 @@ func GetConfigGlobals[T any]() *T {
 	//options := nokocore.NewForEachStructFieldsOptions()
 	//options.Validation = false
 
-	//nokocore.ForEachStructFieldsReflect(config, options, func(name string, sFieldX nokocore.StructFieldExpandedImpl) {
+	//nokocore.ForEachStructFieldsReflect(config, options, func(name string, sFieldX nokocore.StructFieldExImpl) {
 	//	if sFieldX.IsZero() {
 	//		//nokocore.SetValueReflect(sFieldX.GetValue(), locals.(nokocore.MapAny).Get(name))
 	//		val := nokocore.GetValueReflect(locals.(nokocore.MapAny).Get(name))

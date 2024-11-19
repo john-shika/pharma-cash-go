@@ -1,5 +1,18 @@
 package nokocore
 
+type HttpMethod string
+
+const (
+	HttpMethodGet     HttpMethod = "GET"
+	HttpMethodPost    HttpMethod = "POST"
+	HttpMethodPut     HttpMethod = "PUT"
+	HttpMethodPatch   HttpMethod = "PATCH"
+	HttpMethodDelete  HttpMethod = "DELETE"
+	HttpMethodOptions HttpMethod = "OPTIONS"
+	HttpMethodHead    HttpMethod = "HEAD"
+	HttpMethodTrace   HttpMethod = "TRACE"
+)
+
 type HttpStatusCode int
 type HttpStatusCodeValue string
 
@@ -71,202 +84,202 @@ const (
 )
 
 const (
-	HttpStatusCodeValuesContinue                      HttpStatusCodeValue = "CONTINUE"
-	HttpStatusCodeValuesSwitchingProtocols            HttpStatusCodeValue = "SWITCHING_PROTOCOLS"
-	HttpStatusCodeValuesProcessing                    HttpStatusCodeValue = "PROCESSING"
-	HttpStatusCodeValuesEarlyHints                    HttpStatusCodeValue = "EARLY_HINTS"
-	HttpStatusCodeValuesOk                            HttpStatusCodeValue = "OK"
-	HttpStatusCodeValuesCreated                       HttpStatusCodeValue = "CREATED"
-	HttpStatusCodeValuesAccepted                      HttpStatusCodeValue = "ACCEPTED"
-	HttpStatusCodeValuesNonAuthoritativeInformation   HttpStatusCodeValue = "NON_AUTHORITATIVE_INFORMATION"
-	HttpStatusCodeValuesNoContent                     HttpStatusCodeValue = "NO_CONTENT"
-	HttpStatusCodeValuesResetContent                  HttpStatusCodeValue = "RESET_CONTENT"
-	HttpStatusCodeValuesPartialContent                HttpStatusCodeValue = "PARTIAL_CONTENT"
-	HttpStatusCodeValuesMultiStatus                   HttpStatusCodeValue = "MULTI_STATUS"
-	HttpStatusCodeValuesAlreadyReported               HttpStatusCodeValue = "ALREADY_REPORTED"
-	HttpStatusCodeValuesImUsed                        HttpStatusCodeValue = "IM_USED"
-	HttpStatusCodeValuesMultipleChoices               HttpStatusCodeValue = "MULTI_CHOICES"
-	HttpStatusCodeValuesMovedPermanently              HttpStatusCodeValue = "MOVED_PERMANENTLY"
-	HttpStatusCodeValuesFound                         HttpStatusCodeValue = "FOUND"
-	HttpStatusCodeValuesSeeOther                      HttpStatusCodeValue = "SEE_OTHER"
-	HttpStatusCodeValuesNotModified                   HttpStatusCodeValue = "NOT_MODIFIED"
-	HttpStatusCodeValuesUseProxy                      HttpStatusCodeValue = "USE_PROXY"
-	HttpStatusCodeValuesUnused                        HttpStatusCodeValue = "UNUSED"
-	HttpStatusCodeValuesTemporaryRedirect             HttpStatusCodeValue = "TEMPORARY_REDIRECT"
-	HttpStatusCodeValuesPermanentRedirect             HttpStatusCodeValue = "PERMANENT_REDIRECT"
-	HttpStatusCodeValuesBadRequest                    HttpStatusCodeValue = "BAD_REQUEST"
-	HttpStatusCodeValuesUnauthorized                  HttpStatusCodeValue = "UNAUTHORIZED"
-	HttpStatusCodeValuesPaymentRequired               HttpStatusCodeValue = "PAYMENT_REQUIRED"
-	HttpStatusCodeValuesForbidden                     HttpStatusCodeValue = "FORBIDDEN"
-	HttpStatusCodeValuesNotFound                      HttpStatusCodeValue = "NOT_FOUND"
-	HttpStatusCodeValuesMethodNotAllowed              HttpStatusCodeValue = "METHOD_NOT_ALLOWED"
-	HttpStatusCodeValuesNotAcceptable                 HttpStatusCodeValue = "NOT_ACCEPTABLE"
-	HttpStatusCodeValuesProxyAuthenticationRequired   HttpStatusCodeValue = "PROXY_AUTHENTICATION_REQUIRED"
-	HttpStatusCodeValuesRequestTimeout                HttpStatusCodeValue = "REQUEST_TIMEOUT"
-	HttpStatusCodeValuesConflict                      HttpStatusCodeValue = "CONFLICT"
-	HttpStatusCodeValuesGone                          HttpStatusCodeValue = "GONE"
-	HttpStatusCodeValuesLengthRequired                HttpStatusCodeValue = "LENGTH_REQUIRED"
-	HttpStatusCodeValuesPreconditionFailed            HttpStatusCodeValue = "PRECONDITION_FAILED"
-	HttpStatusCodeValuesPayloadTooLarge               HttpStatusCodeValue = "PAYLOAD_TOO_LARGE"
-	HttpStatusCodeValuesRequestUriTooLong             HttpStatusCodeValue = "REQUEST_URI_TOO_LONG"
-	HttpStatusCodeValuesUnsupportedMediaType          HttpStatusCodeValue = "UNSUPPORTED_MEDIA_TYPE"
-	HttpStatusCodeValuesRequestedRangeNotSatisfiable  HttpStatusCodeValue = "REQUESTED_RANGE_NOT_SATISFIABLE"
-	HttpStatusCodeValuesExpectationFailed             HttpStatusCodeValue = "EXPECTATION_FAILED"
-	HttpStatusCodeValuesImATeapot                     HttpStatusCodeValue = "IM_A_TEAPOT"
-	HttpStatusCodeValuesInsufficientSpaceOnResource   HttpStatusCodeValue = "INSUFFICIENT_SPACE_ON_RESOURCE"
-	HttpStatusCodeValuesMethodFailure                 HttpStatusCodeValue = "METHOD_FAILURE"
-	HttpStatusCodeValuesMisdirectedRequest            HttpStatusCodeValue = "MISDIRECTED_REQUEST"
-	HttpStatusCodeValuesUnprocessableEntity           HttpStatusCodeValue = "UNPROCESSABLE_ENTITY"
-	HttpStatusCodeValuesLocked                        HttpStatusCodeValue = "LOCKED"
-	HttpStatusCodeValuesFailedDependency              HttpStatusCodeValue = "FAILED_DEPENDENCY"
-	HttpStatusCodeValuesUpgradeRequired               HttpStatusCodeValue = "UPGRADE_REQUIRED"
-	HttpStatusCodeValuesPreconditionRequired          HttpStatusCodeValue = "PRECONDITION_REQUIRED"
-	HttpStatusCodeValuesTooManyRequests               HttpStatusCodeValue = "TOO_MANY_REQUESTS"
-	HttpStatusCodeValuesRequestHeaderFieldsTooLarge   HttpStatusCodeValue = "REQUEST_HEADER_FIELDS_TOO_LARGE"
-	HttpStatusCodeValuesUnavailableForLegalReasons    HttpStatusCodeValue = "UNAVAILABLE_FOR_LEGAL_REASONS"
-	HttpStatusCodeValuesInternalServerError           HttpStatusCodeValue = "INTERNAL_SERVER_ERROR"
-	HttpStatusCodeValuesNotImplemented                HttpStatusCodeValue = "NOT_IMPLEMENTED"
-	HttpStatusCodeValuesBadGateway                    HttpStatusCodeValue = "BAD_GATEWAY"
-	HttpStatusCodeValuesServiceUnavailable            HttpStatusCodeValue = "SERVICE_UNAVAILABLE"
-	HttpStatusCodeValuesGatewayTimeout                HttpStatusCodeValue = "GATEWAY_TIMEOUT"
-	HttpStatusCodeValuesHttpVersionNotSupported       HttpStatusCodeValue = "HTTP_VERSION_NOT_SUPPORTED"
-	HttpStatusCodeValuesVariantAlsoNegotiates         HttpStatusCodeValue = "VARIANT_ALSO_NEGOTIATES"
-	HttpStatusCodeValuesInsufficientStorage           HttpStatusCodeValue = "INSUFFICIENT_STORAGE"
-	HttpStatusCodeValuesLoopDetected                  HttpStatusCodeValue = "LOOP_DETECTED"
-	HttpStatusCodeValuesNotExtended                   HttpStatusCodeValue = "NOT_EXTENDED"
-	HttpStatusCodeValuesNetworkAuthenticationRequired HttpStatusCodeValue = "NETWORK_AUTHENTICATION_REQUIRED"
+	HttpStatusCodeValueContinue                      HttpStatusCodeValue = "CONTINUE"
+	HttpStatusCodeValueSwitchingProtocols            HttpStatusCodeValue = "SWITCHING_PROTOCOLS"
+	HttpStatusCodeValueProcessing                    HttpStatusCodeValue = "PROCESSING"
+	HttpStatusCodeValueEarlyHints                    HttpStatusCodeValue = "EARLY_HINTS"
+	HttpStatusCodeValueOk                            HttpStatusCodeValue = "OK"
+	HttpStatusCodeValueCreated                       HttpStatusCodeValue = "CREATED"
+	HttpStatusCodeValueAccepted                      HttpStatusCodeValue = "ACCEPTED"
+	HttpStatusCodeValueNonAuthoritativeInformation   HttpStatusCodeValue = "NON_AUTHORITATIVE_INFORMATION"
+	HttpStatusCodeValueNoContent                     HttpStatusCodeValue = "NO_CONTENT"
+	HttpStatusCodeValueResetContent                  HttpStatusCodeValue = "RESET_CONTENT"
+	HttpStatusCodeValuePartialContent                HttpStatusCodeValue = "PARTIAL_CONTENT"
+	HttpStatusCodeValueMultiStatus                   HttpStatusCodeValue = "MULTI_STATUS"
+	HttpStatusCodeValueAlreadyReported               HttpStatusCodeValue = "ALREADY_REPORTED"
+	HttpStatusCodeValueImUsed                        HttpStatusCodeValue = "IM_USED"
+	HttpStatusCodeValueMultipleChoices               HttpStatusCodeValue = "MULTI_CHOICES"
+	HttpStatusCodeValueMovedPermanently              HttpStatusCodeValue = "MOVED_PERMANENTLY"
+	HttpStatusCodeValueFound                         HttpStatusCodeValue = "FOUND"
+	HttpStatusCodeValueSeeOther                      HttpStatusCodeValue = "SEE_OTHER"
+	HttpStatusCodeValueNotModified                   HttpStatusCodeValue = "NOT_MODIFIED"
+	HttpStatusCodeValueUseProxy                      HttpStatusCodeValue = "USE_PROXY"
+	HttpStatusCodeValueUnused                        HttpStatusCodeValue = "UNUSED"
+	HttpStatusCodeValueTemporaryRedirect             HttpStatusCodeValue = "TEMPORARY_REDIRECT"
+	HttpStatusCodeValuePermanentRedirect             HttpStatusCodeValue = "PERMANENT_REDIRECT"
+	HttpStatusCodeValueBadRequest                    HttpStatusCodeValue = "BAD_REQUEST"
+	HttpStatusCodeValueUnauthorized                  HttpStatusCodeValue = "UNAUTHORIZED"
+	HttpStatusCodeValuePaymentRequired               HttpStatusCodeValue = "PAYMENT_REQUIRED"
+	HttpStatusCodeValueForbidden                     HttpStatusCodeValue = "FORBIDDEN"
+	HttpStatusCodeValueNotFound                      HttpStatusCodeValue = "NOT_FOUND"
+	HttpStatusCodeValueMethodNotAllowed              HttpStatusCodeValue = "METHOD_NOT_ALLOWED"
+	HttpStatusCodeValueNotAcceptable                 HttpStatusCodeValue = "NOT_ACCEPTABLE"
+	HttpStatusCodeValueProxyAuthenticationRequired   HttpStatusCodeValue = "PROXY_AUTHENTICATION_REQUIRED"
+	HttpStatusCodeValueRequestTimeout                HttpStatusCodeValue = "REQUEST_TIMEOUT"
+	HttpStatusCodeValueConflict                      HttpStatusCodeValue = "CONFLICT"
+	HttpStatusCodeValueGone                          HttpStatusCodeValue = "GONE"
+	HttpStatusCodeValueLengthRequired                HttpStatusCodeValue = "LENGTH_REQUIRED"
+	HttpStatusCodeValuePreconditionFailed            HttpStatusCodeValue = "PRECONDITION_FAILED"
+	HttpStatusCodeValuePayloadTooLarge               HttpStatusCodeValue = "PAYLOAD_TOO_LARGE"
+	HttpStatusCodeValueRequestUriTooLong             HttpStatusCodeValue = "REQUEST_URI_TOO_LONG"
+	HttpStatusCodeValueUnsupportedMediaType          HttpStatusCodeValue = "UNSUPPORTED_MEDIA_TYPE"
+	HttpStatusCodeValueRequestedRangeNotSatisfiable  HttpStatusCodeValue = "REQUESTED_RANGE_NOT_SATISFIABLE"
+	HttpStatusCodeValueExpectationFailed             HttpStatusCodeValue = "EXPECTATION_FAILED"
+	HttpStatusCodeValueImATeapot                     HttpStatusCodeValue = "IM_A_TEAPOT"
+	HttpStatusCodeValueInsufficientSpaceOnResource   HttpStatusCodeValue = "INSUFFICIENT_SPACE_ON_RESOURCE"
+	HttpStatusCodeValueMethodFailure                 HttpStatusCodeValue = "METHOD_FAILURE"
+	HttpStatusCodeValueMisdirectedRequest            HttpStatusCodeValue = "MISDIRECTED_REQUEST"
+	HttpStatusCodeValueUnprocessableEntity           HttpStatusCodeValue = "UNPROCESSABLE_ENTITY"
+	HttpStatusCodeValueLocked                        HttpStatusCodeValue = "LOCKED"
+	HttpStatusCodeValueFailedDependency              HttpStatusCodeValue = "FAILED_DEPENDENCY"
+	HttpStatusCodeValueUpgradeRequired               HttpStatusCodeValue = "UPGRADE_REQUIRED"
+	HttpStatusCodeValuePreconditionRequired          HttpStatusCodeValue = "PRECONDITION_REQUIRED"
+	HttpStatusCodeValueTooManyRequests               HttpStatusCodeValue = "TOO_MANY_REQUESTS"
+	HttpStatusCodeValueRequestHeaderFieldsTooLarge   HttpStatusCodeValue = "REQUEST_HEADER_FIELDS_TOO_LARGE"
+	HttpStatusCodeValueUnavailableForLegalReasons    HttpStatusCodeValue = "UNAVAILABLE_FOR_LEGAL_REASONS"
+	HttpStatusCodeValueInternalServerError           HttpStatusCodeValue = "INTERNAL_SERVER_ERROR"
+	HttpStatusCodeValueNotImplemented                HttpStatusCodeValue = "NOT_IMPLEMENTED"
+	HttpStatusCodeValueBadGateway                    HttpStatusCodeValue = "BAD_GATEWAY"
+	HttpStatusCodeValueServiceUnavailable            HttpStatusCodeValue = "SERVICE_UNAVAILABLE"
+	HttpStatusCodeValueGatewayTimeout                HttpStatusCodeValue = "GATEWAY_TIMEOUT"
+	HttpStatusCodeValueHttpVersionNotSupported       HttpStatusCodeValue = "HTTP_VERSION_NOT_SUPPORTED"
+	HttpStatusCodeValueVariantAlsoNegotiates         HttpStatusCodeValue = "VARIANT_ALSO_NEGOTIATES"
+	HttpStatusCodeValueInsufficientStorage           HttpStatusCodeValue = "INSUFFICIENT_STORAGE"
+	HttpStatusCodeValueLoopDetected                  HttpStatusCodeValue = "LOOP_DETECTED"
+	HttpStatusCodeValueNotExtended                   HttpStatusCodeValue = "NOT_EXTENDED"
+	HttpStatusCodeValueNetworkAuthenticationRequired HttpStatusCodeValue = "NETWORK_AUTHENTICATION_REQUIRED"
 )
 
 func GetValueFromHttpStatusCode(code HttpStatusCode) HttpStatusCodeValue {
 	switch code {
 	case HttpStatusCodeContinue:
-		return HttpStatusCodeValuesContinue
+		return HttpStatusCodeValueContinue
 	case HttpStatusCodeSwitchingProtocols:
-		return HttpStatusCodeValuesSwitchingProtocols
+		return HttpStatusCodeValueSwitchingProtocols
 	case HttpStatusCodeProcessing:
-		return HttpStatusCodeValuesProcessing
+		return HttpStatusCodeValueProcessing
 	case HttpStatusCodeEarlyHints:
-		return HttpStatusCodeValuesEarlyHints
+		return HttpStatusCodeValueEarlyHints
 	case HttpStatusCodeOk:
-		return HttpStatusCodeValuesOk
+		return HttpStatusCodeValueOk
 	case HttpStatusCodeCreated:
-		return HttpStatusCodeValuesCreated
+		return HttpStatusCodeValueCreated
 	case HttpStatusCodeAccepted:
-		return HttpStatusCodeValuesAccepted
+		return HttpStatusCodeValueAccepted
 	case HttpStatusCodeNonAuthoritativeInformation:
-		return HttpStatusCodeValuesNonAuthoritativeInformation
+		return HttpStatusCodeValueNonAuthoritativeInformation
 	case HttpStatusCodeNoContent:
-		return HttpStatusCodeValuesNoContent
+		return HttpStatusCodeValueNoContent
 	case HttpStatusCodeResetContent:
-		return HttpStatusCodeValuesResetContent
+		return HttpStatusCodeValueResetContent
 	case HttpStatusCodePartialContent:
-		return HttpStatusCodeValuesPartialContent
+		return HttpStatusCodeValuePartialContent
 	case HttpStatusCodeMultiStatus:
-		return HttpStatusCodeValuesMultiStatus
+		return HttpStatusCodeValueMultiStatus
 	case HttpStatusCodeAlreadyReported:
-		return HttpStatusCodeValuesAlreadyReported
+		return HttpStatusCodeValueAlreadyReported
 	case HttpStatusCodeImUsed:
-		return HttpStatusCodeValuesImUsed
+		return HttpStatusCodeValueImUsed
 	case HttpStatusCodeMultipleChoices:
-		return HttpStatusCodeValuesMultipleChoices
+		return HttpStatusCodeValueMultipleChoices
 	case HttpStatusCodeMovedPermanently:
-		return HttpStatusCodeValuesMovedPermanently
+		return HttpStatusCodeValueMovedPermanently
 	case HttpStatusCodeFound:
-		return HttpStatusCodeValuesFound
+		return HttpStatusCodeValueFound
 	case HttpStatusCodeSeeOther:
-		return HttpStatusCodeValuesSeeOther
+		return HttpStatusCodeValueSeeOther
 	case HttpStatusCodeNotModified:
-		return HttpStatusCodeValuesNotModified
+		return HttpStatusCodeValueNotModified
 	case HttpStatusCodeUseProxy:
-		return HttpStatusCodeValuesUseProxy
+		return HttpStatusCodeValueUseProxy
 	case HttpStatusCodeUnused:
-		return HttpStatusCodeValuesUnused
+		return HttpStatusCodeValueUnused
 	case HttpStatusCodeTemporaryRedirect:
-		return HttpStatusCodeValuesTemporaryRedirect
+		return HttpStatusCodeValueTemporaryRedirect
 	case HttpStatusCodePermanentRedirect:
-		return HttpStatusCodeValuesPermanentRedirect
+		return HttpStatusCodeValuePermanentRedirect
 	case HttpStatusCodeBadRequest:
-		return HttpStatusCodeValuesBadRequest
+		return HttpStatusCodeValueBadRequest
 	case HttpStatusCodeUnauthorized:
-		return HttpStatusCodeValuesUnauthorized
+		return HttpStatusCodeValueUnauthorized
 	case HttpStatusCodePaymentRequired:
-		return HttpStatusCodeValuesPaymentRequired
+		return HttpStatusCodeValuePaymentRequired
 	case HttpStatusCodeForbidden:
-		return HttpStatusCodeValuesForbidden
+		return HttpStatusCodeValueForbidden
 	case HttpStatusCodeNotFound:
-		return HttpStatusCodeValuesNotFound
+		return HttpStatusCodeValueNotFound
 	case HttpStatusCodeMethodNotAllowed:
-		return HttpStatusCodeValuesMethodNotAllowed
+		return HttpStatusCodeValueMethodNotAllowed
 	case HttpStatusCodeNotAcceptable:
-		return HttpStatusCodeValuesNotAcceptable
+		return HttpStatusCodeValueNotAcceptable
 	case HttpStatusCodeProxyAuthenticationRequired:
-		return HttpStatusCodeValuesProxyAuthenticationRequired
+		return HttpStatusCodeValueProxyAuthenticationRequired
 	case HttpStatusCodeRequestTimeout:
-		return HttpStatusCodeValuesRequestTimeout
+		return HttpStatusCodeValueRequestTimeout
 	case HttpStatusCodeConflict:
-		return HttpStatusCodeValuesConflict
+		return HttpStatusCodeValueConflict
 	case HttpStatusCodeGone:
-		return HttpStatusCodeValuesGone
+		return HttpStatusCodeValueGone
 	case HttpStatusCodeLengthRequired:
-		return HttpStatusCodeValuesLengthRequired
+		return HttpStatusCodeValueLengthRequired
 	case HttpStatusCodePreconditionFailed:
-		return HttpStatusCodeValuesPreconditionFailed
+		return HttpStatusCodeValuePreconditionFailed
 	case HttpStatusCodePayloadTooLarge:
-		return HttpStatusCodeValuesPayloadTooLarge
+		return HttpStatusCodeValuePayloadTooLarge
 	case HttpStatusCodeRequestUriTooLong:
-		return HttpStatusCodeValuesRequestUriTooLong
+		return HttpStatusCodeValueRequestUriTooLong
 	case HttpStatusCodeUnsupportedMediaType:
-		return HttpStatusCodeValuesUnsupportedMediaType
+		return HttpStatusCodeValueUnsupportedMediaType
 	case HttpStatusCodeRequestedRangeNotSatisfiable:
-		return HttpStatusCodeValuesRequestedRangeNotSatisfiable
+		return HttpStatusCodeValueRequestedRangeNotSatisfiable
 	case HttpStatusCodeExpectationFailed:
-		return HttpStatusCodeValuesExpectationFailed
+		return HttpStatusCodeValueExpectationFailed
 	case HttpStatusCodeImATeapot:
-		return HttpStatusCodeValuesImATeapot
+		return HttpStatusCodeValueImATeapot
 	case HttpStatusCodeInsufficientSpaceOnResource:
-		return HttpStatusCodeValuesInsufficientSpaceOnResource
+		return HttpStatusCodeValueInsufficientSpaceOnResource
 	case HttpStatusCodeMethodFailure:
-		return HttpStatusCodeValuesMethodFailure
+		return HttpStatusCodeValueMethodFailure
 	case HttpStatusCodeMisdirectedRequest:
-		return HttpStatusCodeValuesMisdirectedRequest
+		return HttpStatusCodeValueMisdirectedRequest
 	case HttpStatusCodeUnprocessableEntity:
-		return HttpStatusCodeValuesUnprocessableEntity
+		return HttpStatusCodeValueUnprocessableEntity
 	case HttpStatusCodeLocked:
-		return HttpStatusCodeValuesLocked
+		return HttpStatusCodeValueLocked
 	case HttpStatusCodeFailedDependency:
-		return HttpStatusCodeValuesFailedDependency
+		return HttpStatusCodeValueFailedDependency
 	case HttpStatusCodeUpgradeRequired:
-		return HttpStatusCodeValuesUpgradeRequired
+		return HttpStatusCodeValueUpgradeRequired
 	case HttpStatusCodePreconditionRequired:
-		return HttpStatusCodeValuesPreconditionRequired
+		return HttpStatusCodeValuePreconditionRequired
 	case HttpStatusCodeTooManyRequests:
-		return HttpStatusCodeValuesTooManyRequests
+		return HttpStatusCodeValueTooManyRequests
 	case HttpStatusCodeRequestHeaderFieldsTooLarge:
-		return HttpStatusCodeValuesRequestHeaderFieldsTooLarge
+		return HttpStatusCodeValueRequestHeaderFieldsTooLarge
 	case HttpStatusCodeUnavailableForLegalReasons:
-		return HttpStatusCodeValuesUnavailableForLegalReasons
+		return HttpStatusCodeValueUnavailableForLegalReasons
 	case HttpStatusCodeInternalServerError:
-		return HttpStatusCodeValuesInternalServerError
+		return HttpStatusCodeValueInternalServerError
 	case HttpStatusCodeNotImplemented:
-		return HttpStatusCodeValuesNotImplemented
+		return HttpStatusCodeValueNotImplemented
 	case HttpStatusCodeBadGateway:
-		return HttpStatusCodeValuesBadGateway
+		return HttpStatusCodeValueBadGateway
 	case HttpStatusCodeServiceUnavailable:
-		return HttpStatusCodeValuesServiceUnavailable
+		return HttpStatusCodeValueServiceUnavailable
 	case HttpStatusCodeGatewayTimeout:
-		return HttpStatusCodeValuesGatewayTimeout
+		return HttpStatusCodeValueGatewayTimeout
 	case HttpStatusCodeHttpVersionNotSupported:
-		return HttpStatusCodeValuesHttpVersionNotSupported
+		return HttpStatusCodeValueHttpVersionNotSupported
 	case HttpStatusCodeVariantAlsoNegotiates:
-		return HttpStatusCodeValuesVariantAlsoNegotiates
+		return HttpStatusCodeValueVariantAlsoNegotiates
 	case HttpStatusCodeInsufficientStorage:
-		return HttpStatusCodeValuesInsufficientStorage
+		return HttpStatusCodeValueInsufficientStorage
 	case HttpStatusCodeLoopDetected:
-		return HttpStatusCodeValuesLoopDetected
+		return HttpStatusCodeValueLoopDetected
 	case HttpStatusCodeNotExtended:
-		return HttpStatusCodeValuesNotExtended
+		return HttpStatusCodeValueNotExtended
 	case HttpStatusCodeNetworkAuthenticationRequired:
-		return HttpStatusCodeValuesNetworkAuthenticationRequired
+		return HttpStatusCodeValueNetworkAuthenticationRequired
 	default:
 		panic("invalid http status code")
 	}
@@ -274,133 +287,133 @@ func GetValueFromHttpStatusCode(code HttpStatusCode) HttpStatusCodeValue {
 
 func ParseHttpStatusCode(value string) HttpStatusCode {
 	switch HttpStatusCodeValue(ToSnakeCaseUpper(value)) {
-	case HttpStatusCodeValuesContinue:
+	case HttpStatusCodeValueContinue:
 		return HttpStatusCodeContinue
-	case HttpStatusCodeValuesSwitchingProtocols:
+	case HttpStatusCodeValueSwitchingProtocols:
 		return HttpStatusCodeSwitchingProtocols
-	case HttpStatusCodeValuesProcessing:
+	case HttpStatusCodeValueProcessing:
 		return HttpStatusCodeProcessing
-	case HttpStatusCodeValuesEarlyHints:
+	case HttpStatusCodeValueEarlyHints:
 		return HttpStatusCodeEarlyHints
-	case HttpStatusCodeValuesOk:
+	case HttpStatusCodeValueOk:
 		return HttpStatusCodeOk
-	case HttpStatusCodeValuesCreated:
+	case HttpStatusCodeValueCreated:
 		return HttpStatusCodeCreated
-	case HttpStatusCodeValuesAccepted:
+	case HttpStatusCodeValueAccepted:
 		return HttpStatusCodeAccepted
-	case HttpStatusCodeValuesNonAuthoritativeInformation:
+	case HttpStatusCodeValueNonAuthoritativeInformation:
 		return HttpStatusCodeNonAuthoritativeInformation
-	case HttpStatusCodeValuesNoContent:
+	case HttpStatusCodeValueNoContent:
 		return HttpStatusCodeNoContent
-	case HttpStatusCodeValuesResetContent:
+	case HttpStatusCodeValueResetContent:
 		return HttpStatusCodeResetContent
-	case HttpStatusCodeValuesPartialContent:
+	case HttpStatusCodeValuePartialContent:
 		return HttpStatusCodePartialContent
-	case HttpStatusCodeValuesMultiStatus:
+	case HttpStatusCodeValueMultiStatus:
 		return HttpStatusCodeMultiStatus
-	case HttpStatusCodeValuesAlreadyReported:
+	case HttpStatusCodeValueAlreadyReported:
 		return HttpStatusCodeAlreadyReported
-	case HttpStatusCodeValuesImUsed:
+	case HttpStatusCodeValueImUsed:
 		return HttpStatusCodeImUsed
-	case HttpStatusCodeValuesMultipleChoices:
+	case HttpStatusCodeValueMultipleChoices:
 		return HttpStatusCodeMultipleChoices
-	case HttpStatusCodeValuesMovedPermanently:
+	case HttpStatusCodeValueMovedPermanently:
 		return HttpStatusCodeMovedPermanently
-	case HttpStatusCodeValuesFound:
+	case HttpStatusCodeValueFound:
 		return HttpStatusCodeFound
-	case HttpStatusCodeValuesSeeOther:
+	case HttpStatusCodeValueSeeOther:
 		return HttpStatusCodeSeeOther
-	case HttpStatusCodeValuesNotModified:
+	case HttpStatusCodeValueNotModified:
 		return HttpStatusCodeNotModified
-	case HttpStatusCodeValuesUseProxy:
+	case HttpStatusCodeValueUseProxy:
 		return HttpStatusCodeUseProxy
-	case HttpStatusCodeValuesUnused:
+	case HttpStatusCodeValueUnused:
 		return HttpStatusCodeUnused
-	case HttpStatusCodeValuesTemporaryRedirect:
+	case HttpStatusCodeValueTemporaryRedirect:
 		return HttpStatusCodeTemporaryRedirect
-	case HttpStatusCodeValuesPermanentRedirect:
+	case HttpStatusCodeValuePermanentRedirect:
 		return HttpStatusCodePermanentRedirect
-	case HttpStatusCodeValuesBadRequest:
+	case HttpStatusCodeValueBadRequest:
 		return HttpStatusCodeBadRequest
-	case HttpStatusCodeValuesUnauthorized:
+	case HttpStatusCodeValueUnauthorized:
 		return HttpStatusCodeUnauthorized
-	case HttpStatusCodeValuesPaymentRequired:
+	case HttpStatusCodeValuePaymentRequired:
 		return HttpStatusCodePaymentRequired
-	case HttpStatusCodeValuesForbidden:
+	case HttpStatusCodeValueForbidden:
 		return HttpStatusCodeForbidden
-	case HttpStatusCodeValuesNotFound:
+	case HttpStatusCodeValueNotFound:
 		return HttpStatusCodeNotFound
-	case HttpStatusCodeValuesMethodNotAllowed:
+	case HttpStatusCodeValueMethodNotAllowed:
 		return HttpStatusCodeMethodNotAllowed
-	case HttpStatusCodeValuesNotAcceptable:
+	case HttpStatusCodeValueNotAcceptable:
 		return HttpStatusCodeNotAcceptable
-	case HttpStatusCodeValuesProxyAuthenticationRequired:
+	case HttpStatusCodeValueProxyAuthenticationRequired:
 		return HttpStatusCodeProxyAuthenticationRequired
-	case HttpStatusCodeValuesRequestTimeout:
+	case HttpStatusCodeValueRequestTimeout:
 		return HttpStatusCodeRequestTimeout
-	case HttpStatusCodeValuesConflict:
+	case HttpStatusCodeValueConflict:
 		return HttpStatusCodeConflict
-	case HttpStatusCodeValuesGone:
+	case HttpStatusCodeValueGone:
 		return HttpStatusCodeGone
-	case HttpStatusCodeValuesLengthRequired:
+	case HttpStatusCodeValueLengthRequired:
 		return HttpStatusCodeLengthRequired
-	case HttpStatusCodeValuesPreconditionFailed:
+	case HttpStatusCodeValuePreconditionFailed:
 		return HttpStatusCodePreconditionFailed
-	case HttpStatusCodeValuesPayloadTooLarge:
+	case HttpStatusCodeValuePayloadTooLarge:
 		return HttpStatusCodePayloadTooLarge
-	case HttpStatusCodeValuesRequestUriTooLong:
+	case HttpStatusCodeValueRequestUriTooLong:
 		return HttpStatusCodeRequestUriTooLong
-	case HttpStatusCodeValuesUnsupportedMediaType:
+	case HttpStatusCodeValueUnsupportedMediaType:
 		return HttpStatusCodeUnsupportedMediaType
-	case HttpStatusCodeValuesRequestedRangeNotSatisfiable:
+	case HttpStatusCodeValueRequestedRangeNotSatisfiable:
 		return HttpStatusCodeRequestedRangeNotSatisfiable
-	case HttpStatusCodeValuesExpectationFailed:
+	case HttpStatusCodeValueExpectationFailed:
 		return HttpStatusCodeExpectationFailed
-	case HttpStatusCodeValuesImATeapot:
+	case HttpStatusCodeValueImATeapot:
 		return HttpStatusCodeImATeapot
-	case HttpStatusCodeValuesInsufficientSpaceOnResource:
+	case HttpStatusCodeValueInsufficientSpaceOnResource:
 		return HttpStatusCodeInsufficientSpaceOnResource
-	case HttpStatusCodeValuesMethodFailure:
+	case HttpStatusCodeValueMethodFailure:
 		return HttpStatusCodeMethodFailure
-	case HttpStatusCodeValuesMisdirectedRequest:
+	case HttpStatusCodeValueMisdirectedRequest:
 		return HttpStatusCodeMisdirectedRequest
-	case HttpStatusCodeValuesUnprocessableEntity:
+	case HttpStatusCodeValueUnprocessableEntity:
 		return HttpStatusCodeUnprocessableEntity
-	case HttpStatusCodeValuesLocked:
+	case HttpStatusCodeValueLocked:
 		return HttpStatusCodeLocked
-	case HttpStatusCodeValuesFailedDependency:
+	case HttpStatusCodeValueFailedDependency:
 		return HttpStatusCodeFailedDependency
-	case HttpStatusCodeValuesUpgradeRequired:
+	case HttpStatusCodeValueUpgradeRequired:
 		return HttpStatusCodeUpgradeRequired
-	case HttpStatusCodeValuesPreconditionRequired:
+	case HttpStatusCodeValuePreconditionRequired:
 		return HttpStatusCodePreconditionRequired
-	case HttpStatusCodeValuesTooManyRequests:
+	case HttpStatusCodeValueTooManyRequests:
 		return HttpStatusCodeTooManyRequests
-	case HttpStatusCodeValuesRequestHeaderFieldsTooLarge:
+	case HttpStatusCodeValueRequestHeaderFieldsTooLarge:
 		return HttpStatusCodeRequestHeaderFieldsTooLarge
-	case HttpStatusCodeValuesUnavailableForLegalReasons:
+	case HttpStatusCodeValueUnavailableForLegalReasons:
 		return HttpStatusCodeUnavailableForLegalReasons
-	case HttpStatusCodeValuesInternalServerError:
+	case HttpStatusCodeValueInternalServerError:
 		return HttpStatusCodeInternalServerError
-	case HttpStatusCodeValuesNotImplemented:
+	case HttpStatusCodeValueNotImplemented:
 		return HttpStatusCodeNotImplemented
-	case HttpStatusCodeValuesBadGateway:
+	case HttpStatusCodeValueBadGateway:
 		return HttpStatusCodeBadGateway
-	case HttpStatusCodeValuesServiceUnavailable:
+	case HttpStatusCodeValueServiceUnavailable:
 		return HttpStatusCodeServiceUnavailable
-	case HttpStatusCodeValuesGatewayTimeout:
+	case HttpStatusCodeValueGatewayTimeout:
 		return HttpStatusCodeGatewayTimeout
-	case HttpStatusCodeValuesHttpVersionNotSupported:
+	case HttpStatusCodeValueHttpVersionNotSupported:
 		return HttpStatusCodeHttpVersionNotSupported
-	case HttpStatusCodeValuesVariantAlsoNegotiates:
+	case HttpStatusCodeValueVariantAlsoNegotiates:
 		return HttpStatusCodeVariantAlsoNegotiates
-	case HttpStatusCodeValuesInsufficientStorage:
+	case HttpStatusCodeValueInsufficientStorage:
 		return HttpStatusCodeInsufficientStorage
-	case HttpStatusCodeValuesLoopDetected:
+	case HttpStatusCodeValueLoopDetected:
 		return HttpStatusCodeLoopDetected
-	case HttpStatusCodeValuesNotExtended:
+	case HttpStatusCodeValueNotExtended:
 		return HttpStatusCodeNotExtended
-	case HttpStatusCodeValuesNetworkAuthenticationRequired:
+	case HttpStatusCodeValueNetworkAuthenticationRequired:
 		return HttpStatusCodeNetworkAuthenticationRequired
 	default:
 		panic("invalid http status text")

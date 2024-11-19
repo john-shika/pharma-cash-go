@@ -557,7 +557,7 @@ func GetShikaObjectProperty(obj any) ShikaObjectPropertyImpl {
 		}
 
 		// get struct fields
-		NoErr(ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExpandedImpl) error {
+		NoErr(ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExImpl) error {
 			shikaVarObject := NewShikaVarObject(name)
 			shikaObjectProperty := GetShikaObjectProperty(sFieldX.Interface())
 			shikaVarObject.SetOwnProperty(shikaObjectProperty)

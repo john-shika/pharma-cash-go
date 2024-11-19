@@ -1,6 +1,9 @@
 package bigfloat
 
-import "math/big"
+import (
+	"math/big"
+	"nokowebapi/nokocore"
+)
 
 // agm returns the arithmetic-geometric mean of a and b.
 // a and b must have the same precision.
@@ -39,14 +42,18 @@ func agm(a, b *big.Float) *big.Float {
 
 var piCache *big.Float
 var piCachePrec uint
-var enablePiCache bool = true
+var enablePiCache = true
 
-func init() {
+func Init() {
+	var n int
+	var err error
+	nokocore.KeepVoid(n, err)
+
 	if !enablePiCache {
 		return
 	}
 
-	piCache, _, _ = new(big.Float).SetPrec(1024).Parse("3."+
+	piCache, n, err = new(big.Float).SetPrec(1024).Parse("3."+
 		"14159265358979323846264338327950288419716939937510"+
 		"58209749445923078164062862089986280348253421170679"+
 		"82148086513282306647093844609550582231725359408128"+
@@ -108,9 +115,11 @@ func pi(prec uint) *big.Float {
 }
 
 // returns an approximate (to precision dPrec) solution to
-//    f(t) = 0
+//
+//	f(t) = 0
+//
 // using the Newton Method.
-// fOverDf needs to be a fuction returning f(t)/f'(t).
+// fOverDf needs to be a function returning f(t)/f'(t).
 // t must not be changed by fOverDf.
 // guess is the initial guess (and it's not preserved).
 func newton(fOverDf func(z *big.Float) *big.Float, guess *big.Float, dPrec uint) *big.Float {

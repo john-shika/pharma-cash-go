@@ -35,15 +35,15 @@ func JWTAuth(db *gorm.DB) echo.MiddlewareFunc {
 			}
 
 			jwtClaims := nokocore.Unwrap(nokocore.GetJwtClaimsFromJwtToken(jwtToken))
-			jwtClaimsAccessData, jwtSigningMethod := nokocore.CvtJwtClaimsToJwtClaimsAccessData(jwtClaims)
+			jwtClaimsDataAccess, jwtSigningMethod := nokocore.CvtJwtClaimsToJwtClaimsDataAccess(jwtClaims)
 
-			nokocore.KeepVoid(jwtClaimsAccessData, jwtSigningMethod)
-			fmt.Println(jwtClaimsAccessData)
+			nokocore.KeepVoid(jwtClaimsDataAccess, jwtSigningMethod)
+			fmt.Println(jwtClaimsDataAccess)
 
 			ctx.Set("token", token)
 			ctx.Set("jwt_token", jwtToken)
 			ctx.Set("jwt_claims", jwtClaims)
-			ctx.Set("jwt_claims_access_data", jwtClaimsAccessData)
+			ctx.Set("jwt_claims_access_data", jwtClaimsDataAccess)
 			return next(ctx)
 		}
 	}

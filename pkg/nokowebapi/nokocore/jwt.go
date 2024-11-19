@@ -610,7 +610,7 @@ func ParseJwtToken(token string, secretKey string, jwtSigningMethod jwt.SigningM
 	return jwtToken, nil
 }
 
-func CvtJwtClaimsAccessDataToJwtClaims(claimsDataAccess JwtClaimsDataAccessImpl, jwtSigningMethod jwt.SigningMethod) JwtClaimsImpl {
+func CvtJwtClaimsDataAccessToJwtClaims(claimsDataAccess JwtClaimsDataAccessImpl, jwtSigningMethod jwt.SigningMethod) JwtClaimsImpl {
 	claims := NewJwtClaims(jwt.MapClaims{}, jwtSigningMethod)
 	claims.SetIdentity(claimsDataAccess.GetIdentity())
 	claims.SetSubject(claimsDataAccess.GetSubject())
@@ -626,7 +626,7 @@ func CvtJwtClaimsAccessDataToJwtClaims(claimsDataAccess JwtClaimsDataAccessImpl,
 	return claims
 }
 
-func CvtJwtClaimsToJwtClaimsAccessData(claims JwtClaimsImpl) (JwtClaimsDataAccessImpl, jwt.SigningMethod) {
+func CvtJwtClaimsToJwtClaimsDataAccess(claims JwtClaimsImpl) (JwtClaimsDataAccessImpl, jwt.SigningMethod) {
 	claimsDataAccess := new(JwtClaimsDataAccess)
 	claimsDataAccess.SetIdentity(claims.GetIdentity())
 	claimsDataAccess.SetSubject(claims.GetSubject())

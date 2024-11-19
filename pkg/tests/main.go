@@ -47,7 +47,7 @@ func main() {
 		jwtClaimsDataAccess.SetRole("User")
 		jwtClaimsDataAccess.SetExpiresAt(expires)
 
-		jwtClaims := nokocore.CvtJwtClaimsAccessDataToJwtClaims(jwtClaimsDataAccess, jwtConfig.GetSigningMethod())
+		jwtClaims := nokocore.CvtJwtClaimsDataAccessToJwtClaims(jwtClaimsDataAccess, jwtConfig.GetSigningMethod())
 		fmt.Println(jwtClaims.ToJwtTokenString(jwtConfig.SecretKey))
 	}()
 
@@ -59,7 +59,7 @@ func main() {
 		brokenToken := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOm51bGwsImVtYWlsIjoiIiwiZXhwIjpudWxsLCJpYXQiOm51bGwsImlzcyI6IiIsImp0aSI6IiIsInBob25lIjoiIiwicm9sZSI6IiIsInNpZCI6IiIsInN1YiI6IiIsInVzZXIiOiIifQ.lxvWtt5ZIRUtIQyo1JImjLlGA1lWom19Srnom6bNDx0"
 		jwtToken := nokocore.Unwrap(nokocore.ParseJwtTokenUnverified(brokenToken))
 		jwtClaims := nokocore.Unwrap(nokocore.GetJwtClaimsFromJwtToken(jwtToken))
-		jwtClaimsDataAccess, jwtSigningMethod := nokocore.CvtJwtClaimsToJwtClaimsAccessData(jwtClaims)
+		jwtClaimsDataAccess, jwtSigningMethod := nokocore.CvtJwtClaimsToJwtClaimsDataAccess(jwtClaims)
 		nokocore.KeepVoid(jwtClaimsDataAccess, jwtSigningMethod)
 		fmt.Printf("%+v\n", jwtClaimsDataAccess)
 		return "done"

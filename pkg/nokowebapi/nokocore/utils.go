@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf16"
 )
 
 func HexEncodeToString(data []byte) string {
@@ -196,4 +197,20 @@ func ParseEnvToDuration(value string) time.Duration {
 	}
 
 	return val
+}
+
+func StringToUtf16(s string) []uint16 {
+	return utf16.Encode([]rune(s))
+}
+
+func Utf16ToString(b []uint16) string {
+	return string(utf16.Decode(b))
+}
+
+func BytesToUtf16(b []byte) []uint16 {
+	return StringToUtf16(string(b))
+}
+
+func Utf16ToBytes(b []uint16) []byte {
+	return []byte(Utf16ToString(b))
 }

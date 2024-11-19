@@ -49,13 +49,17 @@ type Impl interface {
 	Mul(x, y *big.Float) *big.Float
 	Quo(x, y *big.Float) *big.Float
 	Cmp(y *big.Float) int
+
+	Exp(z *big.Float) *big.Float
+	Log(z *big.Float) *big.Float
+	Pow(z *big.Float, w *big.Float) *big.Float
 }
 
 type BigFloat struct {
 	Value *big.Float
 }
 
-func New(value float64) *BigFloat {
+func New(value float64) Impl {
 	return &BigFloat{
 		Value: new(big.Float).SetFloat64(value),
 	}
@@ -101,34 +105,146 @@ func (b *BigFloat) String() string {
 	return b.Value.String()
 }
 
-func (b *BigFloat) SetPrec(prec uint) *BigFloat {
-	b.Value.SetPrec(prec)
-	return b
+func (b *BigFloat) SetPrec(prec uint) *big.Float {
+	return b.SetPrec(prec)
 }
 
-func (b *BigFloat) SetMode(mode big.RoundingMode) *BigFloat {
-	b.Value.SetMode(mode)
-	return b
+func (b *BigFloat) SetMode(mode big.RoundingMode) *big.Float {
+	return b.SetMode(mode)
 }
 
-func (b *BigFloat) SetFloat64(value float64) *BigFloat {
-	b.Value.SetFloat64(value)
-	return b
+func (b *BigFloat) Prec() uint {
+	return b.Prec()
 }
 
-func (b *BigFloat) SetInt64(value int64) *BigFloat {
-	b.Value.SetInt64(value)
-	return b
+func (b *BigFloat) MinPrec() uint {
+	return b.MinPrec()
 }
 
-func (b *BigFloat) SetInt(value *big.Int) *BigFloat {
-	b.Value.SetInt(value)
-	return b
+func (b *BigFloat) Mode() big.RoundingMode {
+	return b.Mode()
 }
 
-func (b *BigFloat) SetUint64(value uint64) *BigFloat {
-	b.Value.SetUint64(value)
-	return b
+func (b *BigFloat) Acc() big.Accuracy {
+	return b.Acc()
 }
 
-// TODO: continued, not implemented yet
+func (b *BigFloat) Sign() int {
+	return b.Sign()
+}
+
+func (b *BigFloat) MantExp(mant *big.Float) (exp int) {
+	return b.MantExp(mant)
+}
+
+func (b *BigFloat) SetMantExp(mant *big.Float, exp int) *big.Float {
+	return b.SetMantExp(mant, exp)
+}
+
+func (b *BigFloat) Signbit() bool {
+	return b.Signbit()
+}
+
+func (b *BigFloat) IsInf() bool {
+	return b.IsInf()
+}
+
+func (b *BigFloat) IsInt() bool {
+	return b.IsInt()
+}
+
+func (b *BigFloat) SetUint64(x uint64) *big.Float {
+	return b.SetUint64(x)
+}
+
+func (b *BigFloat) SetInt64(x int64) *big.Float {
+	return b.SetInt64(x)
+}
+
+func (b *BigFloat) SetFloat64(x float64) *big.Float {
+	return b.SetFloat64(x)
+}
+
+func (b *BigFloat) SetInt(x *big.Int) *big.Float {
+	return b.SetInt(x)
+}
+
+func (b *BigFloat) SetRat(x *big.Rat) *big.Float {
+	return b.SetRat(x)
+}
+
+func (b *BigFloat) SetInf(signbit bool) *big.Float {
+	return b.SetInf(signbit)
+}
+
+func (b *BigFloat) Set(x *big.Float) *big.Float {
+	return b.Set(x)
+}
+
+func (b *BigFloat) Copy(x *big.Float) *big.Float {
+	return b.Copy(x)
+}
+
+func (b *BigFloat) Uint64() (uint64, big.Accuracy) {
+	return b.Uint64()
+}
+
+func (b *BigFloat) Int64() (int64, big.Accuracy) {
+	return b.Int64()
+}
+
+func (b *BigFloat) Float32() (float32, big.Accuracy) {
+	return b.Float32()
+}
+
+func (b *BigFloat) Float64() (float64, big.Accuracy) {
+	return b.Float64()
+}
+
+func (b *BigFloat) Int(z *big.Int) (*big.Int, big.Accuracy) {
+	return b.Int(z)
+}
+
+func (b *BigFloat) Rat(z *big.Rat) (*big.Rat, big.Accuracy) {
+	return b.Rat(z)
+}
+
+func (b *BigFloat) Abs(x *big.Float) *big.Float {
+	return b.Abs(x)
+}
+
+func (b *BigFloat) Neg(x *big.Float) *big.Float {
+	return b.Neg(x)
+}
+
+func (b *BigFloat) Add(x, y *big.Float) *big.Float {
+	return b.Add(x, y)
+}
+
+func (b *BigFloat) Sub(x, y *big.Float) *big.Float {
+	return b.Sub(x, y)
+}
+
+func (b *BigFloat) Mul(x, y *big.Float) *big.Float {
+	return b.Mul(x, y)
+}
+
+func (b *BigFloat) Quo(x, y *big.Float) *big.Float {
+	return b.Quo(x, y)
+}
+
+func (b *BigFloat) Cmp(y *big.Float) int {
+	return b.Cmp(y)
+}
+
+func (b *BigFloat) Exp(z *big.Float) *big.Float {
+	return Exp(z)
+}
+
+func (b *BigFloat) Log(z *big.Float) *big.Float {
+	return Log(z)
+}
+
+func (b *BigFloat) Pow(z *big.Float, w *big.Float) *big.Float {
+	return Pow(z, w)
+}

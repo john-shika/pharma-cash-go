@@ -1,7 +1,7 @@
 package console
 
 import (
-	"fmt"
+	"github.com/fatih/color"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"io"
@@ -10,9 +10,7 @@ import (
 	"nokowebapi/xterm"
 )
 
-var WriterSyncer zapcore.WriteSyncer
-
-func updateWriterSyncer(stdout any) zapcore.WriteSyncer {
+func GetWriterSyncer(stdout any) zapcore.WriteSyncer {
 	var ok bool
 	var writer io.Writer
 	var writeSyncer zapcore.WriteSyncer
@@ -22,12 +20,10 @@ func updateWriterSyncer(stdout any) zapcore.WriteSyncer {
 		if writer, ok = stdout.(io.Writer); !ok {
 			panic("failed to convert stdout to either zapcore.WriteSyncer or io.Writer")
 		}
-		WriterSyncer = zapcore.Lock(zapcore.AddSync(writer))
-		return WriterSyncer
+		return zapcore.Lock(zapcore.AddSync(writer))
 	}
 
-	WriterSyncer = writeSyncer
-	return WriterSyncer
+	return writeSyncer
 }
 
 func makeLogger() *zap.Logger {
@@ -36,7 +32,8 @@ func makeLogger() *zap.Logger {
 
 	isDevelopment := globals.IsDevelopment()
 	loggerConfig := globals.GetLoggerConfig()
-	writerSyncer := updateWriterSyncer(xterm.Stdout)
+
+	writerSyncer := GetWriterSyncer(xterm.Stdout)
 	level := loggerConfig.GetLevel()
 
 	options := []zap.Option{
@@ -62,39 +59,40 @@ func makeLogger() *zap.Logger {
 		logger = zap.New(core, options...)
 	}
 
-	logger = logger.Named("[NokoWebApi]")
+	logger = logger.Named("<NokoWebApi>")
 	zap.ReplaceGlobals(logger)
 	return logger
 }
 
 var Logger = makeLogger()
 
+func Debug(msg string, fields ...zap.Field) {
+	msg = color.New(color.FgCyan).Sprint(msg)
+	Logger.Debug(msg, fields...)
+}
+
 func Dir(obj any, fields ...zap.Field) {
-	Logger.Info(nokocore.ShikaYamlEncode(obj), fields...)
+	temp := nokocore.ShikaYamlEncode(obj)
+	temp = color.New(color.FgYellow).Sprint(temp)
+	Logger.Info(temp, fields...)
 }
 
 func Log(msg string, fields ...zap.Field) {
+	msg = color.New(color.FgGreen).Sprint(msg)
 	Logger.Info(msg, fields...)
 }
 
-func Logf(format string, args ...any) {
-	Logger.Info(fmt.Sprintf(format, args...))
-}
-
 func Warn(msg string, fields ...zap.Field) {
+	msg = color.New(color.FgYellow).Sprint(msg)
 	Logger.Warn(msg, fields...)
 }
 
 func Error(msg string, fields ...zap.Field) {
-	defer updateWriterSyncer(xterm.Stdout)
-	updateWriterSyncer(xterm.Stderr)
-
+	msg = color.New(color.FgRed).Sprint(msg)
 	Logger.Error(msg, fields...)
 }
 
 func Fatal(msg string, fields ...zap.Field) {
-	defer updateWriterSyncer(xterm.Stdout)
-	updateWriterSyncer(xterm.Stderr)
-
+	msg = color.New(color.FgRed).Sprint(msg)
 	Logger.Fatal(msg, fields...)
 }

@@ -124,43 +124,6 @@ func IsNoneOrEmptyReflect(value any) bool {
 	return false
 }
 
-func IsStringableReflect(value any) bool {
-	val := PassValueIndirectReflect(value)
-	if !val.IsValid() {
-		panic("invalid value")
-	}
-	switch val.Kind() {
-	case reflect.String:
-		return true
-	default:
-		return false
-	}
-}
-
-func IsExportedFieldReflect(value any) bool {
-	val := PassValueIndirectReflect(value)
-	if !val.IsValid() {
-		return false
-	}
-	return val.CanInterface()
-}
-
-func IsExportedFieldAtReflect(value any, index int) bool {
-	val := PassValueIndirectReflect(value)
-	if !val.IsValid() {
-		return false
-	}
-	return IsExportedFieldReflect(val.Field(index))
-}
-
-func IsExportedFieldByNameReflect(value any, name string) bool {
-	val := PassValueIndirectReflect(value)
-	if !val.IsValid() {
-		return false
-	}
-	return IsExportedFieldReflect(val.FieldByName(name))
-}
-
 func ToStringReflect(value any) string {
 	if value == nil {
 		return "<null>"
@@ -503,6 +466,14 @@ func GetIntValueReflect(value any) int64 {
 	}
 }
 
+func GetByteValueReflect(value any) byte {
+	return byte(GetIntValueReflect(value))
+}
+
+func GetRuneValueReflect(value any) rune {
+	return rune(GetIntValueReflect(value))
+}
+
 func GetUintValueReflect(value any) uint64 {
 	val := PassValueIndirectReflect(value)
 	if !val.IsValid() {
@@ -587,6 +558,10 @@ func GetComplexValueReflect(value any) complex128 {
 	}
 }
 
+func GetRealComplexValueReflect(value any) float64 {
+	return real(GetComplexValueReflect(value))
+}
+
 func GetStringValueReflect(value any) string {
 	val := PassValueIndirectReflect(value)
 	if !val.IsValid() {
@@ -598,20 +573,104 @@ func GetStringValueReflect(value any) string {
 		if val.Bool() {
 			return "true"
 		}
-
 		return "false"
+
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return fmt.Sprintf("%d", val.Int())
+
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		return fmt.Sprintf("%d", val.Uint())
+
 	case reflect.Float32, reflect.Float64:
 		return fmt.Sprintf("%f", val.Float())
+
 	case reflect.Complex64, reflect.Complex128:
 		return fmt.Sprintf("%f", real(val.Complex()))
+
 	case reflect.String:
 		return val.String()
+
+	//case reflect.Array, reflect.Slice:
+	//	return "<array>"
+	//
+	//case reflect.Map:
+	//	return "<object>"
+	//
+	//case reflect.Struct:
+	//	return "<object>"
+
 	default:
 		return ""
+	}
+}
+
+func GetBytesValueReflect(value any) []byte {
+	val := PassValueIndirectReflect(value)
+
+	if !val.IsValid() {
+		panic("invalid value")
+	}
+
+	switch val.Kind() {
+	case reflect.Bool:
+		if val.Bool() {
+			return []byte{1}
+		}
+
+		return []byte{0}
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return []byte{byte(val.Int())}
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return []byte{byte(val.Uint())}
+
+	case reflect.Float32, reflect.Float64:
+		return []byte{byte(val.Float())}
+
+	case reflect.Complex64, reflect.Complex128:
+		return []byte{byte(real(val.Complex()))}
+
+	case reflect.String:
+		return []byte(GetStringValueReflect(value))
+
+	default:
+		panic("invalid data type")
+	}
+}
+
+func GetRunesValueReflect(value any) []rune {
+	val := PassValueIndirectReflect(value)
+
+	if !val.IsValid() {
+		panic("invalid value")
+	}
+
+	switch val.Kind() {
+	case reflect.Bool:
+		if val.Bool() {
+			return []rune{1}
+		}
+
+		return []rune{0}
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return []rune{rune(val.Int())}
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return []rune{rune(val.Uint())}
+
+	case reflect.Float32, reflect.Float64:
+		return []rune{rune(val.Float())}
+
+	case reflect.Complex64, reflect.Complex128:
+		return []rune{rune(real(val.Complex()))}
+
+	case reflect.String:
+		return []rune(GetStringValueReflect(value))
+
+	default:
+		panic("invalid data type")
 	}
 }
 
@@ -622,7 +681,7 @@ func GetArrayValueReflect(value any) []any {
 	}
 
 	switch val.Kind() {
-	case reflect.Array, reflect.Slice:
+	case reflect.Array, reflect.Slice, reflect.String:
 		temp := make([]any, val.Len())
 		for i := 0; i < val.Len(); i++ {
 			temp[i] = val.Index(i).Interface()
@@ -660,7 +719,7 @@ func GetMapStrAnyValueReflect(value any) map[string]any {
 		}
 
 		// for each struct field
-		NoErr(ForEachStructFieldsReflect(val.Interface(), options, func(name string, sFieldX StructFieldExpandedImpl) error {
+		NoErr(ForEachStructFieldsReflect(val.Interface(), options, func(name string, sFieldX StructFieldExImpl) error {
 			if mapStrAny := GetMapStrAnyValueReflect(sFieldX.GetValue()); mapStrAny != nil {
 				SetMapValue(temp, name, any(mapStrAny))
 				return nil
@@ -676,16 +735,24 @@ func GetMapStrAnyValueReflect(value any) map[string]any {
 	}
 }
 
-func GetMapValueWithSuperKeyReflect(m any, key string) any {
-	tokens := strings.Split(strings.Trim(key, "."), ".")
-	if len(tokens) == 0 {
-		panic("invalid key")
+func getTokens(key string) []string {
+	tokens := strings.Split(strings.TrimSpace(key), ".")
+	for i, token := range tokens {
+		tokens[i] = strings.TrimSpace(token)
 	}
+	return tokens
+}
 
+func GetMapValueWithSuperKeyReflect(m any, key string) any {
 	var ok bool
 	var err error
 	var idx int
 	KeepVoid(ok, idx)
+
+	tokens := getTokens(key)
+	if len(tokens) == 0 {
+		panic("invalid key")
+	}
 
 	temp := m
 
@@ -706,15 +773,15 @@ func GetMapValueWithSuperKeyReflect(m any, key string) any {
 }
 
 func SetMapValueWithSuperKeyReflect(m any, key string, value any) bool {
-	tokens := strings.Split(strings.Trim(key, "."), ".")
-	if len(tokens) == 0 {
-		panic("invalid key")
-	}
-
 	var ok bool
 	var err error
 	var idx int
 	KeepVoid(ok, idx)
+
+	tokens := getTokens(key)
+	if len(tokens) == 0 {
+		panic("invalid key")
+	}
 
 	n := len(tokens)
 	val := PassValueIndirectReflect(value)
@@ -745,15 +812,15 @@ func SetMapValueWithSuperKeyReflect(m any, key string, value any) bool {
 }
 
 func DeleteMapValueWithSuperKeyReflect(m any, key string) bool {
-	tokens := strings.Split(strings.Trim(key, "."), ".")
-	if len(tokens) == 0 {
-		panic("invalid key")
-	}
-
 	var ok bool
 	var err error
 	var idx int
 	KeepVoid(ok, idx)
+
+	tokens := getTokens(key)
+	if len(tokens) == 0 {
+		panic("invalid key")
+	}
 
 	n := len(tokens)
 	temp := m
@@ -782,46 +849,324 @@ func DeleteMapValueWithSuperKeyReflect(m any, key string) bool {
 	return false
 }
 
-func SetValueReflect(field any, value any) error {
-	vField := PassValueIndirectReflect(field)
+func ParseValueReflect(value any, key string) any {
+	var err error
+	var idx int
+	KeepVoid(err, idx)
+
 	val := PassValueIndirectReflect(value)
 
-	if !vField.IsValid() {
+	if !val.IsValid() {
+		return nil
+	}
+
+	switch val.Kind() {
+	case reflect.String:
+		if idx, err = strconv.Atoi(key); err != nil {
+			switch key {
+			case "bytes":
+				return GetBytesValueReflect(val)
+
+			case "runes":
+				return GetRunesValueReflect(val)
+
+			default:
+				panic("invalid key")
+			}
+		}
+
+		if val.Kind() != reflect.Array && val.Kind() != reflect.Slice {
+			return nil
+		}
+
+		if 0 > idx || idx >= val.Len() {
+			panic("index out of range")
+		}
+
+		return val.Index(idx).Interface()
+
+	case reflect.Array, reflect.Slice:
+		if idx, err = strconv.Atoi(key); err != nil {
+			panic("invalid key")
+		}
+
+		if val.Kind() != reflect.Array && val.Kind() != reflect.Slice {
+			return nil
+		}
+
+		if 0 > idx || idx >= val.Len() {
+			panic("index out of range")
+		}
+
+		return val.Index(idx).Interface()
+
+	case reflect.Map:
+		return GetMapValueReflect(val, key).Interface()
+
+	case reflect.Struct:
+		var temp any
+		KeepVoid(temp)
+
+		options := &ForEachStructFieldsOptions{
+			Validation: false,
+		}
+
+		KeepVoid(ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExImpl) error {
+			if name != key {
+				return nil
+			}
+
+			temp = sFieldX.GetValue().Interface()
+			return errors.New("stop")
+		}))
+		return temp
+
+	default:
+		switch key {
+		case "bool":
+			return GetBoolValueReflect(val)
+
+		case "int":
+			return GetIntValueReflect(val)
+
+		case "uint":
+			return GetUintValueReflect(val)
+
+		case "float":
+			return GetFloatValueReflect(val)
+
+		case "complex":
+			return GetComplexValueReflect(val)
+
+		case "real":
+			return GetRealComplexValueReflect(val)
+
+		case "string":
+			return GetStringValueReflect(val)
+
+		case "byte":
+			return GetByteValueReflect(val)
+
+		case "bytes":
+			return GetBytesValueReflect(val)
+
+		case "rune":
+			return GetRuneValueReflect(val)
+
+		case "runes":
+			return GetRunesValueReflect(val)
+
+		default:
+			panic("invalid key")
+		}
+	}
+}
+
+func baseTokens(key string) (string, string) {
+	tokens := getTokens(key)
+	token := ""
+
+	key = ""
+	if len(tokens) > 0 {
+		key = strings.Join(tokens[1:], ".")
+		token = tokens[0]
+	}
+
+	return token, key
+}
+
+func GetValueWithSuperKeyReflect(data any, key string) any {
+	var token string
+	KeepVoid(token)
+
+	val := PassValueIndirectReflect(data)
+
+	if !val.IsValid() {
+		return nil
+	}
+
+	token, key = baseTokens(key)
+
+	var temp any
+	switch val.Kind() {
+	case reflect.Bool:
+		temp = GetBoolValueReflect(val)
+		break
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		temp = GetIntValueReflect(val)
+		break
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		temp = GetUintValueReflect(val)
+		break
+
+	case reflect.Float32, reflect.Float64:
+		temp = GetFloatValueReflect(val)
+		break
+
+	case reflect.Complex64, reflect.Complex128:
+		temp = GetComplexValueReflect(val)
+		break
+
+	case reflect.String:
+		temp = GetStringValueReflect(val)
+		break
+
+	case reflect.Array, reflect.Slice:
+		temp = GetArrayValueReflect(val)
+		break
+
+	case reflect.Map:
+		temp = GetMapStrAnyValueReflect(val)
+		break
+
+	case reflect.Struct:
+		temp = GetMapStrAnyValueReflect(val)
+		break
+
+	default:
+		temp = val.Interface()
+	}
+
+	if token != "" {
+		temp = ParseValueReflect(temp, token)
+	}
+
+	if key != "" {
+		temp = GetValueWithSuperKeyReflect(temp, key)
+	}
+
+	return temp
+}
+
+func GetValueWithSuperKeyReflect2(data any, key string) reflect.Value {
+	var err error
+	var idx int
+	var token string
+	KeepVoid(err, idx, token)
+
+	// ensure the field is set immediately, first order
+	defaultValueReflect(data)
+
+	val := PassValueIndirectReflect(data)
+
+	if !val.IsValid() {
+		return reflect.Value{}
+	}
+
+	token, key = baseTokens(key)
+
+	var temp reflect.Value
+	switch val.Kind() {
+	case reflect.Array, reflect.Slice:
+		if idx, err = strconv.Atoi(token); err != nil {
+			panic("invalid key")
+		}
+
+		temp = val.Index(idx)
+		break
+
+	case reflect.Map:
+		temp = val.MapIndex(GetValueReflect(token))
+		break
+
+	case reflect.Struct:
+		options := &ForEachStructFieldsOptions{
+			Validation: false,
+		}
+
+		// for each struct field
+		KeepVoid(ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExImpl) error {
+			if name != token {
+				return nil
+			}
+
+			temp = sFieldX.GetValue()
+			return errors.New("stop")
+		}))
+		break
+
+	default:
+		temp = val
+	}
+
+	if key != "" {
+		temp = GetValueWithSuperKeyReflect2(temp, key)
+	}
+
+	return temp
+}
+
+func defaultValueReflect(value any) any {
+	typ := PassTypeIndirectReflect(value)
+	val := GetValueReflect(value)
+
+	if !val.IsValid() {
+		panic("invalid value")
+	}
+
+	switch val.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Map, reflect.Slice:
+		if val.IsNil() {
+			val.Set(reflect.New(typ).Elem())
+		}
+		return nil
+
+	case reflect.Interface, reflect.Pointer:
+		if val.IsNil() {
+			val.Set(reflect.New(typ))
+		}
+		return nil
+
+	default:
+		return nil
+	}
+}
+
+func SetValueReflect(field any, value any) error {
+	// ensure the field is set immediately, first order
+	defaultValueReflect(field)
+
+	val := PassValueIndirectReflect(value)
+	f := PassValueIndirectReflect(field)
+
+	if !f.IsValid() {
 		return errors.New("field is not valid")
 	}
 
-	if !vField.CanSet() {
+	if !f.CanSet() {
 		return errors.New("value is not addressable")
 	}
 
 	if !val.IsValid() {
-		vField.SetZero()
+		f.SetZero()
 		return nil
 	}
 
-	switch vField.Kind() {
+	switch f.Kind() {
 	case reflect.Bool:
-		vField.SetBool(GetBoolValueReflect(val))
+		f.SetBool(GetBoolValueReflect(val))
 		return nil
 
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		vField.SetInt(GetIntValueReflect(val))
+		f.SetInt(GetIntValueReflect(val))
 		return nil
 
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		vField.SetUint(GetUintValueReflect(val))
+		f.SetUint(GetUintValueReflect(val))
 		return nil
 
 	case reflect.Float32, reflect.Float64:
-		vField.SetFloat(GetFloatValueReflect(val))
+		f.SetFloat(GetFloatValueReflect(val))
 		return nil
 
 	case reflect.Complex64, reflect.Complex128:
-		vField.SetComplex(GetComplexValueReflect(val))
+		f.SetComplex(GetComplexValueReflect(val))
 		return nil
 
 	case reflect.String:
-		vField.SetString(GetStringValueReflect(val))
+		f.SetString(GetStringValueReflect(val))
 		return nil
 
 	case reflect.Array, reflect.Slice:
@@ -832,12 +1177,12 @@ func SetValueReflect(field any, value any) error {
 
 		// Convert an interface array to slice
 		// Initialize the slice with the same length as the original array
-		vField.Set(reflect.MakeSlice(vField.Type(), temp.Len(), temp.Len()))
+		f.Set(reflect.MakeSlice(f.Type(), temp.Len(), temp.Len()))
 
 		// Iterate through the original array and set each element in the new slice,
 		// converting it to the appropriate type
 		for i := 0; i < temp.Len(); i++ {
-			if err := SetValueReflect(vField.Index(i), temp.Index(i)); err != nil {
+			if err := SetValueReflect(f.Index(i), temp.Index(i)); err != nil {
 				return err
 			}
 		}
@@ -847,16 +1192,16 @@ func SetValueReflect(field any, value any) error {
 	case reflect.Map:
 		// map[string]any
 		temp := GetValueReflect(GetMapStrAnyValueReflect(val))
-		if !TypeEqualsReflect(vField, temp) {
+		if !TypeEqualsReflect(f, temp) {
 			return errors.New("value type does not match field type")
 		}
 
-		vField.Set(temp)
+		f.Set(temp)
 		return nil
 
 	case reflect.Struct:
-		if TypeEqualsReflect(vField, val) {
-			vField.Set(val)
+		if TypeEqualsReflect(f, val) {
+			f.Set(val)
 			return nil
 		}
 
@@ -867,7 +1212,8 @@ func SetValueReflect(field any, value any) error {
 				Validation: false,
 			}
 
-			return ForEachStructFieldsReflect(vField, options, func(name string, sFieldX StructFieldExpandedImpl) error {
+			return ForEachStructFieldsReflect(f, options, func(name string, sFieldX StructFieldExImpl) error {
+
 				return SetValueReflect(sFieldX.GetValue(), GetMapValue(temp, name))
 			})
 		}
@@ -875,15 +1221,14 @@ func SetValueReflect(field any, value any) error {
 		return errors.New("invalid data type")
 
 	default:
-		// interface
-		vField.Set(val)
+		f.Set(val)
 		return nil
 	}
 }
 
-type StructFieldExpandedImpl interface {
+type StructFieldExImpl interface {
 	GetStructField() reflect.StructField
-	GetStructTagExpanded() StructTagExpandedImpl
+	GetStructTagEx() StructTagExImpl
 	GetValue() reflect.Value
 	GetName() string
 	GetPkgPath() string
@@ -971,369 +1316,369 @@ type StructFieldExpandedImpl interface {
 	Equal(u reflect.Value) bool
 }
 
-type StructFieldExpanded struct {
-	structField       reflect.StructField
-	structTagExpanded StructTagExpandedImpl
-	value             reflect.Value
+type StructFieldEx struct {
+	structField reflect.StructField
+	structTagEx StructTagExImpl
+	value       reflect.Value
 }
 
-func NewStructFieldExpanded(field reflect.StructField, sTagX StructTagExpandedImpl, value reflect.Value) StructFieldExpandedImpl {
-	return &StructFieldExpanded{
-		structField:       field,
-		structTagExpanded: sTagX,
-		value:             value,
+func NewStructFieldEx(field reflect.StructField, sTagX StructTagExImpl, value reflect.Value) StructFieldExImpl {
+	return &StructFieldEx{
+		structField: field,
+		structTagEx: sTagX,
+		value:       value,
 	}
 }
 
-func (s *StructFieldExpanded) GetStructField() reflect.StructField {
+func (s *StructFieldEx) GetStructField() reflect.StructField {
 	return s.structField
 }
 
-func (s *StructFieldExpanded) GetStructTagExpanded() StructTagExpandedImpl {
-	return s.structTagExpanded
+func (s *StructFieldEx) GetStructTagEx() StructTagExImpl {
+	return s.structTagEx
 }
 
-func (s *StructFieldExpanded) GetValue() reflect.Value {
+func (s *StructFieldEx) GetValue() reflect.Value {
 	return s.value
 }
 
-func (s *StructFieldExpanded) GetName() string {
+func (s *StructFieldEx) GetName() string {
 	return s.structField.Name
 }
 
-func (s *StructFieldExpanded) GetPkgPath() string {
+func (s *StructFieldEx) GetPkgPath() string {
 	return s.structField.PkgPath
 }
 
-func (s *StructFieldExpanded) GetType() reflect.Type {
+func (s *StructFieldEx) GetType() reflect.Type {
 	return s.structField.Type
 }
 
-func (s *StructFieldExpanded) GetTag() reflect.StructTag {
+func (s *StructFieldEx) GetTag() reflect.StructTag {
 	return s.structField.Tag
 }
 
-func (s *StructFieldExpanded) GetOffset() uintptr {
+func (s *StructFieldEx) GetOffset() uintptr {
 	return s.structField.Offset
 }
 
-func (s *StructFieldExpanded) GetIndex() []int {
+func (s *StructFieldEx) GetIndex() []int {
 	return s.structField.Index
 }
 
-func (s *StructFieldExpanded) GetAnonymous() bool {
+func (s *StructFieldEx) GetAnonymous() bool {
 	return s.structField.Anonymous
 }
 
-func (s *StructFieldExpanded) IsExported() bool {
+func (s *StructFieldEx) IsExported() bool {
 	return s.structField.IsExported()
 }
 
-func (s *StructFieldExpanded) Seq() iter.Seq[reflect.Value] {
+func (s *StructFieldEx) Seq() iter.Seq[reflect.Value] {
 	return s.value.Seq()
 }
 
-func (s *StructFieldExpanded) Seq2() iter.Seq2[reflect.Value, reflect.Value] {
+func (s *StructFieldEx) Seq2() iter.Seq2[reflect.Value, reflect.Value] {
 	return s.value.Seq2()
 }
 
-func (s *StructFieldExpanded) Addr() reflect.Value {
+func (s *StructFieldEx) Addr() reflect.Value {
 	return s.value.Addr()
 }
 
-func (s *StructFieldExpanded) Bool() bool {
+func (s *StructFieldEx) Bool() bool {
 	return s.value.Bool()
 }
 
-func (s *StructFieldExpanded) Bytes() []byte {
+func (s *StructFieldEx) Bytes() []byte {
 	return s.value.Bytes()
 }
 
-func (s *StructFieldExpanded) CanAddr() bool {
+func (s *StructFieldEx) CanAddr() bool {
 	return s.value.CanAddr()
 }
 
-func (s *StructFieldExpanded) CanSet() bool {
+func (s *StructFieldEx) CanSet() bool {
 	return s.value.CanSet()
 }
 
-func (s *StructFieldExpanded) Call(in []reflect.Value) []reflect.Value {
+func (s *StructFieldEx) Call(in []reflect.Value) []reflect.Value {
 	return s.value.Call(in)
 }
 
-func (s *StructFieldExpanded) CallSlice(in []reflect.Value) []reflect.Value {
+func (s *StructFieldEx) CallSlice(in []reflect.Value) []reflect.Value {
 	return s.value.CallSlice(in)
 }
 
-func (s *StructFieldExpanded) Cap() int {
+func (s *StructFieldEx) Cap() int {
 	return s.value.Cap()
 }
 
-func (s *StructFieldExpanded) Close() {
+func (s *StructFieldEx) Close() {
 	s.value.Close()
 }
 
-func (s *StructFieldExpanded) CanComplex() bool {
+func (s *StructFieldEx) CanComplex() bool {
 	return s.value.CanComplex()
 }
 
-func (s *StructFieldExpanded) Complex() complex128 {
+func (s *StructFieldEx) Complex() complex128 {
 	return s.value.Complex()
 }
 
-func (s *StructFieldExpanded) Elem() reflect.Value {
+func (s *StructFieldEx) Elem() reflect.Value {
 	return s.value.Elem()
 }
 
-func (s *StructFieldExpanded) Field(i int) reflect.Value {
+func (s *StructFieldEx) Field(i int) reflect.Value {
 	return s.value.Field(i)
 }
 
-func (s *StructFieldExpanded) FieldByIndex(index []int) reflect.Value {
+func (s *StructFieldEx) FieldByIndex(index []int) reflect.Value {
 	return s.value.FieldByIndex(index)
 }
 
-func (s *StructFieldExpanded) FieldByIndexErr(index []int) (reflect.Value, error) {
+func (s *StructFieldEx) FieldByIndexErr(index []int) (reflect.Value, error) {
 	return s.value.FieldByIndexErr(index)
 }
 
-func (s *StructFieldExpanded) FieldByName(name string) reflect.Value {
+func (s *StructFieldEx) FieldByName(name string) reflect.Value {
 	return s.value.FieldByName(name)
 }
 
-func (s *StructFieldExpanded) FieldByNameFunc(match func(string) bool) reflect.Value {
+func (s *StructFieldEx) FieldByNameFunc(match func(string) bool) reflect.Value {
 	return s.value.FieldByNameFunc(match)
 }
 
-func (s *StructFieldExpanded) CanFloat() bool {
+func (s *StructFieldEx) CanFloat() bool {
 	return s.value.CanFloat()
 }
 
-func (s *StructFieldExpanded) Float() float64 {
+func (s *StructFieldEx) Float() float64 {
 	return s.value.Float()
 }
 
-func (s *StructFieldExpanded) Index(i int) reflect.Value {
+func (s *StructFieldEx) Index(i int) reflect.Value {
 	return s.value.Index(i)
 }
 
-func (s *StructFieldExpanded) CanInt() bool {
+func (s *StructFieldEx) CanInt() bool {
 	return s.value.CanInt()
 }
 
-func (s *StructFieldExpanded) Int() int64 {
+func (s *StructFieldEx) Int() int64 {
 	return s.value.Int()
 }
 
-func (s *StructFieldExpanded) CanInterface() bool {
+func (s *StructFieldEx) CanInterface() bool {
 	return s.value.CanInterface()
 }
 
-func (s *StructFieldExpanded) Interface() (i any) {
+func (s *StructFieldEx) Interface() (i any) {
 	return s.value.Interface()
 }
 
-func (s *StructFieldExpanded) IsNil() bool {
+func (s *StructFieldEx) IsNil() bool {
 	return s.value.IsNil()
 }
 
-func (s *StructFieldExpanded) IsValid() bool {
+func (s *StructFieldEx) IsValid() bool {
 	return s.value.IsValid()
 }
 
-func (s *StructFieldExpanded) IsZero() bool {
+func (s *StructFieldEx) IsZero() bool {
 	return s.value.IsZero()
 }
 
-func (s *StructFieldExpanded) SetZero() {
+func (s *StructFieldEx) SetZero() {
 	s.value.SetZero()
 }
 
-func (s *StructFieldExpanded) Kind() reflect.Kind {
+func (s *StructFieldEx) Kind() reflect.Kind {
 	return s.value.Kind()
 }
 
-func (s *StructFieldExpanded) Len() int {
+func (s *StructFieldEx) Len() int {
 	return s.value.Len()
 }
 
-func (s *StructFieldExpanded) MapIndex(key reflect.Value) reflect.Value {
+func (s *StructFieldEx) MapIndex(key reflect.Value) reflect.Value {
 	return s.value.MapIndex(key)
 }
 
-func (s *StructFieldExpanded) MapKeys() []reflect.Value {
+func (s *StructFieldEx) MapKeys() []reflect.Value {
 	return s.value.MapKeys()
 }
 
-func (s *StructFieldExpanded) SetIterKey(iter *reflect.MapIter) {
+func (s *StructFieldEx) SetIterKey(iter *reflect.MapIter) {
 	s.value.SetIterKey(iter)
 }
 
-func (s *StructFieldExpanded) SetIterValue(iter *reflect.MapIter) {
+func (s *StructFieldEx) SetIterValue(iter *reflect.MapIter) {
 	s.value.SetIterValue(iter)
 }
 
-func (s *StructFieldExpanded) MapRange() *reflect.MapIter {
+func (s *StructFieldEx) MapRange() *reflect.MapIter {
 	return s.value.MapRange()
 }
 
-func (s *StructFieldExpanded) Method(i int) reflect.Value {
+func (s *StructFieldEx) Method(i int) reflect.Value {
 	return s.value.Method(i)
 }
 
-func (s *StructFieldExpanded) NumMethod() int {
+func (s *StructFieldEx) NumMethod() int {
 	return s.value.NumMethod()
 }
 
-func (s *StructFieldExpanded) MethodByName(name string) reflect.Value {
+func (s *StructFieldEx) MethodByName(name string) reflect.Value {
 	return s.value.MethodByName(name)
 }
 
-func (s *StructFieldExpanded) NumField() int {
+func (s *StructFieldEx) NumField() int {
 	return s.value.NumField()
 }
 
-func (s *StructFieldExpanded) OverflowComplex(x complex128) bool {
+func (s *StructFieldEx) OverflowComplex(x complex128) bool {
 	return s.value.OverflowComplex(x)
 }
 
-func (s *StructFieldExpanded) OverflowFloat(x float64) bool {
+func (s *StructFieldEx) OverflowFloat(x float64) bool {
 	return s.value.OverflowFloat(x)
 }
 
-func (s *StructFieldExpanded) OverflowInt(x int64) bool {
+func (s *StructFieldEx) OverflowInt(x int64) bool {
 	return s.value.OverflowInt(x)
 }
 
-func (s *StructFieldExpanded) OverflowUint(x uint64) bool {
+func (s *StructFieldEx) OverflowUint(x uint64) bool {
 	return s.value.OverflowUint(x)
 }
 
-func (s *StructFieldExpanded) Pointer() uintptr {
+func (s *StructFieldEx) Pointer() uintptr {
 	return s.value.Pointer()
 }
 
-func (s *StructFieldExpanded) Recv() (x reflect.Value, ok bool) {
+func (s *StructFieldEx) Recv() (x reflect.Value, ok bool) {
 	return s.value.Recv()
 }
 
-func (s *StructFieldExpanded) Send(x reflect.Value) {
+func (s *StructFieldEx) Send(x reflect.Value) {
 	s.value.Send(x)
 }
 
-func (s *StructFieldExpanded) Set(x reflect.Value) {
+func (s *StructFieldEx) Set(x reflect.Value) {
 	s.value.Set(x)
 }
 
-func (s *StructFieldExpanded) SetBool(x bool) {
+func (s *StructFieldEx) SetBool(x bool) {
 	s.value.SetBool(x)
 }
 
-func (s *StructFieldExpanded) SetBytes(x []byte) {
+func (s *StructFieldEx) SetBytes(x []byte) {
 	s.value.SetBytes(x)
 }
 
-func (s *StructFieldExpanded) SetComplex(x complex128) {
+func (s *StructFieldEx) SetComplex(x complex128) {
 	s.value.SetComplex(x)
 }
 
-func (s *StructFieldExpanded) SetFloat(x float64) {
+func (s *StructFieldEx) SetFloat(x float64) {
 	s.value.SetFloat(x)
 }
 
-func (s *StructFieldExpanded) SetInt(x int64) {
+func (s *StructFieldEx) SetInt(x int64) {
 	s.value.SetInt(x)
 }
 
-func (s *StructFieldExpanded) SetLen(n int) {
+func (s *StructFieldEx) SetLen(n int) {
 	s.value.SetLen(n)
 }
 
-func (s *StructFieldExpanded) SetCap(n int) {
+func (s *StructFieldEx) SetCap(n int) {
 	s.value.SetCap(n)
 }
 
-func (s *StructFieldExpanded) SetMapIndex(key reflect.Value, elem reflect.Value) {
+func (s *StructFieldEx) SetMapIndex(key reflect.Value, elem reflect.Value) {
 	s.value.SetMapIndex(key, elem)
 }
 
-func (s *StructFieldExpanded) SetUint(x uint64) {
+func (s *StructFieldEx) SetUint(x uint64) {
 	s.value.SetUint(x)
 }
 
-func (s *StructFieldExpanded) SetPointer(x unsafe.Pointer) {
+func (s *StructFieldEx) SetPointer(x unsafe.Pointer) {
 	s.value.SetPointer(x)
 }
 
-func (s *StructFieldExpanded) SetString(x string) {
+func (s *StructFieldEx) SetString(x string) {
 	s.value.SetString(x)
 }
 
-func (s *StructFieldExpanded) Slice(i int, j int) reflect.Value {
+func (s *StructFieldEx) Slice(i int, j int) reflect.Value {
 	return s.value.Slice(i, j)
 }
 
-func (s *StructFieldExpanded) Slice3(i int, j int, k int) reflect.Value {
+func (s *StructFieldEx) Slice3(i int, j int, k int) reflect.Value {
 	return s.value.Slice3(i, j, k)
 }
 
-func (s *StructFieldExpanded) String() string {
+func (s *StructFieldEx) String() string {
 	return s.value.String()
 }
 
-func (s *StructFieldExpanded) TryRecv() (x reflect.Value, ok bool) {
+func (s *StructFieldEx) TryRecv() (x reflect.Value, ok bool) {
 	return s.value.TryRecv()
 }
 
-func (s *StructFieldExpanded) TrySend(x reflect.Value) bool {
+func (s *StructFieldEx) TrySend(x reflect.Value) bool {
 	return s.value.TrySend(x)
 }
 
-func (s *StructFieldExpanded) Type() reflect.Type {
+func (s *StructFieldEx) Type() reflect.Type {
 	return s.value.Type()
 }
 
-func (s *StructFieldExpanded) CanUint() bool {
+func (s *StructFieldEx) CanUint() bool {
 	return s.value.CanUint()
 }
 
-func (s *StructFieldExpanded) Uint() uint64 {
+func (s *StructFieldEx) Uint() uint64 {
 	return s.value.Uint()
 }
 
-func (s *StructFieldExpanded) UnsafeAddr() uintptr {
+func (s *StructFieldEx) UnsafeAddr() uintptr {
 	return s.value.UnsafeAddr()
 }
 
-func (s *StructFieldExpanded) UnsafePointer() unsafe.Pointer {
+func (s *StructFieldEx) UnsafePointer() unsafe.Pointer {
 	return s.value.UnsafePointer()
 }
 
-func (s *StructFieldExpanded) Grow(n int) {
+func (s *StructFieldEx) Grow(n int) {
 	s.value.Grow(n)
 }
 
-func (s *StructFieldExpanded) Clear() {
+func (s *StructFieldEx) Clear() {
 	s.value.Clear()
 }
 
-func (s *StructFieldExpanded) Convert(t reflect.Type) reflect.Value {
+func (s *StructFieldEx) Convert(t reflect.Type) reflect.Value {
 	return s.value.Convert(t)
 }
 
-func (s *StructFieldExpanded) CanConvert(t reflect.Type) bool {
+func (s *StructFieldEx) CanConvert(t reflect.Type) bool {
 	return s.value.CanConvert(t)
 }
 
-func (s *StructFieldExpanded) Comparable() bool {
+func (s *StructFieldEx) Comparable() bool {
 	return s.value.Comparable()
 }
 
-func (s *StructFieldExpanded) Equal(u reflect.Value) bool {
+func (s *StructFieldEx) Equal(u reflect.Value) bool {
 	return s.value.Equal(u)
 }
 
-type StructTagExpandedImpl interface {
+type StructTagExImpl interface {
 	GetIgnore() bool
 	GetOmitEmpty() bool
 	GetRequired() bool
@@ -1342,30 +1687,30 @@ type StructTagExpandedImpl interface {
 	Match(value any) bool
 }
 
-type StructTagExpanded struct {
+type StructTagEx struct {
 	ignore    bool
 	omitEmpty bool
 	required  bool
 	name      string
 }
 
-func (s *StructTagExpanded) GetIgnore() bool {
+func (s *StructTagEx) GetIgnore() bool {
 	return s.ignore
 }
 
-func (s *StructTagExpanded) GetOmitEmpty() bool {
+func (s *StructTagEx) GetOmitEmpty() bool {
 	return s.omitEmpty
 }
 
-func (s *StructTagExpanded) GetRequired() bool {
+func (s *StructTagEx) GetRequired() bool {
 	return s.required
 }
 
-func (s *StructTagExpanded) GetName() string {
+func (s *StructTagEx) GetName() string {
 	return s.name
 }
 
-func (s *StructTagExpanded) Unmatch(value any) bool {
+func (s *StructTagEx) Unmatch(value any) bool {
 	if s.ignore {
 		return true
 	}
@@ -1381,11 +1726,11 @@ func (s *StructTagExpanded) Unmatch(value any) bool {
 	return false
 }
 
-func (s *StructTagExpanded) Match(value any) bool {
+func (s *StructTagEx) Match(value any) bool {
 	return !s.Unmatch(value)
 }
 
-func GetStructTagExpanded(key string, sTag reflect.StructTag) StructTagExpandedImpl {
+func GetStructTagEx(key string, sTag reflect.StructTag) StructTagExImpl {
 	switch key {
 	case "db", "mapstructure", "json", "yaml":
 		if val, ok := sTag.Lookup(key); ok {
@@ -1409,7 +1754,7 @@ func GetStructTagExpanded(key string, sTag reflect.StructTag) StructTagExpandedI
 					}
 				}
 
-				return &StructTagExpanded{
+				return &StructTagEx{
 					ignore:    ignore,
 					omitEmpty: omitEmpty,
 					required:  required,
@@ -1423,9 +1768,9 @@ func GetStructTagExpanded(key string, sTag reflect.StructTag) StructTagExpandedI
 	}
 }
 
-type StructFieldAction func(name string, sFieldX StructFieldExpandedImpl) error
+type StructFieldAction func(name string, sFieldX StructFieldExImpl) error
 
-func (s StructFieldAction) Call(name string, sFieldX StructFieldExpandedImpl) error {
+func (s StructFieldAction) Call(name string, sFieldX StructFieldExImpl) error {
 	return s(name, sFieldX)
 }
 
@@ -1472,12 +1817,12 @@ func ForEachStructFieldsReflect(value any, options *ForEachStructFieldsOptions, 
 			pName := sField.Name
 			pValid := true
 
-			var sTagX StructTagExpandedImpl
+			var sTagX StructTagExImpl
 
 			for j, sTagName := range sTagNames {
 				KeepVoid(j)
 
-				if sTagX = GetStructTagExpanded(sTagName, sTag); sTagX != nil {
+				if sTagX = GetStructTagEx(sTagName, sTag); sTagX != nil {
 					pName = sTagX.GetName()
 					pValid = sTagX.Match(vField)
 					break
@@ -1488,7 +1833,7 @@ func ForEachStructFieldsReflect(value any, options *ForEachStructFieldsOptions, 
 				continue
 			}
 
-			sFieldX := NewStructFieldExpanded(sField, sTagX, vField)
+			sFieldX := NewStructFieldEx(sField, sTagX, vField)
 			if err := action.Call(pName, sFieldX); err != nil {
 				return err
 			}

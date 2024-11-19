@@ -12,8 +12,6 @@ import (
 
 var ErrDataTypeInvalid = errors.New("invalid data type")
 
-var EmptyString string
-
 func KeepVoid(_ ...any) {
 	// do nothing...
 }
@@ -155,6 +153,28 @@ func Unwrap2[T1, T2 any, E ErrOrOkImpl](value1 T1, value2 T2, eOk E) (T1, T2) {
 	return value1, value2
 }
 
+func Unwrap3[T1, T2, T3 any, E ErrOrOkImpl](value1 T1, value2 T2, value3 T3, eOk E) (T1, T2, T3) {
+	var ok bool
+	var err error
+	KeepVoid(ok, err)
+
+	if IsNone(eOk) {
+		return value1, value2, value3
+	}
+
+	if err, ok = CastErr(eOk); !ok {
+		if !IsOk(eOk) {
+			panic("invalid data type")
+		}
+
+		return value1, value2, value3
+	}
+
+	NoErr(err)
+
+	return value1, value2, value3
+}
+
 func HandlePanic(handler func(error)) {
 	if err := recover(); err != nil {
 		switch val := err.(type) {
@@ -175,14 +195,6 @@ func HandlePanic(handler func(error)) {
 			}
 		}
 	}
-}
-
-type StackCollectionImpl[T any] interface {
-	*T | []T
-}
-
-type MapCollectionImpl[T any] interface {
-	StackCollectionImpl[T] | map[string]T
 }
 
 type MapImpl[T any] interface {
@@ -428,7 +440,7 @@ func CastPtr[T any](value any) (*T, bool) {
 }
 
 func IsNoneOrEmpty(value string) bool {
-	return value == "" || value == "\x00"
+	return value == ""
 }
 
 func IsNoneOrEmptyWhiteSpace(value string) bool {
@@ -438,11 +450,16 @@ func IsNoneOrEmptyWhiteSpace(value string) bool {
 	temp := strings.TrimSpace(value)
 	return temp == "" ||
 		temp == "\x00" ||
+		temp == "\xC2" ||
 		temp == "\xA0" ||
+		temp == "\xC2\xA0" ||
 		temp == "\t" ||
 		temp == "\r" ||
 		temp == "\n" ||
-		temp == "\r\n"
+		temp == "\r\n" ||
+		temp == "\v" ||
+		temp == "\f" ||
+		temp == "\v\f"
 }
 
 func Base64Encode(data []byte) string {
@@ -462,15 +479,7 @@ func Base64DecodeURLSafe(data string) ([]byte, error) {
 }
 
 func NewUUID() uuid.UUID {
-	var err error
-	var temp uuid.UUID
-	KeepVoid(err, temp)
-
-	if temp, err = uuid.NewV7(); err != nil {
-		panic(err)
-	}
-
-	return temp
+	return Unwrap(uuid.NewV7())
 }
 
 // TODO: not implemented yet
@@ -660,6 +669,8 @@ func (a *StateAction) Call() {
 	a.state.Get().Call()
 }
 
+// single params
+
 type ActionSingleParamImpl[P any] interface {
 	Func() func(arg P)
 	Call(arg P)
@@ -709,6 +720,59 @@ func (a *StateActionSingleParam[P]) Func() func(arg P) {
 
 func (a *StateActionSingleParam[P]) Call(arg P) {
 	a.state.Get().Call(arg)
+}
+
+// double params
+
+type ActionDoubleParamsImpl[P1, P2 any] interface {
+	Func() func(p1 P1, p2 P2)
+	Call(p1 P1, p2 P2)
+}
+
+type ActionDoubleParams[P1, P2 any] func(p1 P1, p2 P2)
+
+func NewActionDoubleParams[P1, P2 any](action func(p1 P1, p2 P2)) ActionDoubleParamsImpl[P1, P2] {
+	return ActionDoubleParams[P1, P2](action)
+}
+
+func (a ActionDoubleParams[P1, P2]) Func() func(p1 P1, p2 P2) {
+	return func(p1 P1, p2 P2) {
+		a.Call(p1, p2)
+	}
+}
+
+func (a ActionDoubleParams[P1, P2]) Call(p1 P1, p2 P2) {
+	a(p1, p2)
+}
+
+type StateActionDoubleParamsImpl[P1, P2 any] interface {
+	Set(action ActionDoubleParams[P1, P2])
+	Func() func(p1 P1, p2 P2)
+	Call(p1 P1, p2 P2)
+}
+
+type StateActionDoubleParams[P1, P2 any] struct {
+	state StateImpl[ActionDoubleParams[P1, P2]]
+}
+
+func NewStateActionDoubleParams[P1, P2 any](action ActionDoubleParams[P1, P2]) StateActionDoubleParamsImpl[P1, P2] {
+	return &StateActionDoubleParams[P1, P2]{
+		state: NewState(action),
+	}
+}
+
+func (a *StateActionDoubleParams[P1, P2]) Set(action ActionDoubleParams[P1, P2]) {
+	a.state.Set(action)
+}
+
+func (a *StateActionDoubleParams[P1, P2]) Func() func(p1 P1, p2 P2) {
+	return func(p1 P1, p2 P2) {
+		a.Call(p1, p2)
+	}
+}
+
+func (a *StateActionDoubleParams[P1, P2]) Call(p1 P1, p2 P2) {
+	a.state.Get().Call(p1, p2)
 }
 
 type ActionAnyParamsImpl interface {
@@ -864,6 +928,8 @@ func (a *StateActionReturn[R]) Call() R {
 	return a.state.Get().Call()
 }
 
+// single params return
+
 type ActionSingleParamReturnImpl[V, R any] interface {
 	Func() func(arg V) R
 	Call(arg V) R
@@ -913,6 +979,59 @@ func (a *StateActionSingleParamReturn[V, R]) Func() func(arg V) R {
 
 func (a *StateActionSingleParamReturn[V, R]) Call(arg V) R {
 	return a.state.Get().Call(arg)
+}
+
+// double params return
+
+type ActionDoubleParamsReturnImpl[V1, V2, R any] interface {
+	Func() func(v1 V1, v2 V2) R
+	Call(v1 V1, v2 V2) R
+}
+
+type ActionDoubleParamsReturn[V1, V2, R any] func(v1 V1, v2 V2) R
+
+func NewActionDoubleParamsReturn[V1, V2, R any](action func(v1 V1, v2 V2) R) ActionDoubleParamsReturnImpl[V1, V2, R] {
+	return ActionDoubleParamsReturn[V1, V2, R](action)
+}
+
+func (a ActionDoubleParamsReturn[V1, V2, R]) Func() func(v1 V1, v2 V2) R {
+	return func(v1 V1, v2 V2) R {
+		return a.Call(v1, v2)
+	}
+}
+
+func (a ActionDoubleParamsReturn[V1, V2, R]) Call(v1 V1, v2 V2) R {
+	return a(v1, v2)
+}
+
+type StateActionDoubleParamsReturnImpl[V1, V2, R any] interface {
+	Set(action ActionDoubleParamsReturn[V1, V2, R])
+	Func() func(v1 V1, v2 V2) R
+	Call(v1 V1, v2 V2) R
+}
+
+type StateActionDoubleParamsReturn[V1, V2, R any] struct {
+	state StateImpl[ActionDoubleParamsReturn[V1, V2, R]]
+}
+
+func NewStateActionDoubleParamsReturn[V1, V2, R any](action ActionDoubleParamsReturn[V1, V2, R]) StateActionDoubleParamsReturnImpl[V1, V2, R] {
+	return &StateActionDoubleParamsReturn[V1, V2, R]{
+		state: NewState(action),
+	}
+}
+
+func (a *StateActionDoubleParamsReturn[V1, V2, R]) Set(action ActionDoubleParamsReturn[V1, V2, R]) {
+	a.state.Set(action)
+}
+
+func (a *StateActionDoubleParamsReturn[V1, V2, R]) Func() func(v1 V1, v2 V2) R {
+	return func(v1 V1, v2 V2) R {
+		return a.Call(v1, v2)
+	}
+}
+
+func (a *StateActionDoubleParamsReturn[V1, V2, R]) Call(v1 V1, v2 V2) R {
+	return a.state.Get().Call(v1, v2)
 }
 
 type ActionAnyParamsReturnImpl[R any] interface {

@@ -30,7 +30,7 @@ func Pow(z *big.Float, w *big.Float) *big.Float {
 	}
 
 	// w integer fast path (disabled because introduces rounding errors)
-	
+
 	//if w.IsInt() {
 	//	wi, _ := w.Int64()
 	//	return powInt(z, int(wi))
@@ -43,29 +43,4 @@ func Pow(z *big.Float, w *big.Float) *big.Float {
 	x = Exp(x)
 	return x.SetPrec(z.Prec())
 
-}
-
-// fast path for z**w when w is an integer
-func powInt(z *big.Float, w int) *big.Float {
-
-	// get mantissa and exponent of z
-	mant := new(big.Float)
-	exp := z.MantExp(mant)
-
-	// result's exponent
-	exp = exp * w
-
-	// result's mantissa
-	x := big.NewFloat(1).SetPrec(z.Prec())
-
-	// Classic right-to-left binary exponentiation
-	for w > 0 {
-		if w%2 == 1 {
-			x.Mul(x, mant)
-		}
-		w >>= 1
-		mant.Mul(mant, mant)
-	}
-
-	return new(big.Float).SetMantExp(x, exp)
 }

@@ -3,6 +3,7 @@ package models
 import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"nokowebapi/nokocore"
 	"time"
 )
 
@@ -16,4 +17,11 @@ type Model struct {
 
 func (Model) TableName() string {
 	return "models"
+}
+
+func (m *Model) BeforeCreate(db *gorm.DB) (err error) {
+	nokocore.KeepVoid(db)
+
+	m.UUID = nokocore.Unwrap(uuid.NewV7())
+	return
 }

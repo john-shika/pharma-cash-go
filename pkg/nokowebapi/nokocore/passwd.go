@@ -50,12 +50,12 @@ func HashPassword(password string) (string, error) {
 	KeepVoid(n, err)
 
 	if len(password) < passConfig.MinLength || len(password) > passConfig.MaxLength {
-		return EmptyString, ErrPasswordInvalidLength
+		return "", ErrPasswordInvalidLength
 	}
 
 	salt := make([]byte, pdkf2Config.SaltSize)
 	if n, err = rand.Read(salt); err != nil {
-		return EmptyString, err
+		return "", err
 	}
 
 	buff := []byte(password)

@@ -1,9 +1,15 @@
 package repositories
 
+import "gorm.io/gorm"
+
 type BaseRepositoryImpl interface{}
 
-type BaseRepository struct{}
+type BaseRepository struct {
+	DB *gorm.DB
+}
 
-func NewBaseRepository() BaseRepositoryImpl {
-	return &BaseRepository{}
+func NewBaseRepository(DB *gorm.DB) BaseRepositoryImpl {
+	return &BaseRepository{
+		DB: DB,
+	}
 }

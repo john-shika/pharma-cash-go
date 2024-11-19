@@ -8,7 +8,7 @@ import (
 
 func ToTitleCase(value string) string {
 	if IsNoneOrEmptyWhiteSpace(value) {
-		return EmptyString
+		return ""
 	}
 
 	temp := RegexReplaceAllString("([a-z])([A-Z])", strings.TrimSpace(value), "$1 $2")
@@ -26,7 +26,7 @@ func ToUpperStart(value string) string {
 	size := len(value)
 	switch size {
 	case 0:
-		return EmptyString
+		return ""
 	case 1:
 		return strings.ToUpper(value)
 	default:
@@ -38,7 +38,7 @@ func ToLowerStart(value string) string {
 	size := len(value)
 	switch size {
 	case 0:
-		return EmptyString
+		return ""
 	case 1:
 		return strings.ToLower(value)
 	default:

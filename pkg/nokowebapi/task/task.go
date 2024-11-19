@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const NokoWebApiAutoRunEnv string = "NOKOWEBAPI_SELF_RUNNING"
+
 type DependsOnConfigParamsImpl interface {
 	GetIterations() int
 	GetDuration() time.Duration
@@ -37,48 +39,54 @@ func (d *DependsOnConfigParams) GetDuration() time.Duration {
 	return d.Duration
 }
 
-type DependsOnConfigImpl interface {
-	GetTarget() string
-	GetWaiter() string
-	GetParams() *DependsOnConfigParams
-}
-
-type DependsOnConfig struct {
-	Target string                 `mapstructure:"target" json:"target" yaml:"target"`
+// DependsOnTaskConfig struct, T any can be string or *Config itself.
+// Keep in mind, parsing by viper config file, declare T must be string.
+type DependsOnTaskConfig[T any] struct {
+	Target T                      `mapstructure:"target" json:"target" yaml:"target"`
 	Waiter string                 `mapstructure:"waiter" json:"waiter" yaml:"waiter"`
 	Params *DependsOnConfigParams `mapstructure:"params" json:"params" yaml:"params"`
 }
 
-func NewDependsOnConfig(target string, waiter string) DependsOnConfigImpl {
-	return &DependsOnConfig{
+func NewDependsOnTaskConfig[T any](target T, waiter string, params *DependsOnConfigParams) *DependsOnTaskConfig[T] {
+	return &DependsOnTaskConfig[T]{
 		Target: target,
 		Waiter: waiter,
+		Params: params,
 	}
 }
 
-func (d *DependsOnConfig) GetTarget() string {
+func (d *DependsOnTaskConfig[T]) GetTarget() T {
 	return d.Target
 }
 
-func (d *DependsOnConfig) GetWaiter() string {
+func (d *DependsOnTaskConfig[T]) GetWaiter() string {
 	return d.Waiter
 }
 
-func (d *DependsOnConfig) GetParams() *DependsOnConfigParams {
-	return d.Params
+func (d *DependsOnTaskConfig[T]) GetParams() *DependsOnConfigParams {
+	params := d.Params
+	if params != nil {
+		if params.Iterations == 0 {
+			params.Iterations = 12
+		}
+		if params.Duration == 0 {
+			params.Duration = time.Second
+		}
+	}
+	return params
 }
 
 type Config struct {
-	Name      string                  `mapstructure:"name" json:"name" yaml:"name"`
-	Exec      string                  `mapstructure:"exec" json:"exec" yaml:"exec"`
-	Args      []string                `mapstructure:"args" json:"args" yaml:"args"`
-	Workdir   string                  `mapstructure:"workdir" json:"workdir" yaml:"workdir"`
-	Environ   []string                `mapstructure:"environ" json:"environ" yaml:"environ"`
-	Stdin     string                  `mapstructure:"stdin" json:"stdin" yaml:"stdin"`
-	Stdout    string                  `mapstructure:"stdout" json:"stdout" yaml:"stdout"`
-	Stderr    string                  `mapstructure:"stderr" json:"stderr" yaml:"stderr"`
-	Network   *nokocore.NetworkConfig `mapstructure:"network" json:"network" yaml:"network"`
-	DependsOn []*DependsOnConfig      `mapstructure:"depends_on" json:"dependsOn" yaml:"depends_on"`
+	Name      string                         `mapstructure:"name" json:"name" yaml:"name"`
+	Exec      string                         `mapstructure:"exec" json:"exec" yaml:"exec"`
+	Args      []string                       `mapstructure:"args" json:"args" yaml:"args"`
+	Workdir   string                         `mapstructure:"workdir" json:"workdir" yaml:"workdir"`
+	Environ   []string                       `mapstructure:"environ" json:"environ" yaml:"environ"`
+	Stdin     string                         `mapstructure:"stdin" json:"stdin" yaml:"stdin"`
+	Stdout    string                         `mapstructure:"stdout" json:"stdout" yaml:"stdout"`
+	Stderr    string                         `mapstructure:"stderr" json:"stderr" yaml:"stderr"`
+	Network   *nokocore.NetworkConfig        `mapstructure:"network" json:"network" yaml:"network"`
+	DependsOn []*DependsOnTaskConfig[string] `mapstructure:"depends_on" json:"dependsOn" yaml:"depends_on"`
 }
 
 func NewConfig() *Config {
@@ -112,67 +120,32 @@ func (t *Config) GetStderr() io.Writer {
 	}
 }
 
-type Tasks []*Config
+// TasksConfig struct, keep it mind, parsing by viper config file
+type TasksConfig []*Config
 
-func NewTasks() *Tasks {
-	temp := make(Tasks, 0)
+func NewTasksConfig() *TasksConfig {
+	temp := make(TasksConfig, 0)
 	return &temp
 }
 
-func (t *Tasks) GetTask(name string) *Config {
+func (t *TasksConfig) GetNameType() string {
+	return "Tasks"
+}
+
+func (t *TasksConfig) GetTaskConfig(name string) *Config {
 	for i, task := range *t {
 		nokocore.KeepVoid(i)
 
-		if strings.EqualFold(task.Name, name) {
+		taskName := strings.TrimSpace(task.Name)
+		if strings.EqualFold(taskName, name) {
 			return task
 		}
 	}
 	return nil
 }
 
-type DependsOnTaskImpl interface {
-	GetTask() *Config
-	GetWaiter() string
-	GetParams() *DependsOnConfigParams
-}
-
-type DependsOnTask struct {
-	Task   *Config
-	Waiter string
-	Params *DependsOnConfigParams
-}
-
-func NewDependsOnTask(task *Config, waiter string, params *DependsOnConfigParams) *DependsOnTask {
-	return &DependsOnTask{
-		Task:   task,
-		Waiter: waiter,
-		Params: params,
-	}
-}
-
-func (d *DependsOnTask) GetTask() *Config {
-	return d.Task
-}
-
-func (d *DependsOnTask) GetWaiter() string {
-	return d.Waiter
-}
-
-func (d *DependsOnTask) GetParams() *DependsOnConfigParams {
-	params := d.Params
-	if params != nil {
-		if params.Iterations == 0 {
-			params.Iterations = 12
-		}
-		if params.Duration == 0 {
-			params.Duration = time.Second
-		}
-	}
-	return params
-}
-
-func (t *Tasks) GetDependsOnTask(task *Config) []*DependsOnTask {
-	temp := make([]*DependsOnTask, 0)
+func (t *TasksConfig) GetDependsOnTask(task *Config) []*DependsOnTaskConfig[*Config] {
+	temp := make([]*DependsOnTaskConfig[*Config], 0)
 	for i, dependsOn := range task.DependsOn {
 		nokocore.KeepVoid(i)
 
@@ -180,22 +153,28 @@ func (t *Tasks) GetDependsOnTask(task *Config) []*DependsOnTask {
 		waiter := dependsOn.GetWaiter()
 		params := dependsOn.GetParams()
 
-		dependsTask := NewDependsOnTask(t.GetTask(target), waiter, params)
+		dependsTask := NewDependsOnTaskConfig[*Config](t.GetTaskConfig(target), waiter, params)
 		temp = append(temp, dependsTask)
 	}
 
 	return temp
 }
 
-type ProcessTask struct {
-	Process ProcessImpl
-	Task    *Config
+type ProcessTaskImpl interface {
+	GetProcess() ProcessImpl
+	GetTaskConfig() *Config
+	IsRunning() bool
 }
 
-func NewProcessTask(process ProcessImpl, task *Config) *ProcessTask {
+type ProcessTask struct {
+	TaskConfig *Config
+	Process    ProcessImpl
+}
+
+func NewProcessTask(process ProcessImpl, config *Config) ProcessTaskImpl {
 	return &ProcessTask{
-		Process: process,
-		Task:    task,
+		TaskConfig: config,
+		Process:    process,
 	}
 }
 
@@ -203,8 +182,8 @@ func (p *ProcessTask) GetProcess() ProcessImpl {
 	return p.Process
 }
 
-func (p *ProcessTask) GetTask() *Config {
-	return p.Task
+func (p *ProcessTask) GetTaskConfig() *Config {
+	return p.TaskConfig
 }
 
 func (p *ProcessTask) IsRunning() bool {
@@ -221,13 +200,7 @@ func (p *ProcessTask) State() (StateImpl, error) {
 	return nil, errors.New("process not started")
 }
 
-type MainTaskFunc func(*ProcessTasks, *Config) error
-
-func (s MainTaskFunc) Call(processTasks *ProcessTasks, task *Config) error {
-	return s(processTasks, task)
-}
-
-func runTask(processTasks *ProcessTasks, task *Config) error {
+func runTask(pTasks ProcessTasksImpl, task *Config) error {
 	var err error
 	var workDir nokocore.WorkingDirImpl
 	nokocore.KeepVoid(err, workDir)
@@ -257,8 +230,8 @@ func runTask(processTasks *ProcessTasks, task *Config) error {
 		process.SetStderr(stderr)
 		process.SetEnviron(environ)
 
-		processTask := NewProcessTask(process, task)
-		return processTasks.StartProcessTask(processTask)
+		pTask := NewProcessTask(process, task)
+		return pTasks.StartProcessTask(pTask)
 	}
 
 	if workDir, err = nokocore.SetWorkingDir(workFunc); err != nil {
@@ -268,11 +241,11 @@ func runTask(processTasks *ProcessTasks, task *Config) error {
 	return nil
 }
 
-var mainTask = func(processTasks *ProcessTasks, task *Config) error {
+var mainTask = func(pTasks ProcessTasksImpl, task *Config) error {
 	var err error
 	var args []string
-	var workDir nokocore.WorkingDirImpl
-	nokocore.KeepVoid(err, args, workDir)
+	var exec string
+	nokocore.KeepVoid(err, args, exec)
 
 	// check if there are any command-line arguments provided.
 	// if none, return an error indicating the source root directory cannot be determined.
@@ -281,33 +254,69 @@ var mainTask = func(processTasks *ProcessTasks, task *Config) error {
 	}
 
 	// initial execute and arguments it-self
-	task.Exec = os.Args[0]
+	if exec, err = os.Executable(); err != nil {
+		return err
+	}
+
+	// binding values
+	task.Exec = exec
 	task.Args = args
 
-	// set value for NOKOWEBAPI_SELF_RUNNING env
-	task.Environ = append(task.Environ, "NOKOWEBAPI_SELF_RUNNING=1")
+	nokoWebApiAutoRunEnv := fmt.Sprintf("%s=%s", NokoWebApiAutoRunEnv, "1")
 
-	return runTask(processTasks, task)
+	// set value for NOKOWEBAPI_SELF_RUNNING env
+	task.Environ = append(task.Environ, nokoWebApiAutoRunEnv)
+	return runTask(pTasks, task)
+}
+
+func EntryPoint(self nokocore.MainFunc, pTasksHandler nokocore.ActionSingleParam[ProcessTasksImpl]) {
+	ApplyMainSelf(self)
+	pTasks := NewProcessTasks()
+	pTasksHandler.Call(pTasks)
+}
+
+func ApplyMainSelf(self nokocore.MainFunc) {
+	var ok bool
+	var nokoWebApiAutoRunEnv string
+	nokocore.KeepVoid(ok, nokoWebApiAutoRunEnv)
+
+	if nokoWebApiAutoRunEnv, ok = os.LookupEnv(NokoWebApiAutoRunEnv); ok {
+		if nokocore.ParseEnvToBool(nokoWebApiAutoRunEnv) {
+
+			// will be exited
+			nokocore.ApplyMainFunc(self)
+			return
+		}
+	}
+
+	nokocore.NoErr(os.Setenv(NokoWebApiAutoRunEnv, "1"))
+}
+
+type ProcessTasksImpl interface {
+	GetProcessTask(name string) ProcessTaskImpl
+	GetDependsOnProcessTask(task *Config) []ProcessTaskImpl
+	StartProcessTask(pTask ProcessTaskImpl) error
+	ExecuteAsync(tasksConfig *TasksConfig)
+	Execute(tasksConfig *TasksConfig) error
+	Wait() error
 }
 
 type ProcessTasks struct {
-	processes []*ProcessTask
-	mainTask  MainTaskFunc
-	locker    nokocore.LockerImpl
+	mainTask nokocore.ActionDoubleParamsReturn[ProcessTasksImpl, *Config, error]
+	pTasks   []ProcessTaskImpl
+	locker   nokocore.LockerImpl
+	regis    WaitTasksImpl
 }
 
-func NewProcessTasks(self MainTaskFunc) *ProcessTasks {
-	if self == nil {
-		self = mainTask
-	}
+func NewProcessTasks() ProcessTasksImpl {
 	return &ProcessTasks{
-		processes: make([]*ProcessTask, 0),
-		mainTask:  self,
-		locker:    nokocore.NewLocker(),
+		mainTask: mainTask,
+		pTasks:   make([]ProcessTaskImpl, 0),
+		locker:   nokocore.NewLocker(),
 	}
 }
 
-func (p *ProcessTasks) RunSelf(task *Config) error {
+func (p *ProcessTasks) applyMainTask(task *Config) error {
 	var err error
 	nokocore.KeepVoid(err)
 
@@ -318,57 +327,22 @@ func (p *ProcessTasks) RunSelf(task *Config) error {
 	return nil
 }
 
-func (p *ProcessTasks) GetProcessTask(name string) *ProcessTask {
-	for i, processTask := range p.processes {
+func (p *ProcessTasks) GetProcessTask(name string) ProcessTaskImpl {
+	for i, pTask := range p.pTasks {
 		nokocore.KeepVoid(i)
 
-		task := processTask.GetTask()
-		if strings.EqualFold(task.Name, name) {
-			return processTask
+		task := pTask.GetTaskConfig()
+		taskName := strings.TrimSpace(task.Name)
+
+		if strings.EqualFold(taskName, name) {
+			return pTask
 		}
 	}
 	return nil
 }
 
-func (p *ProcessTasks) StartProcessTask(processTask *ProcessTask) error {
-	var err error
-	nokocore.KeepVoid(err)
-
-	p.locker.Lock(func() {
-		task := processTask.GetTask()
-		if p.GetProcessTask(task.Name) != nil {
-			return
-		}
-		p.processes = append(p.processes, processTask)
-		err = processTask.Process.Start()
-	})
-	return err
-}
-
-func (p *ProcessTasks) Wait() error {
-	var err error
-	var state StateImpl
-	nokocore.KeepVoid(err, state)
-
-	for i, process := range p.processes {
-		nokocore.KeepVoid(i)
-
-		if state, err = process.Process.Wait(); err != nil {
-			fmt.Printf("[ERROR] Task '%s' failed.\n", process.Task.Name)
-			return err
-		}
-
-		if state != nil {
-			fmt.Printf("[STATE] PID: %d\n", state.Pid())
-			fmt.Printf("[STATE] EXIT_CODE: %d\n", state.ExitCode())
-		}
-	}
-
-	return nil
-}
-
-func (p *ProcessTasks) GetDependsOnProcessTask(task *Config) []*ProcessTask {
-	temp := make([]*ProcessTask, 0)
+func (p *ProcessTasks) GetDependsOnProcessTask(task *Config) []ProcessTaskImpl {
+	temp := make([]ProcessTaskImpl, 0)
 	for i, dependsOn := range task.DependsOn {
 		nokocore.KeepVoid(i)
 
@@ -379,48 +353,110 @@ func (p *ProcessTasks) GetDependsOnProcessTask(task *Config) []*ProcessTask {
 	return temp
 }
 
-func makeProcessFromTask(processTasks *ProcessTasks, task *Config) error {
+func (p *ProcessTasks) StartProcessTask(pTask ProcessTaskImpl) error {
+	var err error
+	nokocore.KeepVoid(err)
+
+	p.locker.Lock(func() {
+		task := pTask.GetTaskConfig()
+		taskName := strings.TrimSpace(task.Name)
+		if p.GetProcessTask(taskName) != nil {
+			return
+		}
+
+		p.pTasks = append(p.pTasks, pTask)
+		process := pTask.GetProcess()
+		err = process.Start()
+	})
+	return err
+}
+
+func (p *ProcessTasks) ExecuteAsync(tasksConfig *TasksConfig) {
+	p.regis = tasksConfig.ApplyAsync(p)
+}
+
+func (p *ProcessTasks) Execute(tasksConfig *TasksConfig) error {
+	return tasksConfig.Apply(p)
+}
+
+func (p *ProcessTasks) Wait() error {
+	var err error
+	var state StateImpl
+	nokocore.KeepVoid(err, state)
+
+	if p.regis != nil {
+		if err = p.regis.Wait(); err != nil {
+			return err
+		}
+	}
+
+	for i, pTask := range p.pTasks {
+		nokocore.KeepVoid(i)
+
+		process := pTask.GetProcess()
+		config := pTask.GetTaskConfig()
+
+		if state, err = process.Wait(); err != nil {
+			fmt.Printf("[ERROR] Task '%s' failed.\n", config.Name)
+			return err
+		}
+
+		if state != nil {
+			fmt.Printf("[STATE] PID: %d\n", state.Pid())
+			fmt.Printf("[STATE] Exit Code: %d\n", state.ExitCode())
+		}
+	}
+
+	return nil
+}
+
+func makeProcessFromTask(pTasks ProcessTasksImpl, task *Config) error {
 	var err error
 	var workDir nokocore.WorkingDirImpl
 	nokocore.KeepVoid(err, workDir)
 
-	if processTasks.GetProcessTask(task.Name) != nil {
+	taskName := strings.TrimSpace(task.Name)
+	if pTasks.GetProcessTask(taskName) != nil {
 		return nil
 	}
 
-	fmt.Printf("[RUN] Task '%s' started.\n", task.Name)
+	fmt.Printf("[RUN] Task '%s' started.\n", taskName)
 
-	if strings.EqualFold(task.Name, "self") {
-		if err = processTasks.RunSelf(task); err != nil {
+	if strings.EqualFold(taskName, "self") {
+		if err = pTasks.(*ProcessTasks).applyMainTask(task); err != nil {
 			return err
 		}
 		return nil
 	}
 
-	return runTask(processTasks, task)
+	return runTask(pTasks, task)
 }
 
-func makeProcessFromTaskAsync(processTasks *ProcessTasks, task *Config, err chan<- error) {
-	err <- makeProcessFromTask(processTasks, task)
+func makeProcessFromTaskAsync(pTasks ProcessTasksImpl, task *Config, err chan<- error) {
+	err <- makeProcessFromTask(pTasks, task)
 }
 
-func waitRun(tasks *Tasks, processTasks *ProcessTasks, task *Config) error {
+func waitRun(tasksConfig *TasksConfig, pTasks ProcessTasksImpl, task *Config) error {
 	var err error
 	nokocore.KeepVoid(err)
 
-	for i, dependsOnTask := range tasks.GetDependsOnTask(task) {
+	taskName := strings.TrimSpace(task.Name)
+
+	for i, dependsOnTask := range tasksConfig.GetDependsOnTask(task) {
 		nokocore.KeepVoid(i)
 
-		target := dependsOnTask.GetTask()
+		target := dependsOnTask.GetTarget()
 		waiter := dependsOnTask.GetWaiter()
 		params := dependsOnTask.GetParams()
 
-		// Detect circular dependency between tasks
-		if strings.EqualFold(target.Name, task.Name) {
+		targetName := strings.TrimSpace(target.Name)
+
+		// Detect circular dependency between tasksConfig
+		if strings.EqualFold(targetName, taskName) {
 			return errors.New("circular dependency detected")
 		}
 
-		if err = waitRun(tasks, processTasks, target); err != nil {
+		if err = waitRun(tasksConfig, pTasks, target); err != nil {
 			return err
 		}
 
@@ -435,33 +471,36 @@ func waitRun(tasks *Tasks, processTasks *ProcessTasks, task *Config) error {
 		}
 	}
 
-	if err = makeProcessFromTask(processTasks, task); err != nil {
-		fmt.Printf("[RUN] Task '%s' failed.\n", task.Name)
+	if err = makeProcessFromTask(pTasks, task); err != nil {
+		fmt.Printf("[RUN] Task '%s' failed.\n", taskName)
 		return err
 	}
 	return nil
 }
 
-func waitRunTask(tasks *Tasks, processTasks *ProcessTasks, task *Config) error {
+func waitRunTask(tasksConfig *TasksConfig, pTasks ProcessTasksImpl, task *Config) error {
 	var ok bool
 	var err error
 	nokocore.KeepVoid(ok, err)
 
-	dependsOnTasks := tasks.GetDependsOnTask(task)
+	taskName := strings.TrimSpace(task.Name)
+	dependsOnTasks := tasksConfig.GetDependsOnTask(task)
 
 	for i, dependsOnTask := range dependsOnTasks {
 		nokocore.KeepVoid(i)
 
-		target := dependsOnTask.GetTask()
+		target := dependsOnTask.GetTarget()
 		waiter := dependsOnTask.GetWaiter()
 		params := dependsOnTask.GetParams()
 
-		// detect circular dependency between tasks
-		if strings.EqualFold(target.Name, task.Name) {
+		targetName := strings.TrimSpace(target.Name)
+
+		// detect circular dependency between tasksConfig
+		if strings.EqualFold(targetName, taskName) {
 			return errors.New("circular dependency detected")
 		}
 
-		if err = waitRunTask(tasks, processTasks, target); err != nil {
+		if err = waitRunTask(tasksConfig, pTasks, target); err != nil {
 			return err
 		}
 
@@ -476,10 +515,10 @@ func waitRunTask(tasks *Tasks, processTasks *ProcessTasks, task *Config) error {
 		}
 	}
 
-	errorStack := make(chan error)
+	errorStack := make(chan error, 1)
 	defer close(errorStack)
 
-	go makeProcessFromTaskAsync(processTasks, task, errorStack)
+	go makeProcessFromTaskAsync(pTasks, task, errorStack)
 
 	for {
 		select {
@@ -489,7 +528,7 @@ func waitRunTask(tasks *Tasks, processTasks *ProcessTasks, task *Config) error {
 				return nil
 			}
 			if err != nil {
-				fmt.Printf("[RUN] Task '%s' failed.\n", task.Name)
+				fmt.Printf("[RUN] Task '%s' failed.\n", taskName)
 				return err
 			}
 			return nil
@@ -497,19 +536,25 @@ func waitRunTask(tasks *Tasks, processTasks *ProcessTasks, task *Config) error {
 	}
 }
 
-func (t *Tasks) Execute(processTasks *ProcessTasks) error {
+func (t *TasksConfig) Apply(pTasks ProcessTasksImpl) error {
 	var err error
 	nokocore.KeepVoid(err)
 
-	tasks := *t
-	for i, task := range tasks {
+	tasksConfig := *t
+	for i, task := range tasksConfig {
 		nokocore.KeepVoid(i)
-		if err = waitRun(t, processTasks, task); err != nil {
+		if err = waitRun(t, pTasks, task); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+type WaitTasksImpl interface {
+	Wait() error
+	Add(delta int)
+	Run(action nokocore.ActionReturn[error])
 }
 
 type WaitTasks struct {
@@ -535,25 +580,25 @@ func (t *WaitTasks) Add(delta int) {
 
 func (t *WaitTasks) Run(action nokocore.ActionReturn[error]) {
 	defer t.WaitGroup.Done()
-	t.err = action()
+	t.err = action.Call()
 }
 
-func (t *Tasks) ExecuteAsync(processTasks *ProcessTasks) *WaitTasks {
+func (t *TasksConfig) ApplyAsync(pTasks ProcessTasksImpl) *WaitTasks {
 	var err error
 	nokocore.KeepVoid(err)
 
-	tasks := *t
-	size := len(tasks)
+	tasksConfig := *t
+	size := len(tasksConfig)
 
 	wt := NewWaitTasks()
 	wt.Add(size)
 
-	for i, task := range tasks {
+	for i, task := range tasksConfig {
 		nokocore.KeepVoid(i)
 
 		// no need goroutine's for a wait run task, already run in goroutine.
 		wt.Run(func() error {
-			return waitRunTask(t, processTasks, task)
+			return waitRunTask(t, pTasks, task)
 		})
 	}
 

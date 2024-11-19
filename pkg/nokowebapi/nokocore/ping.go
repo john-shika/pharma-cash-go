@@ -17,7 +17,7 @@ func TryFetchUrl(URL *url.URL) bool {
 	// create http transport
 	transport := &http.Transport{
 		DisableKeepAlives: true,
-		IdleConnTimeout:   10 * time.Second,
+		IdleConnTimeout:   0,
 	}
 
 	// create http client with binding http transport
@@ -31,7 +31,7 @@ func TryFetchUrl(URL *url.URL) bool {
 	}
 
 	// create new request
-	if req, err = http.NewRequest("HEAD", URL.String(), nil); err != nil {
+	if req, err = http.NewRequest(http.MethodHead, URL.String(), nil); err != nil {
 		return false
 	}
 
@@ -50,8 +50,8 @@ func TryFetchUrl(URL *url.URL) bool {
 	// closing body request
 	defer NoErr(res.Body.Close())
 
-	// check status code available
-	return 100 <= res.StatusCode && res.StatusCode < 500
+	// good
+	return true
 }
 
 func TryFetchUrlWaitForAlive(URL *url.URL, n int, duration time.Duration) bool {

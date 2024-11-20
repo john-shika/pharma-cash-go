@@ -34,27 +34,27 @@ func ValidatePass(pass string) error {
 
 	size := len(pass)
 	if size < 8 {
-		message := "Password must be at least 8 characters long."
+		message := "password must be at least 8 characters long"
 		temp = append(temp, message)
 	}
 
 	if !strings.ContainsAny(pass, nokocore.AsciiLower) {
-		message := "Password must contain at least one lowercase letter."
+		message := "password must contain at least one lowercase letter"
 		temp = append(temp, message)
 	}
 
 	if !strings.ContainsAny(pass, nokocore.AsciiUpper) {
-		message := "Password must contain at least one uppercase letter."
+		message := "password must contain at least one uppercase letter"
 		temp = append(temp, message)
 	}
 
 	if !strings.ContainsAny(pass, nokocore.Digits) {
-		message := "Password must contain at least one digit."
+		message := "password must contain at least one digit"
 		temp = append(temp, message)
 	}
 
 	if !strings.ContainsAny(pass, nokocore.Punctuation) {
-		message := "Password must contain at least one special character."
+		message := "password must contain at least one special character"
 		temp = append(temp, message)
 	}
 

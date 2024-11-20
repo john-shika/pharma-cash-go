@@ -26,7 +26,7 @@ type Pdkf2Config struct {
 	N         int
 	SaltSize  int
 	KeyLength int
-	SepChar   string
+	Separator string
 	Prefix    string
 }
 
@@ -35,7 +35,7 @@ func NewPdkf2Config() *Pdkf2Config {
 		N:         10000,
 		SaltSize:  16,
 		KeyLength: 32,
-		SepChar:   "$",
+		Separator: "$",
 		Prefix:    "PDKF2_",
 	}
 }
@@ -77,7 +77,7 @@ func (p *Password) Hash() (string, error) {
 	buff := []byte(p.Value)
 	key := pbkdf2.Key(buff, salt, p.pdkf2Config.N, p.pdkf2Config.KeyLength, sha256.New)
 
-	temp := p.pdkf2Config.Prefix + Base64EncodeURLSafe(salt) + p.pdkf2Config.SepChar + Base64EncodeURLSafe(key)
+	temp := p.pdkf2Config.Prefix + Base64EncodeURLSafe(salt) + p.pdkf2Config.Separator + Base64EncodeURLSafe(key)
 	return temp, nil
 }
 
@@ -94,11 +94,11 @@ func (p *Password) Equals(hash string) bool {
 		return false
 	}
 
-	if !strings.Contains(hash, p.pdkf2Config.SepChar) {
+	if !strings.Contains(hash, p.pdkf2Config.Separator) {
 		return false
 	}
 
-	tokens := strings.Split(hash, p.pdkf2Config.SepChar)
+	tokens := strings.Split(hash, p.pdkf2Config.Separator)
 	if len(tokens) != 2 {
 		return false
 	}

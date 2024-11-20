@@ -6,20 +6,16 @@ import (
 	"nokowebapi/apis/repositories"
 )
 
+type UserRepositoryImpl interface {
+	repositories.BaseRepositoryImpl[models.User]
+}
+
 type UserRepository struct {
 	repositories.BaseRepository[models.User]
 }
 
-func NewUserRepository(DB *gorm.DB) UserRepository {
-	return UserRepository{
+func NewUserRepository(DB *gorm.DB) UserRepositoryImpl {
+	return &UserRepository{
 		BaseRepository: repositories.NewBaseRepository[models.User](DB),
 	}
-}
-
-func (u *UserRepository) Find(wheres ...any) (*models.User, error) {
-	return u.BaseRepository.Find(wheres...)
-}
-
-func (u *UserRepository) Create(model *models.User) error {
-	return u.BaseRepository.Create(model)
 }

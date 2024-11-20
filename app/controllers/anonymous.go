@@ -13,7 +13,7 @@ import (
 	"pharma-cash-go/app/repositories"
 )
 
-func MessageHandler(userRepository repositories.UserRepository) echo.HandlerFunc {
+func MessageHandler(userRepository repositories.UserRepositoryImpl) echo.HandlerFunc {
 	nokocore.KeepVoid(userRepository)
 
 	return func(ctx echo.Context) error {
@@ -23,7 +23,7 @@ func MessageHandler(userRepository repositories.UserRepository) echo.HandlerFunc
 	}
 }
 
-func LoginHandler(userRepository repositories.UserRepository, sessionRepository repositories.SessionRepository) echo.HandlerFunc {
+func LoginHandler(userRepository repositories.UserRepositoryImpl, sessionRepository repositories.SessionRepositoryImpl) echo.HandlerFunc {
 	nokocore.KeepVoid(userRepository)
 
 	jwtConfig := globals.GetJwtConfig()
@@ -34,6 +34,10 @@ func LoginHandler(userRepository repositories.UserRepository, sessionRepository 
 		var err error
 		var user *models.User
 		nokocore.KeepVoid(err, user)
+
+		req := ctx.Request()
+		ipAddr := ctx.RealIP()
+		userAgent := req.UserAgent()
 
 		userBody := new(schemas.UserBody)
 		if err = ctx.Bind(userBody); err != nil {
@@ -81,8 +85,8 @@ func LoginHandler(userRepository repositories.UserRepository, sessionRepository 
 			UserID:         user.ID,
 			TokenId:        jwtClaimsDataAccess.GetIdentity(),
 			RefreshTokenId: sql.NullString{},
-			IPAddress:      ctx.RealIP(),
-			UserAgent:      ctx.Request().UserAgent(),
+			IPAddress:      ipAddr,
+			UserAgent:      userAgent,
 			Expires:        expires,
 		})
 

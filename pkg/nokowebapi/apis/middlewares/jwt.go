@@ -21,17 +21,17 @@ func JWTAuth(db *gorm.DB) echo.MiddlewareFunc {
 
 			// don't panic
 			defer nokocore.HandlePanic(func(err error) {
-				nokocore.NoErr(extras.NewMessageBodyUnauthorized(ctx, "Recovery.", nil))
+				nokocore.NoErr(extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt recovered.", nil))
 				nokocore.KeepVoid(err)
 			})
 
 			if token, err = extras.GetJwtTokenFromEchoContext(ctx); err != nil {
-				return extras.NewMessageBodyUnauthorized(ctx, err.Error(), nil)
+				return extras.NewMessageBodyUnauthorized(ctx, "Unable to get JWT token.", nil)
 			}
 
 			jwtConfig := globals.GetJwtConfig()
 			if jwtToken, err = nokocore.ParseJwtToken(token, jwtConfig.SecretKey, jwtConfig.GetSigningMethod()); err != nil {
-				return extras.NewMessageBodyUnauthorized(ctx, err.Error(), nil)
+				return extras.NewMessageBodyUnauthorized(ctx, "Invalid JWT token", nil)
 			}
 
 			jwtClaims := nokocore.Unwrap(nokocore.GetJwtClaimsFromJwtToken(jwtToken))
@@ -43,7 +43,8 @@ func JWTAuth(db *gorm.DB) echo.MiddlewareFunc {
 			ctx.Set("token", token)
 			ctx.Set("jwt_token", jwtToken)
 			ctx.Set("jwt_claims", jwtClaims)
-			ctx.Set("jwt_claims_access_data", jwtClaimsDataAccess)
+			ctx.Set("jwt_claims_data_access", jwtClaimsDataAccess)
+
 			return next(ctx)
 		}
 	}

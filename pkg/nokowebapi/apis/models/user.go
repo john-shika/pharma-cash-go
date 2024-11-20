@@ -8,7 +8,7 @@ import (
 )
 
 type User struct {
-	Model
+	BaseModel
 	Username string         `db:"username" gorm:"unique;index;not null;" mapstructure:"username" json:"username" yaml:"username"`
 	Password string         `db:"password" gorm:"not null" mapstructure:"password" json:"password" yaml:"password"`
 	Email    sql.NullString `db:"email" gorm:";" mapstructure:"email" json:"email,omitempty" yaml:"email"`
@@ -31,27 +31,34 @@ func (u *User) BeforeCreate(db *gorm.DB) (err error) {
 		return err
 	}
 
-	if u.Admin {
-		temp := make([]string, 0)
-		roles := strings.Split(strings.TrimSpace(u.Role), ",")
-		found := false
-		for i, role := range roles {
-			nokocore.KeepVoid(i)
+	roleApply := string(nokocore.RoleUser)
 
-			role = strings.TrimSpace(role)
-			if strings.EqualFold(role, "Admin") {
+	if u.Admin {
+		roleApply = string(nokocore.RoleAdmin)
+	}
+
+	separator := ";" // Guest;User;Admin;TeamKit;Enterprise;Developer
+	roles := strings.Split(strings.TrimSpace(u.Role), separator)
+	temp := make([]string, 0)
+
+	found := false
+	for i, role := range roles {
+		nokocore.KeepVoid(i)
+
+		role = nokocore.ToCamelCase(strings.TrimSpace(role))
+		if role != "" {
+			if strings.EqualFold(role, roleApply) {
 				found = true
 			}
 
 			temp = append(temp, role)
 		}
-
-		if !found {
-			temp = append(temp, "Admin")
-		}
-
-		u.Role = strings.Join(temp, ",")
 	}
 
+	if !found {
+		temp = append(temp, roleApply)
+	}
+
+	u.Role = strings.Join(temp, separator)
 	return
 }

@@ -5,13 +5,13 @@ import (
 	"strings"
 )
 
-type TableNameableImpl interface {
+type NameableImpl interface {
 	TableName() string
 }
 
 func GetTableName(obj any) string {
 	var ok bool
-	var nameable TableNameableImpl
+	var nameable NameableImpl
 	nokocore.KeepVoid(ok, nameable)
 
 	if nokocore.IsNone(obj) {
@@ -19,14 +19,14 @@ func GetTableName(obj any) string {
 	}
 
 	// try cast nameable and call method
-	if nameable, ok = obj.(TableNameableImpl); ok {
+	if nameable, ok = obj.(NameableImpl); ok {
 		return nameable.TableName()
 	}
 
-	return GetTableNameTypeReflect(obj)
+	return GetTableNameReflect(obj)
 }
 
-func GetTableNameTypeReflect(value any) string {
+func GetTableNameReflect(value any) string {
 	var ok bool
 	nokocore.KeepVoid(ok)
 

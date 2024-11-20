@@ -6,20 +6,16 @@ import (
 	"nokowebapi/apis/repositories"
 )
 
+type SessionRepositoryImpl interface {
+	repositories.BaseRepositoryImpl[models.Session]
+}
+
 type SessionRepository struct {
 	repositories.BaseRepository[models.Session]
 }
 
-func NewSessionRepository(DB *gorm.DB) SessionRepository {
-	return SessionRepository{
+func NewSessionRepository(DB *gorm.DB) SessionRepositoryImpl {
+	return &SessionRepository{
 		BaseRepository: repositories.NewBaseRepository[models.Session](DB),
 	}
-}
-
-func (u *SessionRepository) Find(wheres ...any) (*models.Session, error) {
-	return u.BaseRepository.Find(wheres...)
-}
-
-func (u *SessionRepository) Create(model *models.Session) error {
-	return u.BaseRepository.Create(model)
 }

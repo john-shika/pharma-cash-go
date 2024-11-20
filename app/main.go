@@ -1,9 +1,7 @@
 package app
 
 import (
-	"errors"
 	"fmt"
-	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/net/http2"
 	"gorm.io/driver/sqlite"
@@ -12,7 +10,6 @@ import (
 	"nokowebapi/apis/extras"
 	"nokowebapi/apis/middlewares"
 	"nokowebapi/apis/models"
-	"nokowebapi/apis/schemas"
 	"nokowebapi/apis/validators"
 	"nokowebapi/console"
 	"nokowebapi/globals"
@@ -38,50 +35,7 @@ func Main(args []string) nokocore.ExitCode {
 	e.HidePort = false
 
 	// http error handling
-	e.HTTPErrorHandler = func(err error, ctx echo.Context) {
-		req := ctx.Request()
-
-		if req.Method == echo.HEAD {
-			err = ctx.NoContent(http.StatusInternalServerError)
-			return
-		}
-
-		var httpError *echo.HTTPError
-		if errors.As(err, &httpError) {
-			message := nokocore.GetStringValueReflect(httpError.Message)
-			httpStatusCodeValue := nokocore.GetValueFromHttpStatusCode(nokocore.HttpStatusCode(httpError.Code))
-			messageBody := schemas.NewMessageBody(false, httpError.Code, string(httpStatusCodeValue), message, nil)
-			err = ctx.JSON(httpError.Code, messageBody)
-			return
-		}
-
-		var validationErrors validator.ValidationErrors
-		if errors.As(err, &validationErrors) {
-			message := "Validation failed."
-			var data []string
-
-			fields := []validator.FieldError(validationErrors)
-			for i, field := range fields {
-				nokocore.KeepVoid(i)
-
-				name := nokocore.ToSnakeCase(field.StructField())
-				data = append(data, fmt.Sprintf("Field '%s' contains an invalid value.", name))
-			}
-
-			err = extras.NewMessageBodyUnprocessableEntity(ctx, message, data)
-			return
-		}
-
-		var validatePassErr *validators.ValidatePassError
-		if errors.As(err, &validatePassErr) {
-			message := "Validation failed."
-			data := validatePassErr.Fields()
-			err = extras.NewMessageBodyUnprocessableEntity(ctx, message, data)
-			return
-		}
-
-		err = extras.NewMessageBodyInternalServerError(ctx, err.Error(), nil)
-	}
+	e.HTTPErrorHandler = extras.EchoHTTPErrorHandler()
 
 	/// Echo Configs End
 
@@ -90,7 +44,6 @@ func Main(args []string) nokocore.ExitCode {
 	}
 
 	sqliteFilePath := "migrations/dev.sqlite3"
-
 	nokocore.NoErr(nokocore.EnsureDirAndFile(sqliteFilePath))
 	if DB, err = gorm.Open(sqlite.Open(sqliteFilePath), config); err != nil {
 		panic("failed to connect database")
@@ -138,13 +91,16 @@ func Main(args []string) nokocore.ExitCode {
 		}
 
 		if check != nil {
-			console.Warn(fmt.Sprintf("user %s already exists", user.Username))
+			console.Warn(fmt.Sprintf("user '%s' already exists", user.Username))
 			continue
 		}
 
 		if err = userRepository.Create(user); err != nil {
 			console.Warn(err.Error())
+			continue
 		}
+
+		console.Warn(fmt.Sprintf("user '%s' has been created", user.Username))
 	}
 
 	/// dummy data
@@ -165,18 +121,40 @@ func Main(args []string) nokocore.ExitCode {
 	})
 
 	e.Use(middlewares.CORSWithConfig(&middlewares.CORSConfig{
-		Origins:     []string{"*"},
-		Methods:     []string{"GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"},
-		Headers:     []string{"Accept", "Accept-Language", "Content-Language", "Content-Type"},
+		Origins: []string{
+			"*",
+		},
+		Methods: []string{
+			http.MethodGet,
+			http.MethodHead,
+			http.MethodPost,
+			http.MethodPut,
+			//http.MethodPatch,
+			http.MethodDelete,
+			//http.MethodConnect,
+			http.MethodOptions,
+			//http.MethodTrace,
+		},
+		Headers: []string{
+			"Accept",
+			"Accept-Language",
+			"Content-Language",
+			"Content-Length",
+			"Content-Type",
+		},
 		Credentials: true,
 		MaxAge:      86400,
 	}))
 
 	g := e.Group("/api/v1")
 
+	gAuth := g.Group("/auth")
+	gAuth.Use(middlewares.JWTAuth(DB))
+
 	/// Controllers Start
 
 	controllers.AnonymousController(g, DB)
+	controllers.UserController(gAuth, DB)
 
 	/// Controllers End
 

@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type Model struct {
+type BaseModel struct {
 	ID        uint64         `db:"id" gorm:"primaryKey;autoIncrement" mapstructure:"id" json:"id" yaml:"id"`
 	UUID      uuid.UUID      `db:"uuid" gorm:"unique;not null;index" mapstructure:"uuid" json:"uuid" yaml:"uuid"`
 	CreatedAt time.Time      `db:"created_at" gorm:"not null" mapstructure:"created_at" json:"createdAt" yaml:"created_at"`
@@ -15,11 +15,11 @@ type Model struct {
 	DeletedAt gorm.DeletedAt `db:"deleted_at" gorm:"index" mapstructure:"deleted_at" json:"deletedAt" yaml:"deleted_at"`
 }
 
-func (Model) TableName() string {
-	return "models"
+func (BaseModel) TableName() string {
+	return "empty"
 }
 
-func (m *Model) BeforeCreate(db *gorm.DB) (err error) {
+func (m *BaseModel) BeforeCreate(db *gorm.DB) (err error) {
 	nokocore.KeepVoid(db)
 
 	m.UUID = nokocore.NewUUID()

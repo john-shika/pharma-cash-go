@@ -4,12 +4,13 @@ type HttpMethod string
 
 const (
 	HttpMethodGet     HttpMethod = "GET"
+	HttpMethodHead    HttpMethod = "HEAD"
 	HttpMethodPost    HttpMethod = "POST"
 	HttpMethodPut     HttpMethod = "PUT"
 	HttpMethodPatch   HttpMethod = "PATCH"
 	HttpMethodDelete  HttpMethod = "DELETE"
+	HttpMethodConnect HttpMethod = "CONNECT"
 	HttpMethodOptions HttpMethod = "OPTIONS"
-	HttpMethodHead    HttpMethod = "HEAD"
 	HttpMethodTrace   HttpMethod = "TRACE"
 )
 

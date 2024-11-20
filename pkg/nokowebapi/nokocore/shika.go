@@ -495,7 +495,7 @@ func PassPtrShikaObjectPropertyReflect(value any) ShikaObjectPropertyImpl {
 			return temp.Interface().(ShikaObjectPropertyImpl)
 
 		default:
-			panic("invalid type")
+			panic("invalid data type")
 		}
 	}
 

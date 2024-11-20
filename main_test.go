@@ -1,122 +1,145 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"github.com/spf13/viper"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"nokowebapi/apis/models"
 	"nokowebapi/console"
-	"nokowebapi/globals"
 	"nokowebapi/nokocore"
+	"nokowebapi/sqlx"
+	"pharma-cash-go/app/repositories"
 	"testing"
-	"time"
 )
 
 func TestMain(m *testing.M) {
 	m.Run()
 }
 
-func TestConfig(t *testing.T) {
-	func() {
-		var ok bool
-		var err error
-		var nokoWebApiSelfRunEnv string
-		nokocore.KeepVoid(ok, err, nokoWebApiSelfRunEnv)
+func TestDB(t *testing.T) {
+	var err error
+	var DB *gorm.DB
+	var user *models.User
+	nokocore.KeepVoid(err, DB, user)
 
-		viper.AddConfigPath(".")
-		viper.SetConfigType("yaml")
-		viper.SetConfigFile("nokowebapi.yaml")
+	config := &gorm.Config{
+		Logger: console.GetLogger("App").GORMLogger(),
+	}
 
-		if err = viper.ReadInConfig(); err != nil {
-			panic(fmt.Errorf("fatal error config file: %w", err))
-		}
-	}()
+	sqliteFilePath := "migrations/dev.sqlite3"
+	nokocore.NoErr(nokocore.EnsureDirAndFile(sqliteFilePath))
+	if DB, err = gorm.Open(sqlite.Open(sqliteFilePath), config); err != nil {
+		panic("failed to connect database")
+	}
 
-	func() {
-		temp := &nokocore.ArrayStr{
-			"cat",
-			"dog",
-		}
+	tables := []interface{}{
+		&models.User{},
+		&models.Session{},
+	}
 
-		nokocore.DeleteArrayItemReflect(temp, 0)
+	if err = DB.AutoMigrate(tables...); err != nil {
+		console.Fatal(fmt.Sprintf("failed to migrate database: %s\n", err.Error()))
+	}
 
-		fmt.Println(temp)
+	/// dummy data
 
-		globals.Del("jwt.audience.1")
-		globals.Set("jwt.audience.0", "im-audience")
-		console.Dir(globals.Get("jwt.audience"))
-		console.Dir(globals.Get("jwt"))
+	users := []*models.User{
+		{
+			Username: "admin",
+			Password: "Admin@1234",
+			Email:    sqlx.NewString("admin@example.com"),
+			Phone:    sqlx.NewString("081234567890"),
+			Admin:    true,
+			Level:    1,
+		},
+		{
+			Username: "user",
+			Password: "User@1234",
+			Email:    sqlx.NewString("user@example.com"),
+			Phone:    sqlx.NewString("081234567890"),
+			Admin:    false,
+			Level:    1,
+		},
+	}
 
-		globals.Del("jwt.audience")
-		console.Dir(globals.Get("jwt"))
-	}()
+	userRepository := repositories.NewUserRepository(DB)
 
-	func() {
-		temp := &[]string{
-			"cat",
-			"dog",
-		}
+	var check *models.User
+	for i, user := range users {
+		nokocore.KeepVoid(i)
 
-		fmt.Println(nokocore.GetArrayItemReflect(temp, 0))
-		nokocore.SetArrayItemReflect(temp, 0, "bird")
-		console.Dir(temp)
-		nokocore.DeleteArrayItemReflect(temp, 1)
-		console.Dir(temp)
-		fmt.Println(nokocore.GetArrayItem(*temp, 0))
-		fmt.Println(nokocore.PassTypeIndirectReflect(temp))
-	}()
-
-	func() {
-		type Person struct {
-			Name     string    `mapstructure:"name"`
-			Age      int       `mapstructure:"age"`
-			Gender   string    `mapstructure:"gender"`
-			Birthday time.Time `mapstructure:"birthday"`
-			Address  []string  `mapstructure:"address"`
+		if check, err = userRepository.Find("username = ?", user.Username); err != nil {
+			console.Warn(err.Error())
+			continue
 		}
 
-		type Family struct {
-			Members []*Person `mapstructure:"members"`
+		if check != nil {
+			console.Warn(fmt.Sprintf("user '%s' already exists", user.Username))
+			continue
 		}
 
-		family := &Family{}
+		if err = userRepository.Create(user); err != nil {
+			console.Warn(err.Error())
+			continue
+		}
 
-		nokocore.NoErr(nokocore.SetValueReflect(family, map[string]any{
-			"members": []map[string]any{
-				{
-					"name":     "John Doe",
-					"age":      30,
-					"gender":   "male",
-					"birthday": time.Now(),
-				},
-			},
-		}))
+		console.Warn(fmt.Sprintf("user '%s' has been created", user.Username))
+	}
 
-		console.Dir(family)
+	/// unit tests
 
-		temp := &map[string]any{}
+	// find admin user
+	if user, err = userRepository.Find("username = ?", "admin"); err != nil {
+		t.Error(err)
+		return
+	}
 
-		nokocore.NoErr(nokocore.SetValueReflect(temp, map[string]any{
-			"family": family,
-		}))
+	if user == nil {
+		t.Error(errors.New("user is null"))
+		return
+	}
 
-		console.Dir(temp)
+	// safe delete admin user
+	if err = userRepository.SafeDelete(user); err != nil {
+		t.Error(errors.New("user can't be deleted"))
+		return
+	}
 
-		fmt.Println(nokocore.GetValueWithSuperKey(temp, "family.members.0.name"))
-		fmt.Println(nokocore.GetValueWithSuperKey(temp, "family.members.0.age.uint"))
+	// check admin user
+	if user, err = userRepository.SafeFind("username = ?", "admin"); user != nil {
+		t.Error(errors.New("user should be soft deleted"))
+		return
+	}
 
-		fmt.Println(nokocore.GetValueWithSuperKey(temp, "family.members.0"))
+	// check admin user
+	if user, err = userRepository.Find("username = ?", "admin"); err != nil {
+		t.Error(errors.New("user not found"))
+		return
+	}
 
-		nokocore.NoErr(nokocore.SetValueReflect(nokocore.GetValueWithSuperKey(temp, "family.members.0"), map[string]any{
-			"age": 31,
-			"address": &[]string{
-				"street 1",
-				"street 2",
-			},
-		}))
+	// restore admin user
+	user.DeletedAt = gorm.DeletedAt{}
+	if err = userRepository.Update(user, "username = ?", "admin"); err != nil {
+		t.Error(err)
+		return
+	}
 
-		fmt.Println(nokocore.GetValueWithSuperKey(temp, "family.members.0"))
+	// find admin user
+	if user, err = userRepository.SafeFind("username = ?", "admin"); err != nil {
+		t.Error(errors.New("user not found"))
+		return
+	}
 
-		nokocore.NoErr(nokocore.SetValueReflect(nokocore.GetValueWithSuperKeyReflect(temp, "family.members"), []any{}))
+	// delete admin user
+	if err = userRepository.Delete(user); err != nil {
+		t.Error(errors.New("user can't be deleted"))
+		return
+	}
 
-		fmt.Println(nokocore.GetValueWithSuperKey(temp, "family.members"))
-	}()
+	// find admin user
+	if user, err = userRepository.Find("username = ?", "admin"); user != nil {
+		t.Error(errors.New("user should be deleted"))
+		return
+	}
 }

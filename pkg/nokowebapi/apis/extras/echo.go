@@ -1,9 +1,14 @@
 package extras
 
 import (
+	"errors"
+	"fmt"
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"io/fs"
+	"net/http"
 	"nokowebapi/apis/schemas"
+	"nokowebapi/apis/validators"
 	"nokowebapi/nokocore"
 	"strings"
 )
@@ -47,6 +52,53 @@ func GetJwtTokenFromEchoContext(c echo.Context) (string, error) {
 		return "", nokocore.ErrJwtTokenInvalid
 	}
 	return token, nil
+}
+
+func EchoHTTPErrorHandler() echo.HTTPErrorHandler {
+	return func(err error, ctx echo.Context) {
+		req := ctx.Request()
+
+		if req.Method == echo.HEAD {
+			err = ctx.NoContent(http.StatusInternalServerError)
+			return
+		}
+
+		var httpError *echo.HTTPError
+		if errors.As(err, &httpError) {
+			message := nokocore.GetStringValueReflect(httpError.Message)
+			httpStatusCodeValue := nokocore.GetValueFromHttpStatusCode(nokocore.HttpStatusCode(httpError.Code))
+			messageBody := schemas.NewMessageBody(false, httpError.Code, string(httpStatusCodeValue), message, nil)
+			err = ctx.JSON(httpError.Code, messageBody)
+			return
+		}
+
+		var validationErrors validator.ValidationErrors
+		if errors.As(err, &validationErrors) {
+			message := "Validation failed."
+			var data []string
+
+			fields := []validator.FieldError(validationErrors)
+			for i, field := range fields {
+				nokocore.KeepVoid(i)
+
+				name := nokocore.ToSnakeCase(field.StructField())
+				data = append(data, fmt.Sprintf("field '%s' contains an invalid value", name))
+			}
+
+			err = NewMessageBodyUnprocessableEntity(ctx, message, data)
+			return
+		}
+
+		var validatePassErr *validators.ValidatePassError
+		if errors.As(err, &validatePassErr) {
+			message := "Validation failed."
+			data := validatePassErr.Fields()
+			err = NewMessageBodyUnprocessableEntity(ctx, message, data)
+			return
+		}
+
+		err = NewMessageBodyInternalServerError(ctx, err.Error(), nil)
+	}
 }
 
 func NewMessageBodyContinue(ctx echo.Context, message string, data any) error {

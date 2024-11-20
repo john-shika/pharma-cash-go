@@ -6,7 +6,7 @@ import (
 )
 
 type Session struct {
-	Model
+	BaseModel
 	UserID         uint64         `db:"user_id" gorm:"index;not null;" mapstructure:"user_id" json:"userId,required" yaml:"user_id"`
 	TokenId        string         `db:"token_id" gorm:"index;" mapstructure:"token_id" json:"tokenId,omitempty" yaml:"token_id"`
 	RefreshTokenId sql.NullString `db:"refresh_token_id" gorm:";" mapstructure:"refresh_token_id" json:"refreshTokenId,omitempty" yaml:"refresh_token_id"`

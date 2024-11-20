@@ -71,9 +71,14 @@ func (u *BaseRepository[T]) Create(schema *T) error {
 		return err
 	}
 
-	if err = u.DB.Create(schema).Error; err != nil {
+	tx := u.DB.Create(schema)
+	if err = tx.Error; err != nil {
 		return errors.New(fmt.Sprintf("failed to create %s", tableName))
 	}
 
-	return nil
+	if tx.RowsAffected > 0 {
+		return nil
+	}
+
+	return fmt.Errorf("no rows affected in %s", tableName)
 }

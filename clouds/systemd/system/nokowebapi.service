@@ -1,0 +1,14 @@
+[Unit]
+Description=Web Server With NokoWebApi Library
+After=network-online.target remote-fs.target nss-lookup.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/nokowebapi
+Environment=NOKOWEBAPI_SELF_RUNNING=1
+ExecStart=/opt/nokowebapi/exe
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

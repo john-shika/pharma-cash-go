@@ -19,13 +19,14 @@ import (
 	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
 	"pharma-cash-go/app/controllers"
+	"pharma-cash-go/app/repositories"
 	"time"
 )
 
 func Main(args []string) nokocore.ExitCode {
 	var err error
-	var db *gorm.DB
-	nokocore.KeepVoid(db, err, args)
+	var DB *gorm.DB
+	nokocore.KeepVoid(DB, err, args)
 
 	e := echo.New()
 
@@ -84,11 +85,14 @@ func Main(args []string) nokocore.ExitCode {
 
 	/// Echo Configs End
 
-	config := new(gorm.Config)
-	sqliteFilePath := "migrations/dev.db"
+	config := &gorm.Config{
+		Logger: console.GetLogger("App").GORMLogger(),
+	}
+
+	sqliteFilePath := "migrations/dev.sqlite3"
 
 	nokocore.NoErr(nokocore.EnsureDirAndFile(sqliteFilePath))
-	if db, err = gorm.Open(sqlite.Open(sqliteFilePath), config); err != nil {
+	if DB, err = gorm.Open(sqlite.Open(sqliteFilePath), config); err != nil {
 		panic("failed to connect database")
 	}
 
@@ -97,7 +101,7 @@ func Main(args []string) nokocore.ExitCode {
 		&models.Session{},
 	}
 
-	if err = db.AutoMigrate(tables...); err != nil {
+	if err = DB.AutoMigrate(tables...); err != nil {
 		console.Fatal(fmt.Sprintf("failed to migrate database: %s\n", err.Error()))
 	}
 
@@ -128,26 +132,14 @@ func Main(args []string) nokocore.ExitCode {
 		},
 	}
 
+	userRepository := repositories.NewUserRepository(DB)
+
 	for i, user := range users {
 		nokocore.KeepVoid(i)
 
-		check := new(models.User)
-		if err = db.First(check, "username = ?", user.Username).Error; err != nil {
-			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				console.Fatal(fmt.Sprintf("failed to check user existence: %s\n", err.Error()))
-			}
-
-			// create new user
-			if err = db.Create(user).Error; err != nil {
-				console.Fatal(fmt.Sprintf("failed to migrate database: %s\n", err.Error()))
-			}
-
-			// log
-			console.Log(fmt.Sprintf("created user: %s\n", user.Username))
+		if err = userRepository.Create(user); err != nil {
+			console.Warn(err.Error())
 		}
-
-		// skipping user
-		console.Log(fmt.Sprintf("skipping user: %s\n", user.Username))
 	}
 
 	/// dummy data
@@ -179,7 +171,7 @@ func Main(args []string) nokocore.ExitCode {
 
 	/// Controllers Start
 
-	controllers.AnonymousController(g, db)
+	controllers.AnonymousController(g, DB)
 
 	/// Controllers End
 

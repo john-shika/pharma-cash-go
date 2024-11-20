@@ -87,6 +87,8 @@ const (
 	JwtClaimEmail     JwtClaimNamed = "email"
 	JwtClaimPhone     JwtClaimNamed = "phone"
 	JwtClaimRole      JwtClaimNamed = "role"
+	JwtClaimAdmin     JwtClaimNamed = "admin"
+	JwtClaimLevel     JwtClaimNamed = "level"
 )
 
 type JwtTokenImpl interface {
@@ -188,6 +190,10 @@ type JwtClaimsImpl interface {
 	SetPhone(phone string)
 	GetRole() string
 	SetRole(role string)
+	GetAdmin() bool
+	SetAdmin(admin bool)
+	GetLevel() int
+	SetLevel(level int)
 }
 
 type JwtClaimsDataAccessImpl interface {
@@ -213,10 +219,14 @@ type JwtClaimsDataAccessImpl interface {
 	SetPhone(phone string)
 	GetRole() string
 	SetRole(role string)
+	GetAdmin() bool
+	SetAdmin(admin bool)
+	GetLevel() int
+	SetLevel(level int)
 }
 
 type JwtClaimsDataAccess struct {
-	ID        string           `mapstructure:"jti" json:"jti,omitempty" yaml:"jti,omitempty"`
+	Identity  string           `mapstructure:"jti" json:"jti,omitempty" yaml:"jti,omitempty"`
 	Issuer    string           `mapstructure:"iss" json:"iss,omitempty" yaml:"iss,omitempty"`
 	Subject   string           `mapstructure:"sub" json:"sub,omitempty" yaml:"sub,omitempty"`
 	Audience  []string         `mapstructure:"aud" json:"aud,omitempty" yaml:"aud,omitempty"`
@@ -228,11 +238,13 @@ type JwtClaimsDataAccess struct {
 	Email     string           `mapstructure:"email" json:"email,omitempty" yaml:"email,omitempty"`
 	Phone     string           `mapstructure:"phone" json:"phone,omitempty" yaml:"phone,omitempty"`
 	Role      string           `mapstructure:"role" json:"role,omitempty" yaml:"role,omitempty"`
+	Admin     bool             `mapstructure:"admin" json:"admin,omitempty" yaml:"admin,omitempty"`
+	Level     int              `mapstructure:"level" json:"level,omitempty" yaml:"level,omitempty"`
 }
 
 func NewJwtClaimsDataAccess(claims *jwt.RegisteredClaims) JwtClaimsDataAccessImpl {
 	return &JwtClaimsDataAccess{
-		ID:        claims.ID,
+		Identity:  claims.ID,
 		Subject:   claims.Subject,
 		Issuer:    claims.Issuer,
 		Audience:  claims.Audience,
@@ -243,15 +255,18 @@ func NewJwtClaimsDataAccess(claims *jwt.RegisteredClaims) JwtClaimsDataAccessImp
 }
 
 func NewEmptyJwtClaimsDataAccess() JwtClaimsDataAccessImpl {
-	return new(JwtClaimsDataAccess)
+	identity := NewUUID().String()
+	return &JwtClaimsDataAccess{
+		Identity: identity,
+	}
 }
 
 func (claimsDataAccess *JwtClaimsDataAccess) GetIdentity() string {
-	return claimsDataAccess.ID
+	return claimsDataAccess.Identity
 }
 
 func (claimsDataAccess *JwtClaimsDataAccess) SetIdentity(identity string) {
-	claimsDataAccess.ID = identity
+	claimsDataAccess.Identity = identity
 }
 
 func (claimsDataAccess *JwtClaimsDataAccess) GetSubject() string {
@@ -334,6 +349,22 @@ func (claimsDataAccess *JwtClaimsDataAccess) SetRole(role string) {
 	claimsDataAccess.Role = role
 }
 
+func (claimsDataAccess *JwtClaimsDataAccess) GetAdmin() bool {
+	return claimsDataAccess.Admin
+}
+
+func (claimsDataAccess *JwtClaimsDataAccess) SetAdmin(admin bool) {
+	claimsDataAccess.Admin = admin
+}
+
+func (claimsDataAccess *JwtClaimsDataAccess) GetLevel() int {
+	return claimsDataAccess.Level
+}
+
+func (claimsDataAccess *JwtClaimsDataAccess) SetLevel(level int) {
+	claimsDataAccess.Level = level
+}
+
 func encodeSecretKey(secretKey string, jwtSigningMethod jwt.SigningMethod) []byte {
 	data := []byte(secretKey)
 	switch jwtSigningMethod.Alg() {
@@ -390,7 +421,7 @@ func (j *JwtClaims) SetSigningMethod(method jwt.SigningMethod) {
 
 func (j *JwtClaims) GetDataAccess() *JwtClaimsDataAccess {
 	return &JwtClaimsDataAccess{
-		ID:        j.GetIdentity(),
+		Identity:  j.GetIdentity(),
 		Subject:   j.GetSubject(),
 		Issuer:    j.GetIssuer(),
 		Audience:  j.GetAudience(),
@@ -398,8 +429,11 @@ func (j *JwtClaims) GetDataAccess() *JwtClaimsDataAccess {
 		ExpiresAt: j.GetExpires(),
 		SessionId: j.GetIdentity(),
 		User:      j.GetUser(),
-		Role:      j.GetRole(),
 		Email:     j.GetEmail(),
+		Phone:     j.GetPhone(),
+		Role:      j.GetRole(),
+		Admin:     j.GetAdmin(),
+		Level:     j.GetLevel(),
 	}
 }
 
@@ -455,7 +489,18 @@ func (j *JwtClaims) ParseNumericDate(key JwtClaimNamed) *jwt.NumericDate {
 }
 
 func (j *JwtClaims) ParseString(key JwtClaimNamed) string {
-	return Unwrap(j.Get(string(key))).(string)
+	temp := Unwrap(j.Get(string(key)))
+	return GetStringValueReflect(temp)
+}
+
+func (j *JwtClaims) ParseBool(key JwtClaimNamed) bool {
+	temp := Unwrap(j.Get(string(key)))
+	return GetBoolValueReflect(temp)
+}
+
+func (j *JwtClaims) ParseInt(key JwtClaimNamed) int {
+	temp := Unwrap(j.Get(string(key)))
+	return int(GetIntValueReflect(temp))
 }
 
 func (j *JwtClaims) ParseManyString(key JwtClaimNamed) []string {
@@ -571,6 +616,22 @@ func (j *JwtClaims) SetRole(role string) {
 	j.Set(string(JwtClaimRole), role)
 }
 
+func (j *JwtClaims) GetAdmin() bool {
+	return j.ParseBool(JwtClaimAdmin)
+}
+
+func (j *JwtClaims) SetAdmin(admin bool) {
+	j.Set(string(JwtClaimAdmin), admin)
+}
+
+func (j *JwtClaims) GetLevel() int {
+	return j.ParseInt(JwtClaimLevel)
+}
+
+func (j *JwtClaims) SetLevel(level int) {
+	j.Set(string(JwtClaimLevel), level)
+}
+
 func ParseJwtTokenUnverified(token string) (JwtTokenImpl, error) {
 	var err error
 	var parts []string
@@ -623,6 +684,8 @@ func CvtJwtClaimsDataAccessToJwtClaims(claimsDataAccess JwtClaimsDataAccessImpl,
 	claims.SetEmail(claimsDataAccess.GetEmail())
 	claims.SetPhone(claimsDataAccess.GetPhone())
 	claims.SetRole(claimsDataAccess.GetRole())
+	claims.SetAdmin(claimsDataAccess.GetAdmin())
+	claims.SetLevel(claimsDataAccess.GetLevel())
 	return claims
 }
 
@@ -639,5 +702,11 @@ func CvtJwtClaimsToJwtClaimsDataAccess(claims JwtClaimsImpl) (JwtClaimsDataAcces
 	claimsDataAccess.SetEmail(claims.GetEmail())
 	claimsDataAccess.SetPhone(claims.GetPhone())
 	claimsDataAccess.SetRole(claims.GetRole())
+	claimsDataAccess.SetAdmin(claims.GetAdmin())
+	claimsDataAccess.SetLevel(claims.GetLevel())
 	return claimsDataAccess, claims.GetSigningMethod()
+}
+
+func GenerateJwtToken(jwtClaims JwtClaimsImpl, secretKey string) string {
+	return jwtClaims.ToJwtTokenString(secretKey)
 }

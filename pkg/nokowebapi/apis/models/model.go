@@ -22,6 +22,6 @@ func (Model) TableName() string {
 func (m *Model) BeforeCreate(db *gorm.DB) (err error) {
 	nokocore.KeepVoid(db)
 
-	m.UUID = nokocore.Unwrap(uuid.NewV7())
+	m.UUID = nokocore.NewUUID()
 	return
 }

@@ -107,7 +107,32 @@ func CastErr[T ErrOrOkImpl](eOk T) (error, bool) {
 }
 
 func IsNone(value any) bool {
-	return value == nil
+	// Check if the given value is neither valid nor has a non-zero value.
+	// This method leverages reflection to determine if the value is nil or a zero value.
+	return !IsValidReflect(value)
+}
+
+func IsNoneOrEmpty(value any) bool {
+	return IsNone(value) || GetString(value) == ""
+}
+
+func IsNoneOrEmptyWhiteSpace(value any) bool {
+	if IsNoneOrEmpty(value) {
+		return true
+	}
+	temp := strings.TrimSpace(GetString(value))
+	return temp == "" ||
+		temp == "\x00" ||
+		temp == "\xC2" ||
+		temp == "\xA0" ||
+		temp == "\xC2\xA0" ||
+		temp == "\t" ||
+		temp == "\r" ||
+		temp == "\n" ||
+		temp == "\r\n" ||
+		temp == "\v" ||
+		temp == "\f" ||
+		temp == "\v\f"
 }
 
 func Unwrap[T any, E ErrOrOkImpl](result T, eOk E) T {
@@ -439,27 +464,16 @@ func CastPtr[T any](value any) (*T, bool) {
 	return temp, ok
 }
 
-func IsNoneOrEmpty(value string) bool {
-	return value == ""
-}
+func GetString(value any) string {
+	var ok bool
+	var temp StringableImpl
+	KeepVoid(ok, temp)
 
-func IsNoneOrEmptyWhiteSpace(value string) bool {
-	if IsNoneOrEmpty(value) {
-		return true
+	if temp, ok = value.(StringableImpl); !ok {
+		return GetStringValueReflect(value)
 	}
-	temp := strings.TrimSpace(value)
-	return temp == "" ||
-		temp == "\x00" ||
-		temp == "\xC2" ||
-		temp == "\xA0" ||
-		temp == "\xC2\xA0" ||
-		temp == "\t" ||
-		temp == "\r" ||
-		temp == "\n" ||
-		temp == "\r\n" ||
-		temp == "\v" ||
-		temp == "\f" ||
-		temp == "\v\f"
+
+	return temp.ToString()
 }
 
 func Base64Encode(data []byte) string {

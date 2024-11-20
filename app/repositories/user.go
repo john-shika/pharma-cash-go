@@ -1,13 +1,25 @@
 package repositories
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+	"nokowebapi/apis/models"
+	"nokowebapi/apis/repositories"
+)
 
 type UserRepository struct {
-	DB *gorm.DB
+	repositories.BaseRepository[models.User]
 }
 
-func NewUserRepository(db *gorm.DB) UserRepository {
+func NewUserRepository(DB *gorm.DB) UserRepository {
 	return UserRepository{
-		DB: db,
+		BaseRepository: repositories.NewBaseRepository[models.User](DB),
 	}
+}
+
+func (u *UserRepository) Find(wheres ...any) (*models.User, error) {
+	return u.BaseRepository.Find(wheres...)
+}
+
+func (u *UserRepository) Create(model *models.User) error {
+	return u.BaseRepository.Create(model)
 }

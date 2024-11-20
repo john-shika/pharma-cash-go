@@ -25,8 +25,9 @@ func (User) TableName() string {
 
 func (u *User) BeforeCreate(db *gorm.DB) (err error) {
 	nokocore.KeepVoid(db)
-	
-	if u.Password, err = nokocore.HashPassword(u.Password); err != nil {
+
+	password := nokocore.NewPassword(u.Password)
+	if u.Password, err = password.Hash(); err != nil {
 		return err
 	}
 

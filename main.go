@@ -20,7 +20,7 @@ func main() {
 	if err = viper.ReadInConfig(); err != nil {
 		panic(fmt.Errorf("fatal error config file: %w", err))
 	}
-
+	
 	pTasksHandler := func(pTasks task.ProcessTasksImpl) {
 		tasksConfig := globals.GetTasksConfig()
 		nokocore.NoErr(pTasks.Execute(tasksConfig))

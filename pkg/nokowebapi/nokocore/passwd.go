@@ -8,21 +8,19 @@ import (
 	"strings"
 )
 
-var ErrPasswordInvalidLength = errors.New("password invalid length")
+var ErrPassInvalidLength = errors.New("password invalid length")
 
-type PasswordConfig struct {
+type PassConfig struct {
 	MinLength int
 	MaxLength int
 }
 
-func NewPasswordConfig() *PasswordConfig {
-	return &PasswordConfig{
+func NewPassConfig() *PassConfig {
+	return &PassConfig{
 		MinLength: 8,
-		MaxLength: 32,
+		MaxLength: 512,
 	}
 }
-
-var passConfig = NewPasswordConfig()
 
 type Pdkf2Config struct {
 	N         int
@@ -42,46 +40,65 @@ func NewPdkf2Config() *Pdkf2Config {
 	}
 }
 
-var pdkf2Config = NewPdkf2Config()
+type PassImpl interface {
+	Hash() (string, error)
+	Equals(hash string) bool
+}
 
-func HashPassword(password string) (string, error) {
+type Password struct {
+	Value string
+
+	passConfig  *PassConfig
+	pdkf2Config *Pdkf2Config
+}
+
+func NewPassword(password string) PassImpl {
+	return &Password{
+		Value:       password,
+		passConfig:  NewPassConfig(),
+		pdkf2Config: NewPdkf2Config(),
+	}
+}
+
+func (p *Password) Hash() (string, error) {
 	var n int
 	var err error
 	KeepVoid(n, err)
 
-	if len(password) < passConfig.MinLength || len(password) > passConfig.MaxLength {
-		return "", ErrPasswordInvalidLength
+	if len(p.Value) < p.passConfig.MinLength || len(p.Value) > p.passConfig.MaxLength {
+		return "", ErrPassInvalidLength
 	}
 
-	salt := make([]byte, pdkf2Config.SaltSize)
+	salt := make([]byte, p.pdkf2Config.SaltSize)
 	if n, err = rand.Read(salt); err != nil {
 		return "", err
 	}
 
-	buff := []byte(password)
-	key := pbkdf2.Key(buff, salt, pdkf2Config.N, pdkf2Config.KeyLength, sha256.New)
-	temp := pdkf2Config.Prefix + Base64EncodeURLSafe(salt) + pdkf2Config.SepChar + Base64EncodeURLSafe(key)
+	buff := []byte(p.Value)
+	key := pbkdf2.Key(buff, salt, p.pdkf2Config.N, p.pdkf2Config.KeyLength, sha256.New)
+
+	temp := p.pdkf2Config.Prefix + Base64EncodeURLSafe(salt) + p.pdkf2Config.SepChar + Base64EncodeURLSafe(key)
 	return temp, nil
 }
 
-func CompareHashPassword(hash string, password string) bool {
+func (p *Password) Equals(hash string) bool {
 	var ok bool
 	var err error
 	KeepVoid(ok, err)
 
-	if len(hash) < passConfig.MinLength || len(hash) > passConfig.MaxLength {
+	if len(p.Value) < p.passConfig.MinLength || len(p.Value) > p.passConfig.MaxLength {
 		return false
 	}
 
-	if hash, ok = strings.CutPrefix(hash, pdkf2Config.Prefix); !ok {
+	if hash, ok = strings.CutPrefix(hash, p.pdkf2Config.Prefix); !ok {
 		return false
 	}
 
-	if !strings.Contains(hash, pdkf2Config.SepChar) {
+	if !strings.Contains(hash, p.pdkf2Config.SepChar) {
 		return false
 	}
 
-	tokens := strings.Split(hash, pdkf2Config.SepChar)
+	tokens := strings.Split(hash, p.pdkf2Config.SepChar)
 	if len(tokens) != 2 {
 		return false
 	}
@@ -89,7 +106,12 @@ func CompareHashPassword(hash string, password string) bool {
 	salt := Unwrap(Base64DecodeURLSafe(tokens[0]))
 	pass := Unwrap(Base64DecodeURLSafe(tokens[1]))
 
-	buff := []byte(password)
-	key := pbkdf2.Key(buff, salt, 10000, 32, sha256.New)
+	if len(salt) != p.pdkf2Config.SaltSize {
+		return false
+	}
+
+	buff := []byte(p.Value)
+	key := pbkdf2.Key(buff, salt, p.pdkf2Config.N, p.pdkf2Config.KeyLength, sha256.New)
+
 	return BytesEquals(pass, key)
 }

@@ -181,10 +181,10 @@ func ViperConfigUnmarshal[T any]() (*T, error) {
 
 	config := new(T)
 	keyName := getNameKey(config)
+
 	if err = viper.UnmarshalKey(keyName, config); err != nil {
 		return nil, err
 	}
-
 	return config, nil
 }
 

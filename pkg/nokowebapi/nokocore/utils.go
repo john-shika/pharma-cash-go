@@ -58,7 +58,7 @@ type BytesOrStringImpl interface {
 	string | []byte
 }
 
-func BytesEquals[V BytesOrStringImpl](data V, buff V) bool {
+func BytesEquals[V1, V2 BytesOrStringImpl](data V1, buff V2) bool {
 	size := len(data)
 	if size != len(buff) {
 		return false

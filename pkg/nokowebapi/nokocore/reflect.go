@@ -205,14 +205,14 @@ func GetNameTypeReflect(value any) string {
 	if !val.IsValid() {
 		panic("invalid value")
 	}
+
 	method := val.MethodByName("GetNameType")
 	if method.IsValid() {
 		results := method.Call(nil)
 		if len(results) != 1 || !results[0].IsValid() {
 			panic("invalid results")
 		}
-		name := Unwrap(CastString(results[0].Interface()))
-		return name
+		return results[0].String()
 	}
 
 	return val.Type().Name()
@@ -566,6 +566,15 @@ func GetStringValueReflect(value any) string {
 	val := PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return ""
+	}
+
+	method := val.MethodByName("ToString")
+	if method.IsValid() {
+		results := method.Call(nil)
+		if len(results) != 1 || !results[0].IsValid() {
+			panic("invalid results")
+		}
+		return results[0].String()
 	}
 
 	switch val.Kind() {
@@ -975,7 +984,7 @@ func baseTokens(key string) (string, string) {
 	return token, key
 }
 
-func GetValueWithSuperKeyReflect(data any, key string) any {
+func GetValueWithSuperKey(data any, key string) any {
 	var token string
 	KeepVoid(token)
 
@@ -1034,13 +1043,13 @@ func GetValueWithSuperKeyReflect(data any, key string) any {
 	}
 
 	if key != "" {
-		temp = GetValueWithSuperKeyReflect(temp, key)
+		temp = GetValueWithSuperKey(temp, key)
 	}
 
 	return temp
 }
 
-func GetValueWithSuperKeyReflect2(data any, key string) reflect.Value {
+func GetValueWithSuperKeyReflect(data any, key string) reflect.Value {
 	var err error
 	var idx int
 	var token string
@@ -1092,7 +1101,7 @@ func GetValueWithSuperKeyReflect2(data any, key string) reflect.Value {
 	}
 
 	if key != "" {
-		temp = GetValueWithSuperKeyReflect2(temp, key)
+		temp = GetValueWithSuperKeyReflect(temp, key)
 	}
 
 	return temp

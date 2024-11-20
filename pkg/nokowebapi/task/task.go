@@ -144,7 +144,7 @@ func (t *TasksConfig) GetTaskConfig(name string) *Config {
 	return nil
 }
 
-func (t *TasksConfig) GetDependsOnTask(task *Config) []*DependsOnTaskConfig[*Config] {
+func (t *TasksConfig) GetDependsOnTaskConfig(task *Config) []*DependsOnTaskConfig[*Config] {
 	temp := make([]*DependsOnTaskConfig[*Config], 0)
 	for i, dependsOn := range task.DependsOn {
 		nokocore.KeepVoid(i)
@@ -153,7 +153,8 @@ func (t *TasksConfig) GetDependsOnTask(task *Config) []*DependsOnTaskConfig[*Con
 		waiter := dependsOn.GetWaiter()
 		params := dependsOn.GetParams()
 
-		dependsTask := NewDependsOnTaskConfig[*Config](t.GetTaskConfig(target), waiter, params)
+		taskConfig := t.GetTaskConfig(target)
+		dependsTask := NewDependsOnTaskConfig(taskConfig, waiter, params)
 		temp = append(temp, dependsTask)
 	}
 
@@ -442,7 +443,7 @@ func waitRun(tasksConfig *TasksConfig, pTasks ProcessTasksImpl, task *Config) er
 
 	taskName := strings.TrimSpace(task.Name)
 
-	for i, dependsOnTask := range tasksConfig.GetDependsOnTask(task) {
+	for i, dependsOnTask := range tasksConfig.GetDependsOnTaskConfig(task) {
 		nokocore.KeepVoid(i)
 
 		target := dependsOnTask.GetTarget()
@@ -484,7 +485,7 @@ func waitRunTask(tasksConfig *TasksConfig, pTasks ProcessTasksImpl, task *Config
 	nokocore.KeepVoid(ok, err)
 
 	taskName := strings.TrimSpace(task.Name)
-	dependsOnTasks := tasksConfig.GetDependsOnTask(task)
+	dependsOnTasks := tasksConfig.GetDependsOnTaskConfig(task)
 
 	for i, dependsOnTask := range dependsOnTasks {
 		nokocore.KeepVoid(i)

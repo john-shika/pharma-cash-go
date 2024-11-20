@@ -3,7 +3,10 @@ package repositories
 import (
 	"errors"
 	"fmt"
+	"github.com/go-viper/mapstructure/v2"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"nokowebapi/apis/models"
 	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
 )
@@ -27,7 +30,13 @@ func (u *BaseRepository[T]) Find(wheres ...any) (*T, error) {
 		return nil, err
 	}
 
-	return &schema, nil
+	// the schema was initialized but not updated from the database
+	identity := nokocore.GetValueWithSuperKey(schema, "Model.uuid").(uuid.UUID)
+	if identity != uuid.Nil {
+		return &schema, nil
+	}
+
+	return nil, nil
 }
 
 func (u *BaseRepository[T]) Create(schema *T) error {
@@ -36,14 +45,30 @@ func (u *BaseRepository[T]) Create(schema *T) error {
 	nokocore.KeepVoid(err, check)
 
 	tableName := sqlx.GetTableName(schema)
-	uuid := nokocore.GetValueWithSuperKey(schema, "Model.uuid")
+	identity := nokocore.GetValueWithSuperKey(schema, "Model.uuid").(uuid.UUID)
+	if identity != uuid.Nil {
+		if check, err = u.Find("uuid = ?", identity); err != nil {
+			return err
+		}
 
-	if check, err = u.Find("uuid = ?", uuid); err != nil {
-		return err
+		if check != nil {
+			return errors.New(fmt.Sprintf("%s already exists", tableName))
+		}
 	}
 
-	if check != nil {
-		return errors.New(fmt.Sprintf("%s already exists", tableName))
+	// using mapstructure to inject any values
+
+	err = mapstructure.Decode(nokocore.MapAny{
+		"Model": models.Model{
+			UUID:      nokocore.NewUUID(),
+			CreatedAt: nokocore.GetTimeUtcNow(),
+			UpdatedAt: nokocore.GetTimeUtcNow(),
+			DeletedAt: gorm.DeletedAt{},
+		},
+	}, schema)
+
+	if err != nil {
+		return err
 	}
 
 	if err = u.DB.Create(schema).Error; err != nil {

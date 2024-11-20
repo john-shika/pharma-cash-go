@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"database/sql"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 	"nokowebapi/apis/extras"
@@ -22,7 +23,7 @@ func MessageHandler(userRepository repositories.UserRepository) echo.HandlerFunc
 	}
 }
 
-func LoginHandler(userRepository repositories.UserRepository) echo.HandlerFunc {
+func LoginHandler(userRepository repositories.UserRepository, sessionRepository repositories.SessionRepository) echo.HandlerFunc {
 	nokocore.KeepVoid(userRepository)
 
 	jwtConfig := globals.GetJwtConfig()
@@ -56,25 +57,41 @@ func LoginHandler(userRepository repositories.UserRepository) echo.HandlerFunc {
 			return extras.NewMessageBodyUnauthorized(ctx, "Invalid password.", nil)
 		}
 
+		sessionId := nokocore.NewUUID()
 		timeUtcNow := nokocore.GetTimeUtcNow()
 		expires := timeUtcNow.Add(expiresIn)
 
 		jwtClaimsDataAccess := nokocore.NewEmptyJwtClaimsDataAccess()
+
 		jwtClaimsDataAccess.SetSubject("NokoWebApiToken")
 		jwtClaimsDataAccess.SetIssuer(jwtConfig.Issuer)
 		jwtClaimsDataAccess.SetAudience(jwtConfig.Audience)
 		jwtClaimsDataAccess.SetIssuedAt(timeUtcNow)
 		jwtClaimsDataAccess.SetExpiresAt(expires)
 		jwtClaimsDataAccess.SetUser(user.Username)
-		jwtClaimsDataAccess.SetSessionId(nokocore.NewUUID().String())
+		jwtClaimsDataAccess.SetSessionId(sessionId.String())
 		jwtClaimsDataAccess.SetRole(user.Role)
 		jwtClaimsDataAccess.SetAdmin(user.Admin)
 		jwtClaimsDataAccess.SetLevel(user.Level)
 
 		jwtClaims := nokocore.CvtJwtClaimsDataAccessToJwtClaims(jwtClaimsDataAccess, signingMethod)
+		jwtToken := nokocore.GenerateJwtToken(jwtClaims, jwtConfig.SecretKey)
+
+		err = sessionRepository.Create(&models.Session{
+			UserID:         user.ID,
+			TokenId:        jwtClaimsDataAccess.GetIdentity(),
+			RefreshTokenId: sql.NullString{},
+			IPAddress:      ctx.RealIP(),
+			UserAgent:      ctx.Request().UserAgent(),
+			Expires:        expires,
+		})
+
+		if err != nil {
+			return extras.NewMessageBodyInternalServerError(ctx, err.Error(), nil)
+		}
 
 		return extras.NewMessageBodyOk(ctx, "Successfully logged in.", nokocore.MapAny{
-			"token": nokocore.GenerateJwtToken(jwtClaims, jwtConfig.SecretKey),
+			"token": jwtToken,
 		})
 	}
 }
@@ -82,9 +99,10 @@ func LoginHandler(userRepository repositories.UserRepository) echo.HandlerFunc {
 func AnonymousController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
 	userRepository := repositories.NewUserRepository(DB)
+	sessionRepository := repositories.NewSessionRepository(DB)
 
 	group.GET("/message", MessageHandler(userRepository))
-	group.POST("/login", LoginHandler(userRepository))
+	group.POST("/login", LoginHandler(userRepository, sessionRepository))
 
 	return group
 }

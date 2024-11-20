@@ -109,9 +109,6 @@ func Main(args []string) nokocore.ExitCode {
 
 	users := []*models.User{
 		{
-			Model: models.Model{
-				UUID: nokocore.NewUUID(),
-			},
 			Username: "admin",
 			Password: "Admin@1234",
 			Email:    sqlx.NewString("admin@example.com"),
@@ -120,9 +117,6 @@ func Main(args []string) nokocore.ExitCode {
 			Level:    1,
 		},
 		{
-			Model: models.Model{
-				UUID: nokocore.NewUUID(),
-			},
 			Username: "user",
 			Password: "User@1234",
 			Email:    sqlx.NewString("user@example.com"),
@@ -134,8 +128,19 @@ func Main(args []string) nokocore.ExitCode {
 
 	userRepository := repositories.NewUserRepository(DB)
 
+	var check *models.User
 	for i, user := range users {
 		nokocore.KeepVoid(i)
+
+		if check, err = userRepository.Find("username = ?", user.Username); err != nil {
+			console.Warn(err.Error())
+			continue
+		}
+
+		if check != nil {
+			console.Warn(fmt.Sprintf("user %s already exists", user.Username))
+			continue
+		}
 
 		if err = userRepository.Create(user); err != nil {
 			console.Warn(err.Error())

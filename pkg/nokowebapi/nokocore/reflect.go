@@ -763,14 +763,18 @@ func GetMapValueWithSuperKeyReflect(m any, key string) any {
 		panic("invalid key")
 	}
 
-	temp := m
+	temp := PassValueIndirectReflect(m)
 
 	for i, token := range tokens {
 		KeepVoid(i)
 
+		if !temp.IsValid() {
+			return nil
+		}
+
 		// find by key name
 		if idx, err = strconv.Atoi(token); err != nil {
-			temp = GetMapValueReflect(temp, token).Interface()
+			temp = GetMapValueReflect(temp, token)
 			continue
 		}
 
@@ -778,7 +782,11 @@ func GetMapValueWithSuperKeyReflect(m any, key string) any {
 		temp = GetArrayItemReflect(temp, idx)
 	}
 
-	return temp
+	if !temp.IsValid() {
+		return nil
+	}
+
+	return temp.Interface()
 }
 
 func SetMapValueWithSuperKeyReflect(m any, key string, value any) bool {
@@ -794,10 +802,14 @@ func SetMapValueWithSuperKeyReflect(m any, key string, value any) bool {
 
 	n := len(tokens)
 	val := PassValueIndirectReflect(value)
-	temp := m
+	temp := PassValueIndirectReflect(m)
 
 	for i, token := range tokens {
 		KeepVoid(i)
+
+		if !temp.IsValid() {
+			return false
+		}
 
 		// find by key name
 		if idx, err = strconv.Atoi(token); err != nil {
@@ -805,7 +817,7 @@ func SetMapValueWithSuperKeyReflect(m any, key string, value any) bool {
 				SetMapValueReflect(temp, token, val)
 				return true
 			}
-			temp = GetMapValueReflect(temp, token).Interface()
+			temp = GetMapValueReflect(temp, token)
 			continue
 		}
 
@@ -814,7 +826,7 @@ func SetMapValueWithSuperKeyReflect(m any, key string, value any) bool {
 			SetArrayItemReflect(temp, idx, value)
 			return true
 		}
-		temp = GetArrayItemReflect(temp, idx).Interface()
+		temp = GetArrayItemReflect(temp, idx)
 	}
 
 	return false
@@ -832,10 +844,14 @@ func DeleteMapValueWithSuperKeyReflect(m any, key string) bool {
 	}
 
 	n := len(tokens)
-	temp := m
+	temp := PassValueIndirectReflect(m)
 
 	for i, token := range tokens {
 		KeepVoid(i)
+
+		if !temp.IsValid() {
+			return false
+		}
 
 		// find by key name
 		if idx, err = strconv.Atoi(token); err != nil {
@@ -843,7 +859,7 @@ func DeleteMapValueWithSuperKeyReflect(m any, key string) bool {
 				DeleteMapValueReflect(temp, token)
 				return true
 			}
-			temp = GetMapValueReflect(temp, token).Interface()
+			temp = GetMapValueReflect(temp, token)
 			continue
 		}
 
@@ -852,7 +868,7 @@ func DeleteMapValueWithSuperKeyReflect(m any, key string) bool {
 			DeleteArrayItemReflect(temp, idx)
 			return true
 		}
-		temp = GetArrayItemReflect(temp, idx).Interface()
+		temp = GetArrayItemReflect(temp, idx)
 	}
 
 	return false
@@ -1035,7 +1051,7 @@ func GetValueWithSuperKey(data any, key string) any {
 		break
 
 	default:
-		temp = val.Interface()
+		temp = nil
 	}
 
 	if token != "" {
@@ -1097,7 +1113,7 @@ func GetValueWithSuperKeyReflect(data any, key string) reflect.Value {
 		break
 
 	default:
-		temp = val
+		temp = reflect.Value{}
 	}
 
 	if key != "" {

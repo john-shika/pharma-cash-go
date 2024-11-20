@@ -8,13 +8,14 @@ import (
 	"nokowebapi/apis/models"
 	"nokowebapi/apis/schemas"
 	"nokowebapi/apis/validators"
+	"nokowebapi/console"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
 	"pharma-cash-go/app/repositories"
 )
 
-func MessageHandler(userRepository repositories.UserRepositoryImpl) echo.HandlerFunc {
-	nokocore.KeepVoid(userRepository)
+func MessageHandler(DB *gorm.DB) echo.HandlerFunc {
+	nokocore.KeepVoid(DB)
 
 	return func(ctx echo.Context) error {
 		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", nokocore.MapAny{
@@ -23,17 +24,21 @@ func MessageHandler(userRepository repositories.UserRepositoryImpl) echo.Handler
 	}
 }
 
-func LoginHandler(userRepository repositories.UserRepositoryImpl, sessionRepository repositories.SessionRepositoryImpl) echo.HandlerFunc {
-	nokocore.KeepVoid(userRepository)
+func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
+	nokocore.KeepVoid(DB)
 
 	jwtConfig := globals.GetJwtConfig()
 	signingMethod := jwtConfig.GetSigningMethod()
 	expiresIn := jwtConfig.GetExpiresIn()
 
+	userRepository := repositories.NewUserRepository(DB)
+	sessionRepository := repositories.NewSessionRepository(DB)
+
 	return func(ctx echo.Context) error {
 		var err error
 		var user *models.User
-		nokocore.KeepVoid(err, user)
+		var username string
+		nokocore.KeepVoid(err, user, username)
 
 		req := ctx.Request()
 		ipAddr := ctx.RealIP()
@@ -41,7 +46,9 @@ func LoginHandler(userRepository repositories.UserRepositoryImpl, sessionReposit
 
 		userBody := new(schemas.UserBody)
 		if err = ctx.Bind(userBody); err != nil {
-			return err
+			console.Error(err.Error())
+
+			return extras.NewMessageBodyInternalServerError(ctx, "Invalid request body.", nil)
 		}
 
 		if err = ctx.Validate(userBody); err != nil {
@@ -52,13 +59,10 @@ func LoginHandler(userRepository repositories.UserRepositoryImpl, sessionReposit
 			return err
 		}
 
-		if user, err = userRepository.Find("username = ?", userBody.Username); err != nil {
-			return extras.NewMessageBodyUnauthorized(ctx, err.Error(), nil)
-		}
+		if user, err = userRepository.SafeLogin(userBody.Username, userBody.Password); err != nil {
+			console.Error(err.Error())
 
-		password := nokocore.NewPassword(userBody.Password)
-		if !password.Equals(user.Password) {
-			return extras.NewMessageBodyUnauthorized(ctx, "Invalid password.", nil)
+			return extras.NewMessageBodyUnauthorized(ctx, "Invalid username or password.", nil)
 		}
 
 		sessionId := nokocore.NewUUID()
@@ -81,17 +85,22 @@ func LoginHandler(userRepository repositories.UserRepositoryImpl, sessionReposit
 		jwtClaims := nokocore.CvtJwtClaimsDataAccessToJwtClaims(jwtClaimsDataAccess, signingMethod)
 		jwtToken := nokocore.GenerateJwtToken(jwtClaims, jwtConfig.SecretKey)
 
-		err = sessionRepository.Create(&models.Session{
+		session := &models.Session{
+			BaseModel: models.BaseModel{
+				UUID: sessionId,
+			},
 			UserID:         user.ID,
 			TokenId:        jwtClaimsDataAccess.GetIdentity(),
 			RefreshTokenId: sql.NullString{},
 			IPAddress:      ipAddr,
 			UserAgent:      userAgent,
 			Expires:        expires,
-		})
+		}
 
-		if err != nil {
-			return extras.NewMessageBodyInternalServerError(ctx, err.Error(), nil)
+		if err = sessionRepository.SafeCreate(session); err != nil {
+			console.Error(err.Error())
+
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to create session.", nil)
 		}
 
 		return extras.NewMessageBodyOk(ctx, "Successfully logged in.", nokocore.MapAny{
@@ -102,11 +111,8 @@ func LoginHandler(userRepository repositories.UserRepositoryImpl, sessionReposit
 
 func AnonymousController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
-	userRepository := repositories.NewUserRepository(DB)
-	sessionRepository := repositories.NewSessionRepository(DB)
-
-	group.GET("/message", MessageHandler(userRepository))
-	group.POST("/login", LoginHandler(userRepository, sessionRepository))
+	group.GET("/message", MessageHandler(DB))
+	group.POST("/login", LoginHandler(DB))
 
 	return group
 }

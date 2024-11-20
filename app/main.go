@@ -16,6 +16,7 @@ import (
 	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
 	"pharma-cash-go/app/controllers"
+	m "pharma-cash-go/app/models"
 	"pharma-cash-go/app/repositories"
 	"time"
 )
@@ -49,9 +50,14 @@ func Main(args []string) nokocore.ExitCode {
 		panic("failed to connect database")
 	}
 
-	tables := []interface{}{
+	tables := []any{
+
+		// cores
 		&models.User{},
 		&models.Session{},
+
+		// app locals
+		&m.Product{},
 	}
 
 	if err = DB.AutoMigrate(tables...); err != nil {
@@ -60,7 +66,7 @@ func Main(args []string) nokocore.ExitCode {
 
 	/// dummy data
 
-	users := []*models.User{
+	users := []models.User{
 		{
 			Username: "admin",
 			Password: "Admin@1234",
@@ -85,7 +91,7 @@ func Main(args []string) nokocore.ExitCode {
 	for i, user := range users {
 		nokocore.KeepVoid(i)
 
-		if check, err = userRepository.Find("username = ?", user.Username); err != nil {
+		if check, err = userRepository.First("username = ?", user.Username); err != nil {
 			console.Warn(err.Error())
 			continue
 		}
@@ -95,7 +101,7 @@ func Main(args []string) nokocore.ExitCode {
 			continue
 		}
 
-		if err = userRepository.Create(user); err != nil {
+		if err = userRepository.Create(&user); err != nil {
 			console.Warn(err.Error())
 			continue
 		}
@@ -164,8 +170,7 @@ func Main(args []string) nokocore.ExitCode {
 		IdleTimeout:          10 * time.Second,
 	}
 
-	tasks := globals.GetTasksConfig()
-	if taskConfig := tasks.GetTaskConfig("self"); taskConfig != nil {
+	if taskConfig := globals.GetTaskConfig("self"); taskConfig != nil {
 		if taskConfig.Network != nil {
 			host := taskConfig.Network.GetHost()
 			nokocore.NoErr(e.StartH2CServer(host, h2s))

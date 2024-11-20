@@ -39,6 +39,12 @@ func (d *DependsOnConfigParams) GetDuration() time.Duration {
 	return d.Duration
 }
 
+type DependsOnTaskConfigImpl[T any] interface {
+	GetTarget() T
+	GetWaiter() string
+	GetParams() DependsOnConfigParamsImpl
+}
+
 // DependsOnTaskConfig struct, T any can be string or *Config itself.
 // Keep in mind, parsing by viper config file, declare T must be string.
 type DependsOnTaskConfig[T any] struct {
@@ -47,11 +53,14 @@ type DependsOnTaskConfig[T any] struct {
 	Params *DependsOnConfigParams `mapstructure:"params" json:"params" yaml:"params"`
 }
 
-func NewDependsOnTaskConfig[T any](target T, waiter string, params *DependsOnConfigParams) *DependsOnTaskConfig[T] {
+func NewDependsOnTaskConfig[T any](target T, waiter string, params DependsOnConfigParamsImpl) DependsOnTaskConfigImpl[T] {
 	return &DependsOnTaskConfig[T]{
 		Target: target,
 		Waiter: waiter,
-		Params: params,
+		Params: &DependsOnConfigParams{
+			Iterations: params.GetIterations(),
+			Duration:   params.GetDuration(),
+		},
 	}
 }
 
@@ -63,7 +72,7 @@ func (d *DependsOnTaskConfig[T]) GetWaiter() string {
 	return d.Waiter
 }
 
-func (d *DependsOnTaskConfig[T]) GetParams() *DependsOnConfigParams {
+func (d *DependsOnTaskConfig[T]) GetParams() DependsOnConfigParamsImpl {
 	params := d.Params
 	if params != nil {
 		if params.Iterations == 0 {
@@ -77,16 +86,16 @@ func (d *DependsOnTaskConfig[T]) GetParams() *DependsOnConfigParams {
 }
 
 type Config struct {
-	Name      string                         `mapstructure:"name" json:"name" yaml:"name"`
-	Exec      string                         `mapstructure:"exec" json:"exec" yaml:"exec"`
-	Args      []string                       `mapstructure:"args" json:"args" yaml:"args"`
-	Workdir   string                         `mapstructure:"workdir" json:"workdir" yaml:"workdir"`
-	Environ   []string                       `mapstructure:"environ" json:"environ" yaml:"environ"`
-	Stdin     string                         `mapstructure:"stdin" json:"stdin" yaml:"stdin"`
-	Stdout    string                         `mapstructure:"stdout" json:"stdout" yaml:"stdout"`
-	Stderr    string                         `mapstructure:"stderr" json:"stderr" yaml:"stderr"`
-	Network   *nokocore.NetworkConfig        `mapstructure:"network" json:"network" yaml:"network"`
-	DependsOn []*DependsOnTaskConfig[string] `mapstructure:"depends_on" json:"dependsOn" yaml:"depends_on"`
+	Name      string                        `mapstructure:"name" json:"name" yaml:"name"`
+	Exec      string                        `mapstructure:"exec" json:"exec" yaml:"exec"`
+	Args      []string                      `mapstructure:"args" json:"args" yaml:"args"`
+	Workdir   string                        `mapstructure:"workdir" json:"workdir" yaml:"workdir"`
+	Environ   []string                      `mapstructure:"environ" json:"environ" yaml:"environ"`
+	Stdin     string                        `mapstructure:"stdin" json:"stdin" yaml:"stdin"`
+	Stdout    string                        `mapstructure:"stdout" json:"stdout" yaml:"stdout"`
+	Stderr    string                        `mapstructure:"stderr" json:"stderr" yaml:"stderr"`
+	Network   *nokocore.NetworkConfig       `mapstructure:"network" json:"network" yaml:"network"`
+	DependsOn []DependsOnTaskConfig[string] `mapstructure:"depends_on" json:"dependsOn" yaml:"depends_on"`
 }
 
 func NewConfig() *Config {
@@ -123,9 +132,9 @@ func (t *Config) GetStderr() io.Writer {
 // TasksConfig struct, keep it mind, parsing by viper config file
 type TasksConfig []*Config
 
-func NewTasksConfig() *TasksConfig {
+func NewTasksConfig() TasksConfig {
 	temp := make(TasksConfig, 0)
-	return &temp
+	return temp
 }
 
 func (t *TasksConfig) GetNameType() string {
@@ -136,16 +145,20 @@ func (t *TasksConfig) GetTaskConfig(name string) *Config {
 	for i, task := range *t {
 		nokocore.KeepVoid(i)
 
+		name = strings.TrimSpace(name)
 		taskName := strings.TrimSpace(task.Name)
 		if strings.EqualFold(taskName, name) {
 			return task
 		}
 	}
+
+	// task not found
+	//panic(fmt.Sprintf("task '%s' not found", name))
 	return nil
 }
 
-func (t *TasksConfig) GetDependsOnTaskConfig(task *Config) []*DependsOnTaskConfig[*Config] {
-	temp := make([]*DependsOnTaskConfig[*Config], 0)
+func (t *TasksConfig) GetDependsOnTaskConfig(task *Config) []DependsOnTaskConfigImpl[*Config] {
+	temp := make([]DependsOnTaskConfigImpl[*Config], 0)
 	for i, dependsOn := range task.DependsOn {
 		nokocore.KeepVoid(i)
 
@@ -153,9 +166,9 @@ func (t *TasksConfig) GetDependsOnTaskConfig(task *Config) []*DependsOnTaskConfi
 		waiter := dependsOn.GetWaiter()
 		params := dependsOn.GetParams()
 
-		taskConfig := t.GetTaskConfig(target)
-		dependsTask := NewDependsOnTaskConfig(taskConfig, waiter, params)
-		temp = append(temp, dependsTask)
+		config := t.GetTaskConfig(target)
+		dependsOnTask := NewDependsOnTaskConfig(config, waiter, params)
+		temp = append(temp, dependsOnTask)
 	}
 
 	return temp
@@ -297,8 +310,8 @@ type ProcessTasksImpl interface {
 	GetProcessTask(name string) ProcessTaskImpl
 	GetDependsOnProcessTask(task *Config) []ProcessTaskImpl
 	StartProcessTask(pTask ProcessTaskImpl) error
-	ExecuteAsync(tasksConfig *TasksConfig)
-	Execute(tasksConfig *TasksConfig) error
+	ExecuteAsync(tasks *TasksConfig)
+	Execute(tasks *TasksConfig) error
 	Wait() error
 }
 
@@ -347,8 +360,8 @@ func (p *ProcessTasks) GetDependsOnProcessTask(task *Config) []ProcessTaskImpl {
 	for i, dependsOn := range task.DependsOn {
 		nokocore.KeepVoid(i)
 
-		dependsTask := p.GetProcessTask(dependsOn.GetTarget())
-		temp = append(temp, dependsTask)
+		dependsOnTask := p.GetProcessTask(dependsOn.GetTarget())
+		temp = append(temp, dependsOnTask)
 	}
 
 	return temp
@@ -372,12 +385,12 @@ func (p *ProcessTasks) StartProcessTask(pTask ProcessTaskImpl) error {
 	return err
 }
 
-func (p *ProcessTasks) ExecuteAsync(tasksConfig *TasksConfig) {
-	p.regis = tasksConfig.ApplyAsync(p)
+func (p *ProcessTasks) ExecuteAsync(tasks *TasksConfig) {
+	p.regis = tasks.ApplyAsync(p)
 }
 
-func (p *ProcessTasks) Execute(tasksConfig *TasksConfig) error {
-	return tasksConfig.Apply(p)
+func (p *ProcessTasks) Execute(tasks *TasksConfig) error {
+	return tasks.Apply(p)
 }
 
 func (p *ProcessTasks) Wait() error {
@@ -437,13 +450,13 @@ func makeProcessFromTaskAsync(pTasks ProcessTasksImpl, task *Config, err chan<- 
 	err <- makeProcessFromTask(pTasks, task)
 }
 
-func waitRun(tasksConfig *TasksConfig, pTasks ProcessTasksImpl, task *Config) error {
+func waitRun(tasks *TasksConfig, pTasks ProcessTasksImpl, task *Config) error {
 	var err error
 	nokocore.KeepVoid(err)
 
 	taskName := strings.TrimSpace(task.Name)
 
-	for i, dependsOnTask := range tasksConfig.GetDependsOnTaskConfig(task) {
+	for i, dependsOnTask := range tasks.GetDependsOnTaskConfig(task) {
 		nokocore.KeepVoid(i)
 
 		target := dependsOnTask.GetTarget()
@@ -452,12 +465,12 @@ func waitRun(tasksConfig *TasksConfig, pTasks ProcessTasksImpl, task *Config) er
 
 		targetName := strings.TrimSpace(target.Name)
 
-		// Detect circular dependency between tasksConfig
+		// Detect circular dependency between tasks
 		if strings.EqualFold(targetName, taskName) {
 			return errors.New("circular dependency detected")
 		}
 
-		if err = waitRun(tasksConfig, pTasks, target); err != nil {
+		if err = waitRun(tasks, pTasks, target); err != nil {
 			return err
 		}
 
@@ -465,7 +478,7 @@ func waitRun(tasksConfig *TasksConfig, pTasks ProcessTasksImpl, task *Config) er
 		case "none":
 			break
 		case "wait-for-http-alive":
-			target.Network.WaitForHttpAlive(params.Iterations, params.Duration)
+			target.Network.WaitForHttpAlive(params.GetIterations(), params.GetDuration())
 			break
 		default:
 			return errors.New("unknown waiter")
@@ -479,13 +492,13 @@ func waitRun(tasksConfig *TasksConfig, pTasks ProcessTasksImpl, task *Config) er
 	return nil
 }
 
-func waitRunTask(tasksConfig *TasksConfig, pTasks ProcessTasksImpl, task *Config) error {
+func waitRunTask(tasks *TasksConfig, pTasks ProcessTasksImpl, task *Config) error {
 	var ok bool
 	var err error
 	nokocore.KeepVoid(ok, err)
 
 	taskName := strings.TrimSpace(task.Name)
-	dependsOnTasks := tasksConfig.GetDependsOnTaskConfig(task)
+	dependsOnTasks := tasks.GetDependsOnTaskConfig(task)
 
 	for i, dependsOnTask := range dependsOnTasks {
 		nokocore.KeepVoid(i)
@@ -496,12 +509,12 @@ func waitRunTask(tasksConfig *TasksConfig, pTasks ProcessTasksImpl, task *Config
 
 		targetName := strings.TrimSpace(target.Name)
 
-		// detect circular dependency between tasksConfig
+		// detect circular dependency between tasks
 		if strings.EqualFold(targetName, taskName) {
 			return errors.New("circular dependency detected")
 		}
 
-		if err = waitRunTask(tasksConfig, pTasks, target); err != nil {
+		if err = waitRunTask(tasks, pTasks, target); err != nil {
 			return err
 		}
 
@@ -509,7 +522,7 @@ func waitRunTask(tasksConfig *TasksConfig, pTasks ProcessTasksImpl, task *Config
 		case "none":
 			break
 		case "wait-for-http-alive":
-			target.Network.WaitForHttpAlive(params.Iterations, params.Duration)
+			target.Network.WaitForHttpAlive(params.GetIterations(), params.GetDuration())
 			break
 		default:
 			return errors.New("unknown waiter")
@@ -541,8 +554,8 @@ func (t *TasksConfig) Apply(pTasks ProcessTasksImpl) error {
 	var err error
 	nokocore.KeepVoid(err)
 
-	tasksConfig := *t
-	for i, task := range tasksConfig {
+	tasks := *t
+	for i, task := range tasks {
 		nokocore.KeepVoid(i)
 		if err = waitRun(t, pTasks, task); err != nil {
 			return err
@@ -588,13 +601,13 @@ func (t *TasksConfig) ApplyAsync(pTasks ProcessTasksImpl) *WaitTasks {
 	var err error
 	nokocore.KeepVoid(err)
 
-	tasksConfig := *t
-	size := len(tasksConfig)
+	tasks := *t
+	size := len(tasks)
 
 	wt := NewWaitTasks()
 	wt.Add(size)
 
-	for i, task := range tasksConfig {
+	for i, task := range tasks {
 		nokocore.KeepVoid(i)
 
 		// no need goroutine's for a wait run task, already run in goroutine.

@@ -12,10 +12,17 @@ import (
 )
 
 type BaseRepositoryImpl[T any] interface {
-	SafeFind(query string, args ...any) (*T, error)
-	Find(query string, args ...any) (*T, error)
+	SafeFirst(query string, args ...any) (*T, error)
+	First(query string, args ...any) (*T, error)
+	SafeMany(query string, args ...any) ([]T, error)
+	Many(query string, args ...any) ([]T, error)
+	SafePreFirst(preloads []string, query string, args ...any) (*T, error)
+	PreFirst(preloads []string, query string, args ...any) (*T, error)
+	SafePreMany(preloads []string, query string, args ...any) ([]T, error)
+	PreMany(preloads []string, query string, args ...any) ([]T, error)
 	SafeCheck(schema *T, checkHandler CheckHandler[T]) error
 	Check(schema *T, checkHandler CheckHandler[T]) error
+	SafeCreate(schema *T) error
 	Create(schema *T) error
 	SafeUpdate(schema *T, query string, args ...any) error
 	Update(schema *T, query string, args ...any) error
@@ -33,23 +40,64 @@ func NewBaseRepository[T any](DB *gorm.DB) BaseRepository[T] {
 	}
 }
 
-func (b *BaseRepository[T]) SafeFind(query string, args ...any) (*T, error) {
-	if !strings.Contains(query, "deleted_at IS NULL") {
-		words := []string{strings.TrimSpace(query), "AND deleted_at IS NULL"}
-		query = strings.Join(words, " ")
+// careful with SQL injection, can be conflict, you must be known what you are doing!
+func injectQuery(query string, conditions ...string) string {
+	var ok bool
+	nokocore.KeepVoid(ok)
+
+	query = strings.TrimSpace(strings.Split(query, ";")[0])
+	for i, condition := range conditions {
+		nokocore.KeepVoid(i)
+
+		condition = strings.TrimSpace(condition)
+		if strings.HasPrefix(condition, "AND ") {
+			if !strings.Contains(query, condition) {
+				if query != "" {
+					query = fmt.Sprintf("%s  %s", query, condition)
+					continue
+				}
+
+				query = condition
+				continue
+			}
+
+		} else if strings.HasPrefix(condition, "OR ") {
+			if !strings.Contains(query, condition) {
+				if query != "" {
+					query = fmt.Sprintf("%s %s", query, condition)
+					continue
+				}
+
+				query = condition
+				continue
+			}
+
+		} else {
+			if !strings.Contains(query, condition) {
+				if query != "" {
+					query = fmt.Sprintf("%s %s", query, condition)
+					continue
+				}
+
+				query = condition
+				continue
+			}
+		}
 	}
-	return b.Find(query, args...)
+
+	return query
 }
 
-func (b *BaseRepository[T]) Find(query string, args ...any) (*T, error) {
+func (b *BaseRepository[T]) SafeFirst(query string, args ...any) (*T, error) {
+	query = injectQuery(query, "AND deleted_at IS NULL", "LIMIT 1")
+	return b.First(query, args...)
+}
+
+func (b *BaseRepository[T]) First(query string, args ...any) (*T, error) {
 	var err error
 	var schema T
 	nokocore.KeepVoid(err, schema)
 
-	//conditions := []any{query}
-	//conditions = append(conditions, args...)
-	//tx := b.DB.Unscoped().Find(&schema, conditions)
-	
 	tx := b.DB.Unscoped().Where(query, args...).Find(&schema)
 	if err = tx.Error; err != nil {
 		return nil, err
@@ -62,6 +110,102 @@ func (b *BaseRepository[T]) Find(query string, args ...any) (*T, error) {
 	}
 
 	return nil, nil
+}
+
+func (b *BaseRepository[T]) SafeMany(query string, args ...any) ([]T, error) {
+	query = injectQuery(query, "AND deleted_at IS NULL")
+	return b.Many(query, args...)
+}
+
+func (b *BaseRepository[T]) Many(query string, args ...any) ([]T, error) {
+	var err error
+	var schemas []T
+	nokocore.KeepVoid(err, schemas)
+
+	tx := b.DB.Unscoped().Where(query, args...).Find(&schemas)
+	if err = tx.Error; err != nil {
+		return nil, err
+	}
+
+	temp := make([]T, 0)
+	for i, schema := range schemas {
+		nokocore.KeepVoid(i)
+
+		// the schemas were initialized but not updated from the database
+		identity := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
+		if identity != uuid.Nil {
+			temp = append(temp, schema)
+		}
+	}
+
+	return temp, nil
+}
+
+func (b *BaseRepository[T]) SafePreFirst(preloads []string, query string, args ...any) (*T, error) {
+	query = injectQuery(query, "AND deleted_at IS NULL", "LIMIT 1")
+	return b.PreFirst(preloads, query, args...)
+}
+
+func (b *BaseRepository[T]) PreFirst(preloads []string, query string, args ...any) (*T, error) {
+	var err error
+	var schema T
+	nokocore.KeepVoid(err, schema)
+
+	unscoped := b.DB.Unscoped()
+	for i, preload := range preloads {
+		nokocore.KeepVoid(i)
+
+		unscoped = unscoped.Preload(preload)
+	}
+
+	tx := unscoped.Where(query, args...).Find(&schema)
+	if err = tx.Error; err != nil {
+		return nil, err
+	}
+
+	// the schema was initialized but not updated from the database
+	identity := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
+	if identity != uuid.Nil {
+		return &schema, nil
+	}
+
+	return nil, nil
+}
+
+func (b *BaseRepository[T]) SafePreMany(preloads []string, query string, args ...any) ([]T, error) {
+	query = injectQuery(query, "AND deleted_at IS NULL")
+	return b.PreMany(preloads, query, args...)
+}
+
+func (b *BaseRepository[T]) PreMany(preloads []string, query string, args ...any) ([]T, error) {
+	var err error
+	var schemas []T
+	nokocore.KeepVoid(err, schemas)
+
+	unscoped := b.DB.Unscoped()
+	for i, preload := range preloads {
+		nokocore.KeepVoid(i)
+
+		unscoped = unscoped.Preload(preload)
+	}
+
+	tx := unscoped.Where(query, args...).Find(&schemas)
+	if err = tx.Error; err != nil {
+		return nil, err
+	}
+
+	temp := make([]T, 0)
+	for i, schema := range schemas {
+		nokocore.KeepVoid(i)
+
+		// the schemas were initialized but not updated from the database
+		identity := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
+		if identity != uuid.Nil {
+			temp = append(temp, schema)
+		}
+	}
+
+	return temp, nil
 }
 
 type CheckHandler[T any] func(schema *T) error
@@ -79,14 +223,14 @@ func (b *BaseRepository[T]) SafeCheck(schema *T, checkHandler CheckHandler[T]) e
 		tableName := sqlx.GetTableName(schema)
 		id := nokocore.GetValueWithSuperKey(schema, "BaseModel.id").(uint64)
 		if id != 0 {
-			if check, err = b.SafeFind("id = ?", id); err != nil {
+			if check, err = b.SafeFirst("id = ?", id); err != nil {
 				return errors.New(fmt.Sprintf("failed to search %s", tableName))
 			}
 		}
 
 		identity := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
 		if identity != uuid.Nil {
-			if check, err = b.SafeFind("uuid = ?", identity); err != nil {
+			if check, err = b.SafeFirst("uuid = ?", identity); err != nil {
 				return errors.New(fmt.Sprintf("failed to search %s", tableName))
 			}
 		}
@@ -114,14 +258,14 @@ func (b *BaseRepository[T]) Check(schema *T, checkHandler CheckHandler[T]) error
 		tableName := sqlx.GetTableName(schema)
 		id := nokocore.GetValueWithSuperKey(schema, "BaseModel.id").(uint64)
 		if id != 0 {
-			if check, err = b.Find("id = ?", id); err != nil {
+			if check, err = b.First("id = ?", id); err != nil {
 				return errors.New(fmt.Sprintf("failed to search %s", tableName))
 			}
 		}
 
 		identity := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
 		if identity != uuid.Nil {
-			if check, err = b.Find("uuid = ?", identity); err != nil {
+			if check, err = b.First("uuid = ?", identity); err != nil {
 				return errors.New(fmt.Sprintf("failed to search %s", tableName))
 			}
 		}
@@ -140,6 +284,34 @@ func (b *BaseRepository[T]) Check(schema *T, checkHandler CheckHandler[T]) error
 	return errors.New("invalid value")
 }
 
+func (b *BaseRepository[T]) baseInit(schema *T) error {
+	var err error
+	nokocore.KeepVoid(err)
+
+	tableName := sqlx.GetTableName(schema)
+	identity := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
+
+	// using mapstructure to inject any values
+	if identity == uuid.Nil {
+		timeUtcNow := nokocore.GetTimeUtcNow()
+		identity = nokocore.NewUUID()
+
+		err = mapstructure.Decode(nokocore.MapAny{
+			"BaseModel": nokocore.MapAny{
+				"uuid":       identity,
+				"created_at": timeUtcNow,
+				"updated_at": timeUtcNow,
+			},
+		}, schema)
+
+		if err != nil {
+			return errors.New(fmt.Sprintf("failed to inject values into %s", tableName))
+		}
+	}
+
+	return nil
+}
+
 func (b *BaseRepository[T]) SafeCreate(schema *T) error {
 	var err error
 	var check *T
@@ -151,15 +323,8 @@ func (b *BaseRepository[T]) SafeCreate(schema *T) error {
 			return err
 		}
 
-		// using mapstructure to inject any values
-		err = mapstructure.Decode(nokocore.MapAny{
-			"BaseModel": nokocore.MapAny{
-				"uuid": nokocore.NewUUID(),
-			},
-		}, schema)
-
-		if err != nil {
-			return errors.New(fmt.Sprintf("failed to inject values into %s", tableName))
+		if err = b.baseInit(schema); err != nil {
+			return err
 		}
 
 		tx := b.DB.Create(schema)
@@ -188,15 +353,8 @@ func (b *BaseRepository[T]) Create(schema *T) error {
 			return err
 		}
 
-		// using mapstructure to inject any values
-		err = mapstructure.Decode(nokocore.MapAny{
-			"BaseModel": nokocore.MapAny{
-				"uuid": nokocore.NewUUID(),
-			},
-		}, schema)
-
-		if err != nil {
-			return errors.New(fmt.Sprintf("failed to inject values into %s", tableName))
+		if err = b.baseInit(schema); err != nil {
+			return err
 		}
 
 		tx := b.DB.Unscoped().Create(schema)
@@ -221,19 +379,21 @@ func (b *BaseRepository[T]) SafeUpdate(schema *T, query string, args ...any) err
 
 	if schema != nil {
 		tableName := sqlx.GetTableName(schema)
-		if check, err = b.SafeFind(query, args...); err != nil {
+		if check, err = b.SafeFirst(query, args...); err != nil {
 			return err
 		}
 
 		if check != nil {
 			id := nokocore.GetValueWithSuperKey(check, "BaseModel.id").(uint64)
 			identity := nokocore.GetValueWithSuperKey(check, "BaseModel.uuid").(uuid.UUID)
+			timeUtcNow := nokocore.GetTimeUtcNow()
 
 			// using mapstructure to inject any values
 			err = mapstructure.Decode(nokocore.MapAny{
 				"BaseModel": nokocore.MapAny{
-					"id":   id,
-					"uuid": identity,
+					"id":         id,
+					"uuid":       identity,
+					"updated_at": timeUtcNow,
 				},
 			}, schema)
 
@@ -266,19 +426,21 @@ func (b *BaseRepository[T]) Update(schema *T, query string, args ...any) error {
 
 	if schema != nil {
 		tableName := sqlx.GetTableName(schema)
-		if check, err = b.Find(query, args...); err != nil {
+		if check, err = b.First(query, args...); err != nil {
 			return err
 		}
 
 		if check != nil {
 			id := nokocore.GetValueWithSuperKey(check, "BaseModel.id").(uint64)
 			identity := nokocore.GetValueWithSuperKey(check, "BaseModel.uuid").(uuid.UUID)
+			timeUtcNow := nokocore.GetTimeUtcNow()
 
 			// using mapstructure to inject any values
 			err = mapstructure.Decode(nokocore.MapAny{
 				"BaseModel": nokocore.MapAny{
-					"id":   id,
-					"uuid": identity,
+					"id":         id,
+					"uuid":       identity,
+					"updated_at": timeUtcNow,
 				},
 			}, schema)
 

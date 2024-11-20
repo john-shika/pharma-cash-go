@@ -15,11 +15,11 @@ func GetTableName(obj any) string {
 	nokocore.KeepVoid(ok, nameable)
 
 	if nokocore.IsNone(obj) {
-		return "<nil>"
+		return "none"
 	}
 
 	// try cast nameable and call method
-	if nameable, ok = obj.(NameableImpl); ok {
+	if nameable, ok = nokocore.Cast[NameableImpl](obj); ok {
 		return nameable.TableName()
 	}
 

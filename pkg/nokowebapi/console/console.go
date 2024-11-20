@@ -13,8 +13,8 @@ import (
 )
 
 type LoggerImpl interface {
-	GORMLogger() zapgorm2.Logger
 	ZapLogger() *zap.Logger
+	GORMLogger() zapgorm2.Logger
 	Debug(msg string, fields ...zap.Field)
 	Info(msg string, fields ...zap.Field)
 	Dir(obj any, fields ...zap.Field)
@@ -34,12 +34,12 @@ func NewLogger(logger *zap.Logger) LoggerImpl {
 	}
 }
 
-func (l *Logger) GORMLogger() zapgorm2.Logger {
-	return zapgorm2.New(l.Logger)
-}
-
 func (l *Logger) ZapLogger() *zap.Logger {
 	return l.Logger
+}
+
+func (l *Logger) GORMLogger() zapgorm2.Logger {
+	return zapgorm2.New(l.Logger)
 }
 
 func (l *Logger) Debug(msg string, fields ...zap.Field) {
@@ -132,14 +132,19 @@ func makeLogger(name string) LoggerImpl {
 	return NewLogger(zapLogger)
 }
 
-var loggerStack = make(map[string]LoggerImpl)
+var cachesLogger = make(map[string]LoggerImpl)
 
 func GetLogger(name string) LoggerImpl {
-	if logger, ok := loggerStack[name]; ok {
+	var ok bool
+	var logger LoggerImpl
+	nokocore.KeepVoid(ok, logger)
+
+	if logger, ok = cachesLogger[name]; !ok {
+		logger = makeLogger(name)
+		cachesLogger[name] = logger
 		return logger
 	}
-	logger := makeLogger(name)
-	loggerStack[name] = logger
+
 	return logger
 }
 

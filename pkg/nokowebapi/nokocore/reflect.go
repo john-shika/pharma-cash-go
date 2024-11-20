@@ -597,16 +597,20 @@ func GetStringValueReflect(value any) string {
 		return fmt.Sprintf("%f", real(val.Complex()))
 
 	case reflect.String:
+		// itself
 		return val.String()
 
-	//case reflect.Array, reflect.Slice:
-	//	return "<array>"
-	//
-	//case reflect.Map:
-	//	return "<object>"
-	//
-	//case reflect.Struct:
-	//	return "<object>"
+	case reflect.Array, reflect.Slice:
+		// array name
+		return "<array>"
+
+	case reflect.Map:
+		// object name
+		return "<object>"
+
+	case reflect.Struct:
+		// get name of struct
+		return GetNameType(val.Interface())
 
 	default:
 		return ""

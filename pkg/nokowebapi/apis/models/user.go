@@ -11,8 +11,8 @@ type User struct {
 	BaseModel
 	Username string         `db:"username" gorm:"unique;index;not null;" mapstructure:"username" json:"username" yaml:"username"`
 	Password string         `db:"password" gorm:"not null" mapstructure:"password" json:"password" yaml:"password"`
-	Email    sql.NullString `db:"email" gorm:";" mapstructure:"email" json:"email,omitempty" yaml:"email"`
-	Phone    sql.NullString `db:"phone" gorm:";" mapstructure:"phone" json:"phone,omitempty" yaml:"phone"`
+	Email    sql.NullString `db:"email" gorm:"index;" mapstructure:"email" json:"email,omitempty" yaml:"email"`
+	Phone    sql.NullString `db:"phone" gorm:"index;" mapstructure:"phone" json:"phone,omitempty" yaml:"phone"`
 	Admin    bool           `db:"admin" gorm:"index;not null;" mapstructure:"admin" json:"admin" yaml:"admin"`
 	Role     string         `db:"role" gorm:"index;not null;" mapstructure:"role" json:"role" yaml:"role"`
 	Level    int            `db:"level" gorm:"index;not null;" mapstructure:"level" json:"level" yaml:"level"`

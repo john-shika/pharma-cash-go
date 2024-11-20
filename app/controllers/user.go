@@ -5,17 +5,27 @@ import (
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 	"nokowebapi/apis/extras"
+	"nokowebapi/apis/models"
 	"nokowebapi/nokocore"
-	"pharma-cash-go/app/repositories"
 )
 
-func ProfileHandler(userRepository repositories.UserRepositoryImpl) echo.HandlerFunc {
-	nokocore.KeepVoid(userRepository)
+func ProfileHandler(DB *gorm.DB) echo.HandlerFunc {
+	nokocore.KeepVoid(DB)
+
+	//sessionRepository := repositories.NewSessionRepository(DB)
 
 	return func(ctx echo.Context) error {
 		jwtClaimsDataAccess := ctx.Get("jwt_claims_data_access").(nokocore.JwtClaimsDataAccessImpl)
+		session := ctx.Get("session").(*models.Session)
 
-		fmt.Println(jwtClaimsDataAccess)
+		//identity := jwtClaimsDataAccess.GetIdentity()
+		//sessionRepository.SafeFirst("uuid = ?", identity)
+
+		// Guest;Admin;Enterprise;TeamKit;Developer
+
+		// validate session
+
+		fmt.Println(session.User)
 
 		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", jwtClaimsDataAccess)
 	}
@@ -23,9 +33,7 @@ func ProfileHandler(userRepository repositories.UserRepositoryImpl) echo.Handler
 
 func UserController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
-	userRepository := repositories.NewUserRepository(DB)
-
-	group.GET("/profile", ProfileHandler(userRepository))
+	group.GET("/profile", ProfileHandler(DB))
 
 	return group
 }

@@ -131,7 +131,7 @@ func CORSWithConfig(config *CORSConfig) echo.MiddlewareFunc {
 				tmpAllowMethods, ok := ctx.Get(echo.ContextKeyHeaderAllow).(string)
 				if ok && tmpAllowMethods != "" {
 					routerAllowMethods = tmpAllowMethods
-					ctx.Response().Header().Set(echo.HeaderAllow, routerAllowMethods)
+					res.Header().Set(echo.HeaderAllow, routerAllowMethods)
 				}
 			}
 

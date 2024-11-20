@@ -68,7 +68,7 @@ type ConfigImpl interface {
 type Config struct {
 	jwtConfig    *nokocore.JwtConfig
 	loggerConfig *nokocore.LoggerConfig
-	tasks        *task.TasksConfig
+	tasksConfig  *task.TasksConfig
 	locker       nokocore.LockerImpl
 }
 
@@ -76,7 +76,7 @@ func NewConfig() ConfigImpl {
 	return &Config{
 		jwtConfig:    nil,
 		loggerConfig: nil,
-		tasks:        nil,
+		tasksConfig:  nil,
 		locker:       nokocore.NewLocker(),
 	}
 }
@@ -109,12 +109,12 @@ func (c *Config) GetLoggerConfig() *nokocore.LoggerConfig {
 
 func (c *Config) GetTasksConfig() *task.TasksConfig {
 	c.locker.Lock(func() {
-		if c.tasks != nil {
+		if c.tasksConfig != nil {
 			return
 		}
-		c.tasks = GetConfigGlobals[task.TasksConfig]()
+		c.tasksConfig = GetConfigGlobals[task.TasksConfig]()
 	})
-	return c.tasks
+	return c.tasksConfig
 }
 
 func (c *Config) Keys() []string {
@@ -153,6 +153,10 @@ func GetLoggerConfig() *nokocore.LoggerConfig {
 
 func GetTasksConfig() *task.TasksConfig {
 	return globals.GetTasksConfig()
+}
+
+func GetTaskConfig(name string) *task.Config {
+	return globals.GetTasksConfig().GetTaskConfig(name)
 }
 
 func Keys() []string {

@@ -22,8 +22,8 @@ func main() {
 	}
 	
 	pTasksHandler := func(pTasks task.ProcessTasksImpl) {
-		tasksConfig := globals.GetTasksConfig()
-		nokocore.NoErr(pTasks.Execute(tasksConfig))
+		tasks := globals.GetTasksConfig()
+		nokocore.NoErr(pTasks.Execute(tasks))
 		nokocore.NoErr(pTasks.Wait())
 	}
 

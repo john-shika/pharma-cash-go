@@ -21,7 +21,8 @@ func TestDB(t *testing.T) {
 	var err error
 	var DB *gorm.DB
 	var user *models.User
-	nokocore.KeepVoid(err, DB, user)
+	var users []models.User
+	nokocore.KeepVoid(err, DB, user, users)
 
 	config := &gorm.Config{
 		Logger: console.GetLogger("App").GORMLogger(),
@@ -44,7 +45,7 @@ func TestDB(t *testing.T) {
 
 	/// dummy data
 
-	users := []*models.User{
+	users = []models.User{
 		{
 			Username: "admin",
 			Password: "Admin@1234",
@@ -69,7 +70,7 @@ func TestDB(t *testing.T) {
 	for i, user := range users {
 		nokocore.KeepVoid(i)
 
-		if check, err = userRepository.Find("username = ?", user.Username); err != nil {
+		if check, err = userRepository.First("username = ?", user.Username); err != nil {
 			console.Warn(err.Error())
 			continue
 		}
@@ -79,7 +80,7 @@ func TestDB(t *testing.T) {
 			continue
 		}
 
-		if err = userRepository.Create(user); err != nil {
+		if err = userRepository.Create(&user); err != nil {
 			console.Warn(err.Error())
 			continue
 		}
@@ -89,8 +90,30 @@ func TestDB(t *testing.T) {
 
 	/// unit tests
 
+	// find all users
+	if users, err = userRepository.SafeMany("1=1"); err != nil {
+		t.Error(err)
+		return
+	}
+
+	if len(users) != 2 {
+		t.Error(errors.New("users count should be 2"))
+		return
+	}
+
+	// find all users with first order
+	if user, err = userRepository.SafeFirst("1=1"); err != nil {
+		t.Error(err)
+		return
+	}
+
+	if user == nil {
+		t.Error(errors.New("user is null"))
+		return
+	}
+
 	// find admin user
-	if user, err = userRepository.Find("username = ?", "admin"); err != nil {
+	if user, err = userRepository.First("username = ?", "admin"); err != nil {
 		t.Error(err)
 		return
 	}
@@ -107,13 +130,13 @@ func TestDB(t *testing.T) {
 	}
 
 	// check admin user
-	if user, err = userRepository.SafeFind("username = ?", "admin"); user != nil {
+	if user, err = userRepository.SafeFirst("username = ?", "admin"); user != nil {
 		t.Error(errors.New("user should be soft deleted"))
 		return
 	}
 
 	// check admin user
-	if user, err = userRepository.Find("username = ?", "admin"); err != nil {
+	if user, err = userRepository.First("username = ?", "admin"); err != nil {
 		t.Error(errors.New("user not found"))
 		return
 	}
@@ -126,7 +149,7 @@ func TestDB(t *testing.T) {
 	}
 
 	// find admin user
-	if user, err = userRepository.SafeFind("username = ?", "admin"); err != nil {
+	if user, err = userRepository.SafeFirst("username = ?", "admin"); err != nil {
 		t.Error(errors.New("user not found"))
 		return
 	}
@@ -138,7 +161,7 @@ func TestDB(t *testing.T) {
 	}
 
 	// find admin user
-	if user, err = userRepository.Find("username = ?", "admin"); user != nil {
+	if user, err = userRepository.First("username = ?", "admin"); user != nil {
 		t.Error(errors.New("user should be deleted"))
 		return
 	}

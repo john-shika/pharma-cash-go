@@ -124,7 +124,7 @@ func GetNameType(obj any) string {
 	}
 
 	// try cast nameable and call method
-	if nameable, ok = obj.(NameableImpl); ok {
+	if nameable, ok = Cast[NameableImpl](obj); ok {
 		return nameable.GetNameType()
 	}
 

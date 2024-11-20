@@ -28,7 +28,7 @@ func TestDB(t *testing.T) {
 	}
 
 	sqliteFilePath := "migrations/dev.sqlite3"
-	nokocore.NoErr(nokocore.EnsureDirAndFile(sqliteFilePath))
+	nokocore.NoErr(nokocore.CreateEmptyFile(sqliteFilePath))
 	if DB, err = gorm.Open(sqlite.Open(sqliteFilePath), config); err != nil {
 		panic("failed to connect database")
 	}

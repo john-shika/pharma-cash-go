@@ -75,34 +75,40 @@ func StringEquals(data string, buff string) bool {
 	return BytesEquals(data, buff)
 }
 
-func EnsureDirAndFile(filePath string) error {
+func CreateEmptyFile(path string) error {
 	var err error
 	var fileInfo os.FileInfo
 	var file *os.File
 	KeepVoid(err, fileInfo, file)
 
-	pathDir := filepath.Dir(filePath)
-	pathFile := filepath.Base(filePath)
+	dirPath := filepath.Dir(path)
+	filePath := filepath.Base(path)
 
 	// Check if the directory exists, and create it if it doesn't
-	if fileInfo, err = os.Stat(pathDir); os.IsNotExist(err) {
-		if err = os.MkdirAll(pathDir, os.ModePerm); err != nil {
-			return NewThrow(fmt.Sprintf("failed to create directory: %s", pathDir), err)
+	if fileInfo, err = os.Stat(dirPath); os.IsNotExist(err) {
+		if err = os.MkdirAll(dirPath, os.ModePerm); err != nil {
+			return NewThrow(fmt.Sprintf("failed to create directory: %s", dirPath), err)
 		}
-		fmt.Printf("Directory %s created\n", pathDir)
+
+		fmt.Printf("directory %s created\n", dirPath)
+
 	} else {
-		fmt.Printf("Directory %s already exists\n", pathDir)
+		fmt.Printf("directory %s already exists\n", dirPath)
+
 	}
 
 	// Check if the file exists, and create it if it doesn't
-	if fileInfo, err = os.Stat(filePath); os.IsNotExist(err) {
-		if file, err = os.Create(filePath); err != nil {
-			return NewThrow(fmt.Sprintf("failed to create file: %s", pathFile), err)
+	if fileInfo, err = os.Stat(path); os.IsNotExist(err) {
+		if file, err = os.Create(path); err != nil {
+			return NewThrow(fmt.Sprintf("failed to create file: %s", filePath), err)
 		}
+
+		fmt.Printf("file %s has been created\n", filePath)
 		NoErr(file.Close())
-		fmt.Printf("File %s created\n", pathFile)
+
 	} else {
-		fmt.Printf("File %s already exists\n", pathFile)
+		fmt.Printf("file %s already exists\n", filePath)
+
 	}
 
 	return nil

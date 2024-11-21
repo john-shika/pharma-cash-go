@@ -12,7 +12,7 @@ type UserBody struct {
 	Phone    string `json:"phone" yaml:"phone" form:"phone" validate:"phone,omitempty"`
 	Admin    bool   `json:"admin" yaml:"admin" form:"admin" validate:"boolean,omitempty"`
 	Role     string `json:"role" yaml:"role" form:"role" validate:"ascii,omitempty"`
-	Level    string `json:"level" yaml:"level" form:"level" validate:"numeric,omitempty"` // FUTURE: can handle min=N,max=N
+	Level    string `json:"level" yaml:"level" form:"level" validate:"numeric,min=0,max=80.12,omitempty"` // FUTURE: can handle min=N,max=N
 }
 
 func main() {
@@ -24,7 +24,7 @@ func main() {
 		Phone:    "+64 823-2653-0277x",
 		Admin:    true,
 		Role:     "admin",
-		Level:    "+12.23",
+		Level:    "-12",
 	}
 
 	fmt.Printf("%T\n", validators.ValidateStruct(user))

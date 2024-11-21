@@ -41,6 +41,14 @@ type EquatableImpl[T any] interface {
 	Equals(other T) bool
 }
 
+type NumerableImpl interface {
+	ToInt() int64
+}
+
+type FloatingImpl interface {
+	ToFloat() float64
+}
+
 type StringableImpl interface {
 	ToString() string
 }

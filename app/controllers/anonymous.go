@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"database/sql"
-	"fmt"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 	"nokowebapi/apis/extras"
@@ -66,8 +65,6 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 			return extras.NewMessageBodyUnauthorized(ctx, "Invalid username or password.", nil)
 		}
 
-		fmt.Println("USER", user)
-
 		sessionId := nokocore.NewUUID()
 		timeUtcNow := nokocore.GetTimeUtcNow()
 		expires := timeUtcNow.Add(expiresIn)
@@ -81,7 +78,7 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 		jwtClaimsDataAccess.SetExpiresAt(expires)
 		jwtClaimsDataAccess.SetUser(user.Username)
 		jwtClaimsDataAccess.SetSessionId(sessionId.String())
-		jwtClaimsDataAccess.SetRole(user.Role)
+		jwtClaimsDataAccess.SetRoles(user.GetRoles())
 		jwtClaimsDataAccess.SetAdmin(user.Admin)
 		jwtClaimsDataAccess.SetLevel(user.Level)
 
@@ -104,10 +101,17 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to create session.", nil)
 		}
 
-		// TODO: add user information
-
 		return extras.NewMessageBodyOk(ctx, "Successfully logged in.", nokocore.MapAny{
 			"token": jwtToken,
+			"user": nokocore.MapAny{
+				"fullname": user.FullName.String,
+				"username": user.Username,
+				"email":    user.Email.String,
+				"phone":    user.Phone.String,
+				"admin":    user.Admin,
+				"roles":    user.GetRoles(),
+				"level":    user.Level,
+			},
 		})
 	}
 }

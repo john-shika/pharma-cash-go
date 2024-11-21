@@ -9,14 +9,16 @@ import (
 	"nokowebapi/console"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
+	"pharma-cash-go/app/repositories"
 )
 
 func JWTAuth(DB *gorm.DB) echo.MiddlewareFunc {
 	nokocore.KeepVoid(DB)
 
 	jwtConfig := globals.GetJwtConfig()
+	signingMethod := jwtConfig.GetSigningMethod()
 
-	//sessionRepository := repositories.NewSessionRepository(DB)
+	sessionRepository := repositories.NewSessionRepository(DB)
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(ctx echo.Context) error {
@@ -43,30 +45,23 @@ func JWTAuth(DB *gorm.DB) echo.MiddlewareFunc {
 			jwtClaims := nokocore.Unwrap(nokocore.GetJwtClaimsFromJwtToken(jwtToken))
 			jwtClaimsDataAccess, jwtSigningMethod := nokocore.CvtJwtClaimsToJwtClaimsDataAccess(jwtClaims)
 
-			nokocore.KeepVoid(jwtClaimsDataAccess, jwtSigningMethod)
-			fmt.Println(jwtClaimsDataAccess)
+			if jwtSigningMethod.Alg() != signingMethod.Alg() {
+				return extras.NewMessageBodyUnauthorized(ctx, fmt.Sprintf("Invalid JWT token. Expected signing method: %s. Actual signing method: %s.", signingMethod.Alg(), jwtSigningMethod.Alg()), nil)
+			}
 
 			sessionId := jwtClaimsDataAccess.GetSessionId()
 			identity := jwtClaimsDataAccess.GetIdentity()
 
+			// initial session
 			session = new(models.Session)
-			tx := DB.Preload("User").Where("uuid = ? AND (token_id = ? OR refresh_token_id = ?)", sessionId, identity, identity).Find(session)
-			if err = tx.Error; err != nil {
+
+			// get current session
+			preloads := []string{"User"}
+			if session, err = sessionRepository.SafePreFirst(preloads, "uuid = ? AND (token_id = ? OR refresh_token_id = ?)", sessionId, identity, identity); err != nil {
 				console.Error(err.Error())
 
 				return extras.NewMessageBodyUnauthorized(ctx, "Invalid JWT token.", nil)
 			}
-
-			if tx.RowsAffected == 0 {
-				console.Error("session not found")
-				return extras.NewMessageBodyUnauthorized(ctx, "Invalid JWT token.", nil)
-			}
-
-			//if session, err = sessionRepository.SafeFirst("uuid = ? AND (token_id = ? OR refresh_token_id = ?)", sessionId, identity, identity); err != nil {
-			//	console.Error(err.Error())
-			//
-			//	return extras.NewMessageBodyUnauthorized(ctx, "Invalid JWT token.", nil)
-			//}
 
 			if session != nil {
 				ctx.Set("token", token)

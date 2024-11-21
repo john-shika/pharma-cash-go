@@ -16,7 +16,8 @@ func ToTitleCase(value string) string {
 	temp = RegexReplaceAllString("([0-9])([a-zA-Z])", temp, "$1 $2")
 	temp = RegexReplaceAllString("[-_\\s]+", temp, " ")
 
-	// temp = RegexReplaceAllString("\\b\\w", temp, strings.ToUpper("$0"))
+	//temp = RegexReplaceAllString("\\b\\w", temp, strings.ToUpper("$0"))
+	//return temp
 
 	transform := cases.Title(language.English)
 	return transform.String(strings.ToLower(temp))

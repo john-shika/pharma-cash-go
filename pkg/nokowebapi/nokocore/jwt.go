@@ -86,7 +86,7 @@ const (
 	JwtClaimUser      JwtClaimNamed = "user"
 	JwtClaimEmail     JwtClaimNamed = "email"
 	JwtClaimPhone     JwtClaimNamed = "phone"
-	JwtClaimRole      JwtClaimNamed = "role"
+	JwtClaimRoles     JwtClaimNamed = "roles"
 	JwtClaimAdmin     JwtClaimNamed = "admin"
 	JwtClaimLevel     JwtClaimNamed = "level"
 )
@@ -188,8 +188,8 @@ type JwtClaimsImpl interface {
 	SetEmail(email string)
 	GetPhone() string
 	SetPhone(phone string)
-	GetRole() string
-	SetRole(role string)
+	GetRoles() []string
+	SetRoles(roles []string)
 	GetAdmin() bool
 	SetAdmin(admin bool)
 	GetLevel() int
@@ -217,8 +217,8 @@ type JwtClaimsDataAccessImpl interface {
 	SetEmail(email string)
 	GetPhone() string
 	SetPhone(phone string)
-	GetRole() string
-	SetRole(role string)
+	GetRoles() []string
+	SetRoles(roles []string)
 	GetAdmin() bool
 	SetAdmin(admin bool)
 	GetLevel() int
@@ -234,10 +234,10 @@ type JwtClaimsDataAccess struct {
 	IssuedAt  *jwt.NumericDate `mapstructure:"iat" json:"iat,omitempty" yaml:"iat,omitempty"`
 	ExpiresAt *jwt.NumericDate `mapstructure:"exp" json:"exp,omitempty" yaml:"exp,omitempty"`
 	SessionId string           `mapstructure:"sid" json:"sid,omitempty" yaml:"sid,omitempty"`
-	User      string           `mapstructure:"name" json:"name,omitempty" yaml:"name,omitempty"`
+	User      string           `mapstructure:"user" json:"user,omitempty" yaml:"user,omitempty"`
 	Email     string           `mapstructure:"email" json:"email,omitempty" yaml:"email,omitempty"`
 	Phone     string           `mapstructure:"phone" json:"phone,omitempty" yaml:"phone,omitempty"`
-	Role      string           `mapstructure:"role" json:"role,omitempty" yaml:"role,omitempty"`
+	Roles     []string         `mapstructure:"roles" json:"roles,omitempty" yaml:"roles,omitempty"`
 	Admin     bool             `mapstructure:"admin" json:"admin,omitempty" yaml:"admin,omitempty"`
 	Level     int              `mapstructure:"level" json:"level,omitempty" yaml:"level,omitempty"`
 }
@@ -341,12 +341,12 @@ func (claimsDataAccess *JwtClaimsDataAccess) SetPhone(phone string) {
 	claimsDataAccess.Phone = phone
 }
 
-func (claimsDataAccess *JwtClaimsDataAccess) GetRole() string {
-	return claimsDataAccess.Role
+func (claimsDataAccess *JwtClaimsDataAccess) GetRoles() []string {
+	return claimsDataAccess.Roles
 }
 
-func (claimsDataAccess *JwtClaimsDataAccess) SetRole(role string) {
-	claimsDataAccess.Role = role
+func (claimsDataAccess *JwtClaimsDataAccess) SetRoles(roles []string) {
+	claimsDataAccess.Roles = roles
 }
 
 func (claimsDataAccess *JwtClaimsDataAccess) GetAdmin() bool {
@@ -431,7 +431,7 @@ func (j *JwtClaims) GetDataAccess() *JwtClaimsDataAccess {
 		User:      j.GetUser(),
 		Email:     j.GetEmail(),
 		Phone:     j.GetPhone(),
-		Role:      j.GetRole(),
+		Roles:     j.GetRoles(),
 		Admin:     j.GetAdmin(),
 		Level:     j.GetLevel(),
 	}
@@ -608,12 +608,12 @@ func (j *JwtClaims) SetPhone(email string) {
 	j.Set(string(JwtClaimPhone), email)
 }
 
-func (j *JwtClaims) GetRole() string {
-	return j.ParseString(JwtClaimRole)
+func (j *JwtClaims) GetRoles() []string {
+	return j.ParseManyString(JwtClaimRoles)
 }
 
-func (j *JwtClaims) SetRole(role string) {
-	j.Set(string(JwtClaimRole), role)
+func (j *JwtClaims) SetRoles(roles []string) {
+	j.Set(string(JwtClaimRoles), roles)
 }
 
 func (j *JwtClaims) GetAdmin() bool {
@@ -683,7 +683,7 @@ func CvtJwtClaimsDataAccessToJwtClaims(claimsDataAccess JwtClaimsDataAccessImpl,
 	claims.SetUser(claimsDataAccess.GetUser())
 	claims.SetEmail(claimsDataAccess.GetEmail())
 	claims.SetPhone(claimsDataAccess.GetPhone())
-	claims.SetRole(claimsDataAccess.GetRole())
+	claims.SetRoles(claimsDataAccess.GetRoles())
 	claims.SetAdmin(claimsDataAccess.GetAdmin())
 	claims.SetLevel(claimsDataAccess.GetLevel())
 	return claims
@@ -701,7 +701,7 @@ func CvtJwtClaimsToJwtClaimsDataAccess(claims JwtClaimsImpl) (JwtClaimsDataAcces
 	claimsDataAccess.SetUser(claims.GetUser())
 	claimsDataAccess.SetEmail(claims.GetEmail())
 	claimsDataAccess.SetPhone(claims.GetPhone())
-	claimsDataAccess.SetRole(claims.GetRole())
+	claimsDataAccess.SetRoles(claims.GetRoles())
 	claimsDataAccess.SetAdmin(claims.GetAdmin())
 	claimsDataAccess.SetLevel(claims.GetLevel())
 	return claimsDataAccess, claims.GetSigningMethod()

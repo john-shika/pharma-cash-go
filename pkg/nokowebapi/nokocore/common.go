@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"io"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -27,10 +28,200 @@ func NoErr(err error) {
 	}
 }
 
-func CopyStack[T any](value []T) []T {
-	temp := make([]T, len(value))
-	copy(temp, value)
+func Copy[T any](values []T) []T {
+	temp := make([]T, len(values))
+	copy(temp, values)
 	return temp
+}
+
+func ToInt(value any) int64 {
+	if value != nil {
+		if val, ok := value.(NumerableImpl); ok {
+			return val.ToInt()
+		}
+
+		switch value.(type) {
+		case bool:
+			if value.(bool) {
+				return 1
+			}
+
+			return 0
+
+		case int, int8, int16, int32, int64:
+			switch value.(type) {
+			case int:
+				return int64(value.(int))
+
+			case int8:
+				return int64(value.(int8))
+
+			case int16:
+				return int64(value.(int16))
+
+			case int32:
+				return int64(value.(int32))
+
+			case int64:
+				return value.(int64)
+
+			default:
+				return 0
+			}
+
+		case uint, uint8, uint16, uint32, uint64:
+			switch value.(type) {
+			case uint:
+				return int64(value.(uint))
+
+			case uint8:
+				return int64(value.(uint8))
+
+			case uint16:
+				return int64(value.(uint16))
+
+			case uint32:
+				return int64(value.(uint32))
+
+			case uint64:
+				return int64(value.(uint64))
+
+			default:
+				return 0
+			}
+
+		case uintptr:
+			return int64(value.(uintptr))
+
+		case float32, float64:
+			switch value.(type) {
+			case float32:
+				return int64(value.(float32))
+
+			case float64:
+				return int64(value.(float64))
+
+			default:
+				return 0
+			}
+
+		case complex64, complex128:
+			switch value.(type) {
+			case complex64:
+				return int64(real(value.(complex64)))
+
+			case complex128:
+				return int64(real(value.(complex128)))
+
+			default:
+				return 0
+
+			}
+
+		case string:
+			return Unwrap(strconv.ParseInt(value.(string), 10, 64))
+
+		default:
+			return ToIntReflect(value)
+		}
+	}
+
+	return 0
+}
+
+func ToFloat(value any) float64 {
+	if value != nil {
+		if val, ok := value.(FloatingImpl); ok {
+			return val.ToFloat()
+		}
+
+		switch value.(type) {
+		case bool:
+			if value.(bool) {
+				return 1
+			}
+
+			return 0
+
+		case int, int8, int16, int32, int64:
+			switch value.(type) {
+			case int:
+				return float64(value.(int))
+
+			case int8:
+				return float64(value.(int8))
+
+			case int16:
+				return float64(value.(int16))
+
+			case int32:
+				return float64(value.(int32))
+
+			case int64:
+				return float64(value.(int64))
+
+			default:
+				return 0
+			}
+
+		case uint, uint8, uint16, uint32, uint64:
+			switch value.(type) {
+			case uint:
+				return float64(value.(uint))
+
+			case uint8:
+				return float64(value.(uint8))
+
+			case uint16:
+				return float64(value.(uint16))
+
+			case uint32:
+				return float64(value.(uint32))
+
+			case uint64:
+				return float64(value.(uint64))
+
+			default:
+				return 0
+			}
+
+		case uintptr:
+			return float64(value.(uintptr))
+
+		case float32, float64:
+			switch value.(type) {
+			case float32:
+				return float64(value.(float32))
+
+			case float64:
+				return value.(float64)
+
+			default:
+				return 0
+			}
+
+		case complex64, complex128:
+			switch value.(type) {
+			case complex64:
+				return float64(real(value.(complex64)))
+
+			case complex128:
+				return real(value.(complex128))
+
+			default:
+				return 0
+
+			}
+
+		case string:
+			return Unwrap(strconv.ParseFloat(value.(string), 64))
+
+		default:
+			return ToFloatReflect(value)
+		}
+	}
+
+	return 0
 }
 
 func ToString(value any) string {

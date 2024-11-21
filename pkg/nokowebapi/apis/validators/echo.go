@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"nokowebapi/nokocore"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -83,11 +84,10 @@ func CheckPassword(password string) error {
 	return nil
 }
 
-// TODO: can handle min=N,max=N in ValidateStruct
-
 func ValidateStruct(value any) error {
+	var ok bool
 	var err error
-	nokocore.KeepVoid(err)
+	nokocore.KeepVoid(ok, err)
 
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
@@ -118,10 +118,35 @@ func ValidateStruct(value any) error {
 				isPhone := false
 				isPassword := false
 
+				// additional options for number or numeric
+				var minimum float64
+				var maximum float64
+
+				setMinimum := false
+				setMaximum := false
+
 				for i, token := range tokens {
 					nokocore.KeepVoid(i)
 
 					token = strings.TrimSpace(token)
+					if token, ok = strings.CutPrefix(token, "min="); ok {
+						if minimum, err = strconv.ParseFloat(token, 64); err != nil {
+							return errors.New(fmt.Sprintf("invalid options for field '%s': min=%s", name, token))
+						}
+
+						setMinimum = true
+						continue
+					}
+
+					if token, ok = strings.CutPrefix(token, "max="); ok {
+						if maximum, err = strconv.ParseFloat(token, 64); err != nil {
+							return errors.New(fmt.Sprintf("invalid options for field '%s': max=%s", name, token))
+						}
+
+						setMaximum = true
+						continue
+					}
+
 					switch token {
 					case "-", "ignore":
 						ignore = true
@@ -171,7 +196,7 @@ func ValidateStruct(value any) error {
 
 				if nokocore.IsNoneOrEmptyWhiteSpace(vField) {
 					if !omitEmpty {
-						return errors.New(fmt.Sprintf("field %s is required", name))
+						return errors.New(fmt.Sprintf("field '%s' is required", name))
 					}
 
 					// skip
@@ -180,43 +205,67 @@ func ValidateStruct(value any) error {
 
 				if isBoolean {
 					if err = ValidateBoolean(vField); err != nil {
-						return errors.New(fmt.Sprintf("field %s is %s", name, err.Error()))
+						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
 					}
 				}
 
 				if isNumber {
 					if err = ValidateNumber(vField); err != nil {
-						return errors.New(fmt.Sprintf("field %s is %s", name, err.Error()))
+						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
+					}
+
+					num := nokocore.ToInt(vField.Interface())
+
+					minInt64 := int64(minimum)
+					if setMinimum && num < minInt64 {
+						return errors.New(fmt.Sprintf("field '%s' is less than %d", name, minInt64))
+					}
+
+					maxInt64 := int64(maximum)
+					if setMaximum && num > maxInt64 {
+						return errors.New(fmt.Sprintf("field '%s' is greater than %d", name, maxInt64))
 					}
 				}
 
 				if isNumeric {
 					if err = ValidateNumeric(vField); err != nil {
-						return errors.New(fmt.Sprintf("field %s is %s", name, err.Error()))
+						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
+					}
+
+					num := nokocore.ToFloat(vField.Interface())
+
+					if setMinimum && num < minimum {
+						temp := strconv.FormatFloat(minimum, 'f', -1, 64)
+						return errors.New(fmt.Sprintf("field '%s' is less than %s", name, temp))
+					}
+
+					if setMaximum && num > maximum {
+						temp := strconv.FormatFloat(maximum, 'f', -1, 64)
+						return errors.New(fmt.Sprintf("field '%s' is greater than %s", name, temp))
 					}
 				}
 
 				if isAlpha {
 					if err = ValidateAlpha(vField); err != nil {
-						return errors.New(fmt.Sprintf("field %s is %s", name, err.Error()))
+						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
 					}
 				}
 
 				if isAscii {
 					if err = ValidateAscii(vField); err != nil {
-						return errors.New(fmt.Sprintf("field %s is %s", name, err.Error()))
+						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
 					}
 				}
 
 				if isEmail {
 					if err = ValidateEmail(vField); err != nil {
-						return errors.New(fmt.Sprintf("field %s is %s", name, err.Error()))
+						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
 					}
 				}
 
 				if isPhone {
 					if err = ValidatePhone(vField); err != nil {
-						return errors.New(fmt.Sprintf("field %s is %s", name, err.Error()))
+						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
 					}
 				}
 
@@ -431,6 +480,9 @@ func ValidatePhone(value any) error {
 }
 
 func ValidatePassword(value any) error {
+	var err error
+	nokocore.KeepVoid(err)
+
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
@@ -438,6 +490,22 @@ func ValidatePassword(value any) error {
 
 	switch val.Kind() {
 	case reflect.String:
+		//if err = CheckPassword(val.String()); err != nil {
+		//	var validateErr *ValidateError
+		//	if errors.As(err, &validateErr) {
+		//		fields := make([]string, 0)
+		//		for i, field := range validateErr.Fields() {
+		//			nokocore.KeepVoid(i)
+		//
+		//			// custom message error
+		//			fields = append(fields, fmt.Sprintf("field 'password' is invalid value, %s", field))
+		//		}
+		//
+		//		return NewValidateError(fields)
+		//	}
+		//}
+		//
+		//return nil
 		return CheckPassword(val.String())
 
 	default:

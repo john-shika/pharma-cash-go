@@ -136,6 +136,118 @@ func IsNoneOrEmptyReflect(value any) bool {
 	return false
 }
 
+func ToIntReflect(value any) int64 {
+	val := PassValueIndirectReflect(value)
+	if !val.IsValid() {
+		return 0
+	}
+
+	method := val.MethodByName("ToInt")
+	if method.IsValid() {
+		results := method.Call(nil)
+		if len(results) != 1 || !results[0].IsValid() {
+			panic("invalid results")
+		}
+
+		return results[0].Int()
+	}
+
+	switch val.Kind() {
+	case reflect.Bool:
+		if val.Bool() {
+			return 1
+		}
+
+		return 0
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return val.Int()
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return int64(val.Uint())
+
+	case reflect.Uintptr:
+		return int64(val.Uint())
+
+	case reflect.Float32, reflect.Float64:
+		return int64(val.Float())
+
+	case reflect.Complex64, reflect.Complex128:
+		return int64(real(val.Complex()))
+
+	case reflect.String:
+		return Unwrap(strconv.ParseInt(val.String(), 10, 64))
+
+	case reflect.Array, reflect.Slice:
+		return int64(val.Len())
+
+	case reflect.Map:
+		return int64(val.Len())
+
+	case reflect.Struct:
+		return 0
+
+	default:
+		return 0
+	}
+}
+
+func ToFloatReflect(value any) float64 {
+	val := PassValueIndirectReflect(value)
+	if !val.IsValid() {
+		return 0
+	}
+
+	method := val.MethodByName("ToFloat")
+	if method.IsValid() {
+		results := method.Call(nil)
+		if len(results) != 1 || !results[0].IsValid() {
+			panic("invalid results")
+		}
+
+		return results[0].Float()
+	}
+
+	switch val.Kind() {
+	case reflect.Bool:
+		if val.Bool() {
+			return 1
+		}
+
+		return 0
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return float64(val.Int())
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return float64(val.Uint())
+
+	case reflect.Uintptr:
+		return float64(val.Uint())
+
+	case reflect.Float32, reflect.Float64:
+		return val.Float()
+
+	case reflect.Complex64, reflect.Complex128:
+		return real(val.Complex())
+
+	case reflect.String:
+		return Unwrap(strconv.ParseFloat(val.String(), 64))
+
+	case reflect.Array, reflect.Slice:
+		return float64(val.Len())
+
+	case reflect.Map:
+		return float64(val.Len())
+
+	case reflect.Struct:
+		return 0
+
+	default:
+		return 0
+	}
+}
+
 func ToStringReflect(value any) string {
 	val := PassValueIndirectReflect(value)
 	if !val.IsValid() {

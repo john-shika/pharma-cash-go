@@ -4,11 +4,13 @@ app:
   license: Apache-2.0
   version: 1.0.0
   author: ahmadasysyafiq@proton.me
+hwd:
+  exec: './bin/NokoHwd.exe'
 jwt:
   algorithm: HS256
-  secret_key: im-secret-key
-  audience: im-audience
-  issuer: im-issuer
+  secret_key: 'im-secret-key'
+  audience: ['im-audience']
+  issuer: 'im-issuer'
   expires_in: 16m
 logger:
   level: debug
@@ -28,7 +30,8 @@ tasks:
   - name: electron
     workdir: './bin/electron-app'
     environ:
-#      - 'ELECTRON_RUN_AS_NODE=1'
+      - ELECTRON_RUN_AS_NODE=1
+      - NODE_ENV=development
     exec: './nokowebview.exe'
     args: []
     stdout: console

@@ -19,6 +19,7 @@ func PassTypeIndirectReflect(value any) reflect.Type {
 	switch typ.Kind() {
 	case reflect.Pointer:
 		return PassTypeIndirectReflect(typ.Elem())
+
 	default:
 		return typ
 	}
@@ -33,11 +34,15 @@ func GetTypeReflect(value any) reflect.Type {
 	switch value.(type) {
 	case reflect.Type:
 		return value.(reflect.Type)
+
 	case reflect.Value:
 		val = value.(reflect.Value)
+		break
+
 	default:
 		val = reflect.ValueOf(value)
 	}
+
 	return val.Type()
 }
 
@@ -46,11 +51,15 @@ func GetValueReflect(value any) reflect.Value {
 	switch value.(type) {
 	case reflect.Type:
 		panic("should not pass reflect type")
+
 	case reflect.Value:
 		val = value.(reflect.Value)
+		break
+
 	default:
 		val = reflect.ValueOf(value)
 	}
+
 	return val
 }
 
@@ -67,6 +76,7 @@ func IsValidReflect(value any) bool {
 			// chan, func, interface, map, pointer, slice
 			// will be considered as nullable value
 			return !val.IsNil()
+
 		default:
 			// not chan, func, interface, map, pointer, slice
 			// will be considered as notnull value
@@ -87,6 +97,7 @@ func PassValueIndirectReflect(value any) reflect.Value {
 	switch val.Kind() {
 	case reflect.Interface, reflect.Pointer:
 		return PassValueIndirectReflect(val.Elem())
+
 	default:
 		return val
 	}
@@ -100,6 +111,7 @@ func IsCountableReflect[T any](value T) bool {
 	switch val.Kind() {
 	case reflect.Array, reflect.Slice, reflect.String, reflect.Chan:
 		return true
+
 	default:
 		return false
 	}
@@ -125,49 +137,57 @@ func IsNoneOrEmptyReflect(value any) bool {
 }
 
 func ToStringReflect(value any) string {
-	if value == nil {
-		return "<null>"
-	}
-
-	if val, ok := value.(StringableImpl); ok {
-		return val.ToString()
-	}
-
 	val := PassValueIndirectReflect(value)
 	if !val.IsValid() {
-		return "<null>"
+		return "<nil>"
+	}
+
+	method := val.MethodByName("ToString")
+	if method.IsValid() {
+		results := method.Call(nil)
+		if len(results) != 1 || !results[0].IsValid() {
+			panic("invalid results")
+		}
+
+		return results[0].String()
 	}
 
 	switch val.Kind() {
 	case reflect.Bool:
-		v := val.Bool()
-		return strconv.FormatBool(v)
+		return strconv.FormatBool(val.Bool())
+
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		v := val.Int()
-		return strconv.FormatInt(v, 10)
+		return strconv.FormatInt(val.Int(), 10)
+
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		v := val.Uint()
-		return strconv.FormatUint(v, 10)
+		return strconv.FormatUint(val.Uint(), 10)
+
 	case reflect.Uintptr:
-		v := Unwrap(Cast[uintptr](val.Interface()))
-		return ToString(v)
+		return fmt.Sprintf("0x%016x", val.Uint())
+
 	case reflect.Float32, reflect.Float64:
-		v := val.Float()
-		return strconv.FormatFloat(v, 'f', -1, 64)
+		return strconv.FormatFloat(val.Float(), 'f', -1, 64)
+
 	case reflect.Complex64, reflect.Complex128:
-		v := val.Complex()
-		return strconv.FormatComplex(v, 'f', -1, 128)
+		return strconv.FormatComplex(val.Complex(), 'f', -1, 128)
+
 	case reflect.String:
 		return val.String()
+
+	case reflect.Array, reflect.Slice:
+		return "<array>"
+
+	case reflect.Map:
+		return "<object>"
+
 	case reflect.Struct:
 		if IsTimeUtcISO8601(val) {
 			return strconv.Quote(ToTimeUtcStringISO8601(val))
 		}
-		return "<struct>"
-	case reflect.Array, reflect.Slice:
-		return "<array>"
-	case reflect.Map:
-		return "<map>"
+
+		//return GetNameType(val.Interface())
+		return "<object>"
+
 	default:
 		return fmt.Sprint(val.Interface())
 	}
@@ -212,6 +232,7 @@ func GetNameTypeReflect(value any) string {
 		if len(results) != 1 || !results[0].IsValid() {
 			panic("invalid results")
 		}
+
 		return results[0].String()
 	}
 
@@ -249,26 +270,32 @@ func MakePointerReflect(value any) reflect.Value {
 	case reflect.Interface:
 		fmt.Println("[WARN] Value is an interface value. The result is a pointer to the value stored in the interface.")
 		return MakePointerReflect(val.Elem())
+
 	case reflect.Pointer:
 		return val
+
 	case reflect.Func:
 		fmt.Println("[WARN] The returned pointer is an underlying code pointer, but not necessarily enough to identify a single function uniquely.")
 		return reflect.NewAt(val.Type(), val.UnsafePointer())
+
 	case reflect.Slice:
 		fmt.Println("[WARN] The returned pointer is to the first element of the slice.")
 		return reflect.NewAt(val.Type(), val.UnsafePointer())
+
 	case reflect.String:
 		fmt.Println("[WARN] The returned pointer is to the first element of the underlying bytes of string.")
 		return reflect.NewAt(val.Type(), val.UnsafePointer())
+
 	case reflect.Chan, reflect.Map, reflect.UnsafePointer:
 		return reflect.NewAt(val.Type(), val.UnsafePointer())
+
 	//case reflect.Slice, reflect.Array, reflect.Struct:
 	//	if ptr, ok = makePtrReflect(value); !ok {
 	//		panic("value is not addressable")
 	//	}
 	//	return ptr
-	default:
 
+	default:
 		panic("use a generic pointer instead")
 	}
 }
@@ -423,16 +450,22 @@ func GetBoolValueReflect(value any) bool {
 	switch val.Kind() {
 	case reflect.Bool:
 		return val.Bool()
+
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return val.Int() != 0
+
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		return val.Uint() != 0
+
 	case reflect.Float32, reflect.Float64:
 		return val.Float() != 0
+
 	case reflect.Complex64, reflect.Complex128:
 		return val.Complex() != 0
+
 	case reflect.String:
 		return ParseEnvToBool(val.String())
+
 	default:
 		return false
 	}
@@ -451,16 +484,22 @@ func GetIntValueReflect(value any) int64 {
 		}
 
 		return 0
+
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return val.Int()
+
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		return int64(val.Uint())
+
 	case reflect.Float32, reflect.Float64:
 		return int64(val.Float())
+
 	case reflect.Complex64, reflect.Complex128:
 		return int64(real(val.Complex()))
+
 	case reflect.String:
 		return ParseEnvToInt(val.String())
+
 	default:
 		return 0
 	}
@@ -487,18 +526,25 @@ func GetUintValueReflect(value any) uint64 {
 		}
 
 		return 0
+
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return uint64(val.Int())
+
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		return val.Uint()
+
 	case reflect.Float32, reflect.Float64:
 		return uint64(val.Float())
+
 	case reflect.Complex64, reflect.Complex128:
 		return uint64(real(val.Complex()))
+
 	case reflect.String:
 		return ParseEnvToUint(val.String())
+
 	default:
 		return 0
+
 	}
 }
 
@@ -515,16 +561,22 @@ func GetFloatValueReflect(value any) float64 {
 		}
 
 		return 0
+
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return float64(val.Int())
+
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		return float64(val.Uint())
+
 	case reflect.Float32, reflect.Float64:
 		return val.Float()
+
 	case reflect.Complex64, reflect.Complex128:
 		return real(val.Complex())
+
 	case reflect.String:
 		return ParseEnvToFloat(val.String())
+
 	default:
 		return 0
 	}
@@ -543,16 +595,22 @@ func GetComplexValueReflect(value any) complex128 {
 		}
 
 		return 0
+
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return complex(float64(val.Int()), 0)
+
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		return complex(float64(val.Uint()), 0)
+
 	case reflect.Float32, reflect.Float64:
 		return complex(val.Float(), 0)
+
 	case reflect.Complex64, reflect.Complex128:
 		return val.Complex()
+
 	case reflect.String:
 		return ParseEnvToComplex(val.String())
+
 	default:
 		return 0
 	}
@@ -560,61 +618,6 @@ func GetComplexValueReflect(value any) complex128 {
 
 func GetRealComplexValueReflect(value any) float64 {
 	return real(GetComplexValueReflect(value))
-}
-
-func GetStringValueReflect(value any) string {
-	val := PassValueIndirectReflect(value)
-	if !val.IsValid() {
-		return ""
-	}
-
-	method := val.MethodByName("ToString")
-	if method.IsValid() {
-		results := method.Call(nil)
-		if len(results) != 1 || !results[0].IsValid() {
-			panic("invalid results")
-		}
-		return results[0].String()
-	}
-
-	switch val.Kind() {
-	case reflect.Bool:
-		if val.Bool() {
-			return "true"
-		}
-		return "false"
-
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return fmt.Sprintf("%d", val.Int())
-
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return fmt.Sprintf("%d", val.Uint())
-
-	case reflect.Float32, reflect.Float64:
-		return fmt.Sprintf("%f", val.Float())
-
-	case reflect.Complex64, reflect.Complex128:
-		return fmt.Sprintf("%f", real(val.Complex()))
-
-	case reflect.String:
-		// itself
-		return val.String()
-
-	case reflect.Array, reflect.Slice:
-		// array name
-		return "<array>"
-
-	case reflect.Map:
-		// object name
-		return "<object>"
-
-	case reflect.Struct:
-		// get name of struct
-		return GetNameType(val.Interface())
-
-	default:
-		return ""
-	}
 }
 
 func GetBytesValueReflect(value any) []byte {
@@ -645,7 +648,7 @@ func GetBytesValueReflect(value any) []byte {
 		return []byte{byte(real(val.Complex()))}
 
 	case reflect.String:
-		return []byte(GetStringValueReflect(value))
+		return []byte(ToStringReflect(value))
 
 	default:
 		panic("invalid data type")
@@ -680,7 +683,7 @@ func GetRunesValueReflect(value any) []rune {
 		return []rune{rune(real(val.Complex()))}
 
 	case reflect.String:
-		return []rune(GetStringValueReflect(value))
+		return []rune(ToStringReflect(value))
 
 	default:
 		panic("invalid data type")
@@ -718,13 +721,14 @@ func GetMapStrAnyValueReflect(value any) map[string]any {
 		temp := make(map[string]any)
 		mapIter := val.MapRange()
 		for mapIter.Next() {
-			if keyName := GetStringValueReflect(mapIter.Key()); keyName != "" {
+			if keyName := ToStringReflect(mapIter.Key()); keyName != "" {
 				SetMapValue(temp, keyName, mapIter.Value().Interface())
 				continue
 			}
 			panic("invalid key name")
 		}
 		return temp
+
 	case reflect.Struct:
 		temp := make(map[string]any)
 		options := &ForEachStructFieldsOptions{
@@ -742,7 +746,9 @@ func GetMapStrAnyValueReflect(value any) map[string]any {
 			SetMapValue(temp, name, sFieldX.GetValue().Interface())
 			return nil
 		}))
+
 		return temp
+
 	default:
 		return nil
 	}
@@ -971,7 +977,7 @@ func ParseValueReflect(value any, key string) any {
 			return GetRealComplexValueReflect(val)
 
 		case "string":
-			return GetStringValueReflect(val)
+			return ToStringReflect(val)
 
 		case "byte":
 			return GetByteValueReflect(val)
@@ -1039,7 +1045,7 @@ func GetValueWithSuperKey(data any, key string) any {
 		break
 
 	case reflect.String:
-		temp = GetStringValueReflect(val)
+		temp = ToStringReflect(val)
 		break
 
 	case reflect.Array, reflect.Slice:
@@ -1195,7 +1201,7 @@ func SetValueReflect(field any, value any) error {
 		return nil
 
 	case reflect.String:
-		f.SetString(GetStringValueReflect(val))
+		f.SetString(ToStringReflect(val))
 		return nil
 
 	case reflect.Array, reflect.Slice:
@@ -1760,7 +1766,7 @@ func (s *StructTagEx) Match(value any) bool {
 }
 
 func GetStructTagEx(key string, sTag reflect.StructTag) StructTagExImpl {
-	switch key {
+	switch strings.TrimSpace(key) {
 	case "db", "mapstructure", "json", "yaml":
 		if val, ok := sTag.Lookup(key); ok {
 			val = strings.TrimSpace(val)
@@ -1771,13 +1777,20 @@ func GetStructTagEx(key string, sTag reflect.StructTag) StructTagExImpl {
 				for i, token := range tokens {
 					KeepVoid(i)
 
-					switch strings.TrimSpace(token) {
+					token = strings.TrimSpace(token)
+					switch token {
 					case "-", "ignore":
 						ignore = true
+						break
+
 					case "omitempty":
 						omitEmpty = true
+						break
+
 					case "required":
 						required = true
+						break
+
 					default:
 						name = token
 					}
@@ -1791,7 +1804,9 @@ func GetStructTagEx(key string, sTag reflect.StructTag) StructTagExImpl {
 				}
 			}
 		}
+
 		return nil
+
 	default:
 		panic("unsupported struct tag key")
 	}

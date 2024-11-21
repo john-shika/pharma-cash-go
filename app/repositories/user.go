@@ -11,6 +11,7 @@ import (
 type UserRepositoryImpl interface {
 	repositories.BaseRepositoryImpl[models.User]
 	SafeLogin(username string, password string) (*models.User, error)
+	Login(username string, password string) (*models.User, error)
 }
 
 type UserRepository struct {
@@ -33,7 +34,7 @@ func (u *UserRepository) SafeLogin(username string, password string) (*models.Us
 			return nil, err
 		}
 
-	} else if phone := username; nokocore.E164Regex().MatchString(phone) {
+	} else if phone := username; nokocore.PhoneRegex().MatchString(phone) {
 		if user, err = u.SafeFirst("phone = ?", phone); err != nil {
 			return nil, err
 		}
@@ -44,8 +45,8 @@ func (u *UserRepository) SafeLogin(username string, password string) (*models.Us
 		}
 	}
 
-	pass := nokocore.NewPassword(password)
 	if user != nil {
+		pass := nokocore.NewPassword(password)
 		if !pass.Equals(user.Password) {
 			return nil, errors.New("invalid password")
 		}
@@ -53,7 +54,7 @@ func (u *UserRepository) SafeLogin(username string, password string) (*models.Us
 		return user, nil
 	}
 
-	return nil, nil
+	return nil, errors.New("user not found")
 }
 
 func (u *UserRepository) Login(username string, password string) (*models.User, error) {
@@ -66,7 +67,7 @@ func (u *UserRepository) Login(username string, password string) (*models.User, 
 			return nil, err
 		}
 
-	} else if phone := username; nokocore.E164Regex().MatchString(phone) {
+	} else if phone := username; nokocore.PhoneRegex().MatchString(phone) {
 		if user, err = u.First("phone = ?", phone); err != nil {
 			return nil, err
 		}

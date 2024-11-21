@@ -2,8 +2,6 @@ package extras
 
 import (
 	"errors"
-	"fmt"
-	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"io/fs"
 	"net/http"
@@ -65,35 +63,20 @@ func EchoHTTPErrorHandler() echo.HTTPErrorHandler {
 
 		var httpError *echo.HTTPError
 		if errors.As(err, &httpError) {
-			message := nokocore.GetStringValueReflect(httpError.Message)
+			message := nokocore.ToStringReflect(httpError.Message)
 			httpStatusCodeValue := nokocore.GetValueFromHttpStatusCode(nokocore.HttpStatusCode(httpError.Code))
 			messageBody := schemas.NewMessageBody(false, httpError.Code, string(httpStatusCodeValue), message, nil)
 			err = ctx.JSON(httpError.Code, messageBody)
 			return
 		}
 
-		var validationErrors validator.ValidationErrors
-		if errors.As(err, &validationErrors) {
+		var validationError *validators.ValidateError
+		if errors.As(err, &validationError) {
 			message := "Validation failed."
-			var data []string
-
-			fields := []validator.FieldError(validationErrors)
-			for i, field := range fields {
-				nokocore.KeepVoid(i)
-
-				name := nokocore.ToSnakeCase(field.StructField())
-				data = append(data, fmt.Sprintf("field '%s' contains an invalid value", name))
-			}
-
-			err = NewMessageBodyUnprocessableEntity(ctx, message, data)
-			return
-		}
-
-		var validatePassErr *validators.ValidatePassError
-		if errors.As(err, &validatePassErr) {
-			message := "Validation failed."
-			data := validatePassErr.Fields()
-			err = NewMessageBodyUnprocessableEntity(ctx, message, data)
+			fields := validationError.Fields()
+			err = NewMessageBodyUnprocessableEntity(ctx, message, nokocore.MapAny{
+				"fields": fields,
+			})
 			return
 		}
 

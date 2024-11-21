@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 	"nokowebapi/apis/extras"
@@ -55,7 +56,7 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 			return err
 		}
 
-		if err = validators.ValidatePass(userBody.Password); err != nil {
+		if err = validators.ValidatePassword(userBody.Password); err != nil {
 			return err
 		}
 
@@ -64,6 +65,8 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 
 			return extras.NewMessageBodyUnauthorized(ctx, "Invalid username or password.", nil)
 		}
+
+		fmt.Println("USER", user)
 
 		sessionId := nokocore.NewUUID()
 		timeUtcNow := nokocore.GetTimeUtcNow()
@@ -86,9 +89,6 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 		jwtToken := nokocore.GenerateJwtToken(jwtClaims, jwtConfig.SecretKey)
 
 		session := &models.Session{
-			BaseModel: models.BaseModel{
-				UUID: sessionId,
-			},
 			UserID:         user.ID,
 			TokenId:        jwtClaimsDataAccess.GetIdentity(),
 			RefreshTokenId: sql.NullString{},
@@ -97,11 +97,14 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 			Expires:        expires,
 		}
 
+		session.UUID = sessionId
 		if err = sessionRepository.SafeCreate(session); err != nil {
 			console.Error(err.Error())
 
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to create session.", nil)
 		}
+
+		// TODO: add user information
 
 		return extras.NewMessageBodyOk(ctx, "Successfully logged in.", nokocore.MapAny{
 			"token": jwtToken,

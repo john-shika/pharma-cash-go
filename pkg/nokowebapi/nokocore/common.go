@@ -34,32 +34,39 @@ func CopyStack[T any](value []T) []T {
 }
 
 func ToString(value any) string {
-	if value == nil {
-		return "<null>"
+	if value != nil {
+		if val, ok := value.(StringableImpl); ok {
+			return val.ToString()
+		}
+
+		switch value.(type) {
+		case bool:
+			return fmt.Sprintf("%t", value)
+
+		case int, int8, int16, int32, int64:
+			return fmt.Sprintf("%d", value)
+
+		case uint, uint8, uint16, uint32, uint64:
+			return fmt.Sprintf("%d", value)
+
+		case uintptr:
+			return fmt.Sprintf("0x%016x", value)
+
+		case float32, float64:
+			return fmt.Sprintf("%f", value)
+
+		case complex64, complex128:
+			return fmt.Sprintf("%f", value)
+
+		case string:
+			return value.(string)
+
+		default:
+			return ToStringReflect(value)
+		}
 	}
 
-	if val, ok := value.(StringableImpl); ok {
-		return val.ToString()
-	}
-
-	switch value.(type) {
-	case bool:
-		return fmt.Sprintf("%t", value)
-	case int, int8, int16, int32, int64:
-		return fmt.Sprintf("%d", value)
-	case uint, uint8, uint16, uint32, uint64:
-		return fmt.Sprintf("%d", value)
-	case uintptr:
-		return fmt.Sprintf("0x%016x", value)
-	case float32, float64:
-		return fmt.Sprintf("%f", value)
-	case complex64, complex128:
-		return fmt.Sprintf("%f", value)
-	case string:
-		return value.(string)
-	default:
-		return fmt.Sprint(value)
-	}
+	return "<nil>"
 }
 
 type ErrOrOkImpl interface {
@@ -106,33 +113,47 @@ func CastErr[T ErrOrOkImpl](eOk T) (error, bool) {
 	return nil, false
 }
 
+func IsValid(value any) bool {
+	// determine if the given value is valid.
+	// this method uses reflection to find out the validity of the value.
+	// a value is considered valid if it is non-nil and has a non-zero value.
+	return IsValidReflect(value)
+}
+
 func IsNone(value any) bool {
-	// Check if the given value is neither valid nor has a non-zero value.
-	// This method leverages reflection to determine if the value is nil or a zero value.
-	return !IsValidReflect(value)
+	// check if the given value is neither valid nor has a non-zero value.
+	// this method leverages reflection to determine if the value is nil or a zero value.
+	return !IsValid(value)
 }
 
 func IsNoneOrEmpty(value any) bool {
-	return IsNone(value) || GetString(value) == ""
+	if IsValid(value) {
+		val := ToString(value)
+		switch val {
+		case "<nil>":
+			return true
+
+		case "<array>":
+			return GetSizeReflect(value) == 0
+
+		case "<object>":
+			// TODO: not implemented yet
+			return false
+
+		default:
+			return val == ""
+		}
+	}
+
+	return true
 }
 
 func IsNoneOrEmptyWhiteSpace(value any) bool {
 	if IsNoneOrEmpty(value) {
 		return true
 	}
-	temp := strings.TrimSpace(GetString(value))
-	return temp == "" ||
-		temp == "\x00" ||
-		temp == "\xC2" ||
-		temp == "\xA0" ||
-		temp == "\xC2\xA0" ||
-		temp == "\t" ||
-		temp == "\r" ||
-		temp == "\n" ||
-		temp == "\r\n" ||
-		temp == "\v" ||
-		temp == "\f" ||
-		temp == "\v\f"
+	temp := strings.TrimSpace(ToString(value))
+	return temp == "" || strings.ContainsAny(WhiteSpace, temp)
 }
 
 func Unwrap[T any, E ErrOrOkImpl](result T, eOk E) T {
@@ -462,18 +483,6 @@ func CastString(value any) (string, bool) {
 func CastPtr[T any](value any) (*T, bool) {
 	temp, ok := value.(*T)
 	return temp, ok
-}
-
-func GetString(value any) string {
-	var ok bool
-	var temp StringableImpl
-	KeepVoid(ok, temp)
-
-	if temp, ok = value.(StringableImpl); !ok {
-		return GetStringValueReflect(value)
-	}
-
-	return temp.ToString()
 }
 
 func Base64Encode(data []byte) string {

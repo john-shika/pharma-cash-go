@@ -1,21 +1,446 @@
 package validators
 
-import "github.com/go-playground/validator/v10"
+import (
+	"errors"
+	"fmt"
+	"nokowebapi/nokocore"
+	"reflect"
+	"strings"
+)
 
 type EchoValidatorImpl interface {
 	Validate(data any) error
 }
 
 type EchoValidator struct {
-	validator *validator.Validate
 }
 
 func NewEchoValidator() EchoValidatorImpl {
-	return &EchoValidator{
-		validator: validator.New(),
-	}
+	return &EchoValidator{}
 }
 
 func (v *EchoValidator) Validate(data any) error {
-	return v.validator.Struct(data)
+	return ValidateStruct(data)
+}
+
+type ValidateErrorImpl interface {
+	Fields() []string
+	Error() string
+}
+
+type ValidateError struct {
+	fields []string
+}
+
+func NewValidateError(fields []string) ValidateErrorImpl {
+	return &ValidateError{
+		fields: fields,
+	}
+}
+
+func (v *ValidateError) Fields() []string {
+	return v.fields
+}
+
+func (v *ValidateError) Error() string {
+	return strings.Join(v.fields, "\n")
+}
+
+func CheckPassword(password string) error {
+	var temp []string
+	nokocore.KeepVoid(temp)
+
+	size := len(password)
+	if size < 8 {
+		message := "password must be at least 8 characters long"
+		temp = append(temp, message)
+	}
+
+	if !strings.ContainsAny(password, nokocore.AsciiLower) {
+		message := "password must contain at least one lowercase letter"
+		temp = append(temp, message)
+	}
+
+	if !strings.ContainsAny(password, nokocore.AsciiUpper) {
+		message := "password must contain at least one uppercase letter"
+		temp = append(temp, message)
+	}
+
+	if !strings.ContainsAny(password, nokocore.Digits) {
+		message := "password must contain at least one digit"
+		temp = append(temp, message)
+	}
+
+	if !strings.ContainsAny(password, nokocore.Punctuation) {
+		message := "password must contain at least one special character"
+		temp = append(temp, message)
+	}
+
+	if len(temp) > 0 {
+		return NewValidateError(temp)
+	}
+
+	return nil
+}
+
+// TODO: can handle min=N,max=N in ValidateStruct
+
+func ValidateStruct(value any) error {
+	var err error
+	nokocore.KeepVoid(err)
+
+	val := nokocore.PassValueIndirectReflect(value)
+	if !val.IsValid() {
+		return errors.New("invalid value")
+	}
+
+	switch val.Kind() {
+	case reflect.Struct:
+		options := nokocore.NewForEachStructFieldsOptions()
+		errorStack := make([]error, 0)
+
+		err = nokocore.ForEachStructFieldsReflect(val, options, func(name string, sFieldX nokocore.StructFieldExImpl) error {
+			err = func() error {
+				vField := sFieldX.GetValue()
+				sTag := sFieldX.GetTag()
+
+				validate := sTag.Get("validate")
+				tokens := strings.Split(validate, ",")
+
+				ignore := false
+				omitEmpty := false
+				isBoolean := false
+				isNumber := false
+				isNumeric := false
+				isAlpha := false
+				isAscii := false
+				isEmail := false
+				isPhone := false
+				isPassword := false
+
+				for i, token := range tokens {
+					nokocore.KeepVoid(i)
+
+					token = strings.TrimSpace(token)
+					switch token {
+					case "-", "ignore":
+						ignore = true
+						break
+
+					case "boolean":
+						isBoolean = true
+						break
+
+					case "number":
+						isNumber = true
+						break
+
+					case "numeric":
+						isNumeric = true
+						break
+
+					case "alpha":
+						isAlpha = true
+						break
+
+					case "ascii":
+						isAscii = true
+						break
+
+					case "email":
+						isEmail = true
+						break
+
+					case "phone":
+						isPhone = true
+						break
+
+					case "password":
+						isPassword = true
+						break
+
+					case "omitempty":
+						omitEmpty = true
+						break
+					}
+				}
+
+				if ignore {
+					return nil
+				}
+
+				if nokocore.IsNoneOrEmptyWhiteSpace(vField) {
+					if !omitEmpty {
+						return errors.New(fmt.Sprintf("field %s is required", name))
+					}
+
+					// skip
+					return nil
+				}
+
+				if isBoolean {
+					if err = ValidateBoolean(vField); err != nil {
+						return errors.New(fmt.Sprintf("field %s is %s", name, err.Error()))
+					}
+				}
+
+				if isNumber {
+					if err = ValidateNumber(vField); err != nil {
+						return errors.New(fmt.Sprintf("field %s is %s", name, err.Error()))
+					}
+				}
+
+				if isNumeric {
+					if err = ValidateNumeric(vField); err != nil {
+						return errors.New(fmt.Sprintf("field %s is %s", name, err.Error()))
+					}
+				}
+
+				if isAlpha {
+					if err = ValidateAlpha(vField); err != nil {
+						return errors.New(fmt.Sprintf("field %s is %s", name, err.Error()))
+					}
+				}
+
+				if isAscii {
+					if err = ValidateAscii(vField); err != nil {
+						return errors.New(fmt.Sprintf("field %s is %s", name, err.Error()))
+					}
+				}
+
+				if isEmail {
+					if err = ValidateEmail(vField); err != nil {
+						return errors.New(fmt.Sprintf("field %s is %s", name, err.Error()))
+					}
+				}
+
+				if isPhone {
+					if err = ValidatePhone(vField); err != nil {
+						return errors.New(fmt.Sprintf("field %s is %s", name, err.Error()))
+					}
+				}
+
+				if isPassword {
+					return ValidatePassword(vField)
+				}
+
+				switch vField.Kind() {
+				case reflect.Struct:
+					return ValidateStruct(vField)
+
+				default:
+					break
+				}
+
+				return nil
+			}()
+
+			if err != nil {
+				errorStack = append(errorStack, err)
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			return errors.New(fmt.Sprintf("failed to validate struct: %s", err.Error()))
+		}
+
+		if len(errorStack) > 0 {
+			fields := make([]string, 0)
+			for i, err := range errorStack {
+				nokocore.KeepVoid(i)
+
+				var validateErr *ValidateError
+				if errors.As(err, &validateErr) {
+					fields = append(fields, validateErr.Fields()...)
+					continue
+				}
+
+				fields = append(fields, err.Error())
+			}
+
+			return NewValidateError(fields)
+		}
+
+		return nil
+
+	default:
+		return errors.New("invalid data type")
+	}
+}
+
+func ValidateBoolean(value any) error {
+	val := nokocore.PassValueIndirectReflect(value)
+	if !val.IsValid() {
+		return errors.New("invalid value")
+	}
+
+	switch val.Kind() {
+	case reflect.Bool:
+		return nil
+
+	case reflect.String:
+		if !nokocore.BooleanRegex().MatchString(val.String()) {
+			return errors.New("invalid boolean format")
+		}
+
+		return nil
+
+	default:
+		return errors.New("invalid data type")
+	}
+}
+
+func ValidateNumber(value any) error {
+	val := nokocore.PassValueIndirectReflect(value)
+	if !val.IsValid() {
+		return errors.New("invalid value")
+	}
+
+	switch val.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return nil
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return nil
+
+	case reflect.Float32, reflect.Float64:
+		return nil
+
+	case reflect.Complex64, reflect.Complex128:
+		return nil
+
+	case reflect.String:
+		if !nokocore.NumberRegex().MatchString(val.String()) {
+			return errors.New("invalid number format")
+		}
+
+		return nil
+
+	default:
+		return errors.New("invalid data type")
+	}
+}
+
+func ValidateNumeric(value any) error {
+	val := nokocore.PassValueIndirectReflect(value)
+	if !val.IsValid() {
+		return errors.New("invalid value")
+	}
+
+	switch val.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return nil
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return nil
+
+	case reflect.Float32, reflect.Float64:
+		return nil
+
+	case reflect.Complex64, reflect.Complex128:
+		return nil
+
+	case reflect.String:
+		if !nokocore.NumericRegex().MatchString(val.String()) {
+			return errors.New("invalid numeric format")
+		}
+
+		return nil
+
+	default:
+		return errors.New("invalid data type")
+	}
+}
+
+func ValidateAlpha(value any) error {
+	val := nokocore.PassValueIndirectReflect(value)
+	if !val.IsValid() {
+		return errors.New("invalid value")
+	}
+
+	switch val.Kind() {
+	case reflect.String:
+		if !nokocore.AlphaRegex().MatchString(val.String()) {
+			return errors.New("invalid alpha format")
+		}
+
+		return nil
+
+	default:
+		return errors.New("invalid data type")
+	}
+}
+
+func ValidateAscii(value any) error {
+	val := nokocore.PassValueIndirectReflect(value)
+	if !val.IsValid() {
+		return errors.New("invalid value")
+	}
+
+	switch val.Kind() {
+	case reflect.String:
+		if !nokocore.AsciiRegex().MatchString(val.String()) {
+			return errors.New("invalid ascii format")
+		}
+
+		return nil
+
+	default:
+		return errors.New("invalid data type")
+	}
+}
+
+func ValidateEmail(value any) error {
+	val := nokocore.PassValueIndirectReflect(value)
+	if !val.IsValid() {
+		return errors.New("invalid value")
+	}
+
+	switch val.Kind() {
+	case reflect.String:
+		if !nokocore.EmailRegex().MatchString(val.String()) {
+			return errors.New("invalid email format")
+		}
+
+		return nil
+
+	default:
+		return errors.New("invalid data type")
+	}
+}
+
+func ValidatePhone(value any) error {
+	val := nokocore.PassValueIndirectReflect(value)
+	if !val.IsValid() {
+		return errors.New("invalid value")
+	}
+
+	switch val.Kind() {
+	case reflect.String:
+		if !nokocore.PhoneRegex().MatchString(val.String()) {
+			return errors.New("invalid phone format")
+		}
+
+		return nil
+
+	default:
+		return errors.New("invalid data type")
+	}
+}
+
+func ValidatePassword(value any) error {
+	val := nokocore.PassValueIndirectReflect(value)
+	if !val.IsValid() {
+		return errors.New("invalid value")
+	}
+
+	switch val.Kind() {
+	case reflect.String:
+		return CheckPassword(val.String())
+
+	default:
+		return errors.New("invalid data type")
+	}
 }

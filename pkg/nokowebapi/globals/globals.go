@@ -155,7 +155,7 @@ func GetTasksConfig() *task.TasksConfig {
 	return globals.GetTasksConfig()
 }
 
-func GetTaskConfig(name string) *task.Config {
+func GetTaskConfig(name string) task.ConfigImpl {
 	return globals.GetTasksConfig().GetTaskConfig(name)
 }
 

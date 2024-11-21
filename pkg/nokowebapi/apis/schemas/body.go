@@ -3,14 +3,14 @@ package schemas
 import "github.com/google/uuid"
 
 type UserBody struct {
-	Username string        `json:"username" yaml:"username" form:"username" validate:"required"`
-	Password string        `json:"password" yaml:"password" form:"password" validate:"required"`
-	Email    string        `json:"email" yaml:"email" form:"email" validate:"omitempty,email"`
-	Phone    string        `json:"phone" yaml:"phone" form:"phone" validate:"omitempty,e164"`
-	Admin    bool          `json:"admin" yaml:"admin" form:"admin" validate:"omitempty,boolean"`
-	Role     string        `json:"role" yaml:"role" form:"role" validate:"omitempty,ascii"`
-	Level    int           `json:"level" yaml:"level" form:"level" validate:"omitempty,number"`
-	Sessions []SessionBody `json:"sessions" yaml:"sessions"`
+	Username string        `json:"username" yaml:"username" form:"username" validate:"ascii"`
+	Password string        `json:"password" yaml:"password" form:"password" validate:"password"`
+	Email    string        `json:"email" yaml:"email" form:"email" validate:"email,omitempty"`
+	Phone    string        `json:"phone" yaml:"phone" form:"phone" validate:"phone,omitempty"`
+	Admin    bool          `json:"admin" yaml:"admin" form:"admin" validate:"boolean,omitempty"`
+	Role     string        `json:"role" yaml:"role" form:"role" validate:"ascii,omitempty"`
+	Level    int           `json:"level" yaml:"level" form:"level" validate:"number,omitempty"` // FUTURE: can handle min=N,max=N
+	Sessions []SessionBody `json:"sessions" yaml:"sessions" validate:"-"`
 }
 
 type SessionBody struct {

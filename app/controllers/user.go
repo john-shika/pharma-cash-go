@@ -23,6 +23,8 @@ func ProfileHandler(DB *gorm.DB) echo.HandlerFunc {
 
 		// Guest;Admin;Enterprise;TeamKit;Developer
 
+		// Admin Role
+
 		// validate session
 
 		fmt.Println(session.User)

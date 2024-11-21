@@ -490,7 +490,7 @@ func (j *JwtClaims) ParseNumericDate(key JwtClaimNamed) *jwt.NumericDate {
 
 func (j *JwtClaims) ParseString(key JwtClaimNamed) string {
 	temp := Unwrap(j.Get(string(key)))
-	return GetStringValueReflect(temp)
+	return ToString(temp)
 }
 
 func (j *JwtClaims) ParseBool(key JwtClaimNamed) bool {

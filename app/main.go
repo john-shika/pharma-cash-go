@@ -171,8 +171,8 @@ func Main(args []string) nokocore.ExitCode {
 	}
 
 	if taskConfig := globals.GetTaskConfig("self"); taskConfig != nil {
-		if taskConfig.Network != nil {
-			host := taskConfig.Network.GetHost()
+		if network := taskConfig.GetNetwork(); network != nil {
+			host := network.GetHost()
 			nokocore.NoErr(e.StartH2CServer(host, h2s))
 			return nokocore.ExitCodeSuccess
 		}

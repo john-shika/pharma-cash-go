@@ -7,5 +7,6 @@ const (
 	AsciiUpper  = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	AsciiLower  = "abcdefghijklmnopqrstuvwxyz"
 	Punctuation = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
-	WhiteSpace  = " \t\n\r\x0b\x0c"
+	WhiteSpace  = " \t\r\n\v\f\xc2\xa0"
+	Printable   = Digits + AsciiUpper + AsciiLower + Punctuation + WhiteSpace
 )

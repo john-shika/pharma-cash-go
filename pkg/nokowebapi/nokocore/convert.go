@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"net"
 	"net/url"
 	"time"
 )
@@ -125,6 +126,21 @@ func IsUUID(value any) bool {
 }
 
 func ToUUIDString(value any) string {
+	// TODO: implement it
+	panic("not implemented yet")
+}
+
+func GetIP(value any) (net.IP, error) {
+	// TODO: implement it
+	return net.ParseIP("127.0.0.1"), errors.New("not implemented yet")
+}
+
+func IsIP(value any) bool {
+	// TODO: implement it
+	return false
+}
+
+func ToIPString(value any) string {
 	// TODO: implement it
 	panic("not implemented yet")
 }

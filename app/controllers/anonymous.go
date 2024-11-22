@@ -17,7 +17,7 @@ func MessageHandler(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	return func(ctx echo.Context) error {
-		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", nokocore.MapAny{
+		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
 			"message": "Hay!",
 		})
 	}
@@ -81,7 +81,7 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 		jwtClaimsDataAccess.SetAdmin(user.Admin)
 		jwtClaimsDataAccess.SetLevel(user.Level)
 
-		jwtClaims := nokocore.CvtJwtClaimsDataAccessToJwtClaims(jwtClaimsDataAccess, signingMethod)
+		jwtClaims := nokocore.ToJwtClaims(jwtClaimsDataAccess, signingMethod)
 		jwtToken := nokocore.GenerateJwtToken(jwtClaims, jwtConfig.SecretKey)
 
 		session := &models.Session{
@@ -100,7 +100,7 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to create session.", nil)
 		}
 
-		return extras.NewMessageBodyOk(ctx, "Successfully logged in.", nokocore.MapAny{
+		return extras.NewMessageBodyOk(ctx, "Successfully logged in.", &nokocore.MapAny{
 			"token": jwtToken,
 			"user": nokocore.MapAny{
 				"fullname": user.FullName.String,

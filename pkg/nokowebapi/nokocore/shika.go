@@ -561,6 +561,10 @@ func GetShikaObjectProperty(obj any) ShikaObjectPropertyImpl {
 			return NewShikaObjectProperty(ToUUIDString(val), ShikaObjectDataTypeString)
 		}
 
+		if IsIP(val) {
+			return NewShikaObjectProperty(ToIPString(val), ShikaObjectDataTypeString)
+		}
+
 		/// END CONVERTERS
 
 		temp := make([]ShikaVarObjectImpl, 0)

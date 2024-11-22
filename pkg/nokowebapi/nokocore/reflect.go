@@ -328,6 +328,10 @@ func ToStringReflect(value any) string {
 			return strconv.Quote(ToUUIDString(val))
 		}
 
+		if IsIP(val) {
+			return strconv.Quote(ToIPString(val))
+		}
+
 		return fmt.Sprintf("%s {}", GetNameTypeReflect(val))
 
 	default:
@@ -1274,6 +1278,7 @@ func SetValueWithSuperKeyReflect(data any, key string, value any) bool {
 
 	// TODO: implement it
 
+	// super key -> parent key + base key
 	// using SetIndex, SetMapIndex, Field.Set
 
 	panic("not implemented yet")

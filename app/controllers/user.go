@@ -1,41 +1,59 @@
 package controllers
 
 import (
-	"fmt"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 	"nokowebapi/apis/extras"
-	"nokowebapi/apis/models"
+	"nokowebapi/apis/schemas"
 	"nokowebapi/nokocore"
+	"pharma-cash-go/app/repositories"
 )
 
 func ProfileHandler(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
-	//sessionRepository := repositories.NewSessionRepository(DB)
+	return func(ctx echo.Context) error {
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+
+		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
+			"user": schemas.ToUserResp(&jwtAuthInfo.Session.User),
+		})
+	}
+}
+
+func SessionHandler(DB *gorm.DB) echo.HandlerFunc {
+	nokocore.KeepVoid(DB)
 
 	return func(ctx echo.Context) error {
-		jwtClaimsDataAccess := ctx.Get("jwt_claims_data_access").(nokocore.JwtClaimsDataAccessImpl)
-		session := ctx.Get("session").(*models.Session)
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
 
-		//identity := jwtClaimsDataAccess.GetIdentity()
-		//sessionRepository.SafeFirst("uuid = ?", identity)
+		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
+			"session": schemas.ToSessionResp(jwtAuthInfo.Session),
+		})
+	}
+}
 
-		// Guest;Admin;Enterprise;TeamKit;Developer
+func LogoutHandler(DB *gorm.DB) echo.HandlerFunc {
+	nokocore.KeepVoid(DB)
 
-		// Admin Role
+	sessionRepository := repositories.NewSessionRepository(DB)
 
-		// validate session
+	return func(ctx echo.Context) error {
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
 
-		fmt.Println(session.User)
+		if err := sessionRepository.SafeDelete(jwtAuthInfo.Session); err != nil {
+			return err
+		}
 
-		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", jwtClaimsDataAccess)
+		return extras.NewMessageBodyOk(ctx, "Successfully logged out.", nil)
 	}
 }
 
 func UserController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
 	group.GET("/profile", ProfileHandler(DB))
+	group.GET("/session", SessionHandler(DB))
+	group.POST("/logout", LogoutHandler(DB))
 
 	return group
 }

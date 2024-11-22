@@ -32,12 +32,13 @@ type EchoGroupImpl interface {
 	FileFS(path string, file string, filesystem fs.FS, m ...echo.MiddlewareFunc) *echo.Route
 }
 
-func GetJwtTokenFromEchoContext(c echo.Context) (string, error) {
+func GetJwtTokenFromEchoContext(ctx echo.Context) (string, error) {
 	var ok bool
 	var token string
 	nokocore.KeepVoid(ok, token)
 
-	authorization := c.Request().Header.Get("Authorization")
+	req := ctx.Request()
+	authorization := req.Header.Get("Authorization")
 	if token = strings.Trim(authorization, " "); token == "" {
 		return "", nokocore.ErrJwtTokenInvalid
 	}

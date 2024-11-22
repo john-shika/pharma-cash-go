@@ -43,7 +43,7 @@ func JWTAuth(DB *gorm.DB) echo.MiddlewareFunc {
 			}
 
 			jwtClaims := nokocore.Unwrap(nokocore.GetJwtClaimsFromJwtToken(jwtToken))
-			jwtClaimsDataAccess, jwtSigningMethod := nokocore.CvtJwtClaimsToJwtClaimsDataAccess(jwtClaims)
+			jwtClaimsDataAccess, jwtSigningMethod := nokocore.ToJwtClaimsDataAccess(jwtClaims)
 
 			if jwtSigningMethod.Alg() != signingMethod.Alg() {
 				return extras.NewMessageBodyUnauthorized(ctx, fmt.Sprintf("Invalid JWT token. Expected signing method: %s. Actual signing method: %s.", signingMethod.Alg(), jwtSigningMethod.Alg()), nil)

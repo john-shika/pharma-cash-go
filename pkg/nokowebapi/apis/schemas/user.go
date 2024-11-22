@@ -1,6 +1,9 @@
 package schemas
 
-import "github.com/google/uuid"
+import (
+	"nokowebapi/apis/models"
+	"time"
+)
 
 type UserBody struct {
 	Username string        `json:"username" yaml:"username" form:"username" validate:"ascii"`
@@ -8,16 +11,34 @@ type UserBody struct {
 	Email    string        `json:"email" yaml:"email" form:"email" validate:"email,omitempty"`
 	Phone    string        `json:"phone" yaml:"phone" form:"phone" validate:"phone,omitempty"`
 	Admin    bool          `json:"admin" yaml:"admin" form:"admin" validate:"boolean,omitempty"`
-	Role     string        `json:"role" yaml:"role" form:"role" validate:"ascii,omitempty"`
-	Level    int           `json:"level" yaml:"level" form:"level" validate:"number,omitempty"` // FUTURE: can handle min=N,max=N
-	Sessions []SessionBody `json:"sessions" yaml:"sessions" validate:"-"`
+	Roles    []string      `json:"roles" yaml:"roles" form:"roles" validate:"ascii,omitempty"`
+	Level    int           `json:"level" yaml:"level" form:"level" validate:"number,min=0,max=99,omitempty"` // FUTURE: can handle min=N,max=N
+	Sessions []SessionBody `json:"-" yaml:"-" validate:"-"`
 }
 
-type SessionBody struct {
-	UserID         uuid.UUID `json:"userId" yaml:"user_id" form:"user_id"`
-	TokenId        string    `json:"tokenId" yaml:"token_id" form:"token_id"`
-	RefreshTokenId string    `json:"refreshTokenId" yaml:"refresh_token_id" form:"refresh_token_id"`
-	IPAddress      string    `json:"ipAddr" yaml:"ip_addr" form:"ip_addr"`
-	UserAgent      string    `json:"userAgent" yaml:"user_agent" form:"user_agent"`
-	Expires        string    `json:"expires" yaml:"expires" form:"expires"`
+type UserResp struct {
+	Username  string        `json:"username" yaml:"username" form:"username"`
+	Email     string        `json:"email" yaml:"email" form:"email"`
+	Phone     string        `json:"phone" yaml:"phone" form:"phone"`
+	Admin     bool          `json:"admin" yaml:"admin" form:"admin"`
+	Roles     []string      `json:"roles" yaml:"roles" form:"roles"`
+	Level     int           `json:"level" yaml:"level" form:"level"`
+	CreatedAt time.Time     `json:"createdAt" yaml:"created_at" form:"created_at"`
+	UpdatedAt time.Time     `json:"updatedAt" yaml:"updated_at" form:"updated_at"`
+	Sessions  []SessionResp `json:"-" yaml:"-"`
+}
+
+func ToUserResp(user *models.User) UserResp {
+	return UserResp{
+		Username:  user.Username,
+		Email:     user.Email.String,
+		Phone:     user.Phone.String,
+		Admin:     user.Admin,
+		Roles:     user.GetRoles(),
+		Level:     user.Level,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+
+		// TODO: sessions
+	}
 }

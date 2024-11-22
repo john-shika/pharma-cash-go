@@ -4,23 +4,22 @@ import (
 	"errors"
 	"gorm.io/gorm"
 	"nokowebapi/apis/models"
-	"nokowebapi/apis/repositories"
 	"nokowebapi/nokocore"
 )
 
 type UserRepositoryImpl interface {
-	repositories.BaseRepositoryImpl[models.User]
+	BaseRepositoryImpl[models.User]
 	SafeLogin(username string, password string) (*models.User, error)
 	Login(username string, password string) (*models.User, error)
 }
 
 type UserRepository struct {
-	repositories.BaseRepository[models.User]
+	BaseRepository[models.User]
 }
 
 func NewUserRepository(DB *gorm.DB) UserRepositoryImpl {
 	return &UserRepository{
-		BaseRepository: repositories.NewBaseRepository[models.User](DB),
+		BaseRepository: NewBaseRepository[models.User](DB),
 	}
 }
 
@@ -78,19 +77,19 @@ func (u *UserRepository) Login(username string, password string) (*models.User, 
 	// try to find the user
 	switch {
 	case nokocore.EmailRegex().MatchString(email):
-		if user, err = u.SafeFirst("email = ?", email); err != nil {
+		if user, err = u.First("email = ?", email); err != nil {
 			return nil, err
 		}
 		break
 
 	case nokocore.PhoneRegex().MatchString(phone):
-		if user, err = u.SafeFirst("phone = ?", phone); err != nil {
+		if user, err = u.First("phone = ?", phone); err != nil {
 			return nil, err
 		}
 		break
 
 	default:
-		if user, err = u.SafeFirst("username = ?", username); err != nil {
+		if user, err = u.First("username = ?", username); err != nil {
 			return nil, err
 		}
 		break

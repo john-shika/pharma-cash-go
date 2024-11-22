@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+// TODO:: added ipaddr ipv4 ipv6, datetime, uuid
+
 type ValidatorImpl interface {
 	Validate(value any) error
 }

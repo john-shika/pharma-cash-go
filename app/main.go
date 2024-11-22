@@ -30,6 +30,13 @@ func Main(args []string) nokocore.ExitCode {
 	/// Echo Configs Start
 
 	e.Validator = nokocore.NewValidator()
+	//e.IPExtractor = echo.ExtractIPDirect()
+	//e.IPExtractor = echo.ExtractIPFromXFFHeader(
+	//	echo.TrustLoopback(false),
+	//	echo.TrustLinkLocal(false),
+	//	echo.TrustPrivateNet(false),
+	//	echo.TrustIPRange(lbIPRange),
+	//)
 
 	e.HideBanner = false
 	e.HidePort = false

@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
-	"nokowebapi/apis/validators"
+	"nokowebapi/console"
+	"nokowebapi/globals"
+	"nokowebapi/nokocore"
 )
 
 type UserBody struct {
@@ -27,6 +29,10 @@ func main() {
 		Level:    "-12",
 	}
 
-	fmt.Printf("%T\n", validators.ValidateStruct(user))
-	fmt.Printf("%+v\n", validators.ValidateStruct(user))
+	fmt.Printf("%T\n", nokocore.ValidateStruct(user))
+	fmt.Printf("%+v\n", nokocore.ValidateStruct(user))
+
+	console.Error(fmt.Sprintf("%+v", nokocore.ValidateStruct(user)))
+
+	console.Dir(globals.GetTasksConfig())
 }

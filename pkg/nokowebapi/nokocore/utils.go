@@ -87,27 +87,27 @@ func CreateEmptyFile(path string) error {
 	// Check if the directory exists, and create it if it doesn't
 	if fileInfo, err = os.Stat(dirPath); os.IsNotExist(err) {
 		if err = os.MkdirAll(dirPath, os.ModePerm); err != nil {
-			return fmt.Errorf("failed to create directory: %s, %w", dirPath, err)
+			return fmt.Errorf("[OS] Failed to create directory: %s. %w", dirPath, err)
 		}
 
-		fmt.Printf("directory %s created\n", dirPath)
+		fmt.Printf("[OS] Directory %s created.\n", dirPath)
 
 	} else {
-		fmt.Printf("directory %s already exists\n", dirPath)
+		fmt.Printf("[OS] Directory %s already exists.\n", dirPath)
 
 	}
 
 	// Check if the file exists, and create it if it doesn't
 	if fileInfo, err = os.Stat(path); os.IsNotExist(err) {
 		if file, err = os.Create(path); err != nil {
-			return fmt.Errorf("failed to create file: %s, %w", filePath, err)
+			return fmt.Errorf("[OS] Failed to create file: %s. %w", filePath, err)
 		}
 
-		fmt.Printf("file %s has been created\n", filePath)
+		fmt.Printf("[OS] File %s has been created.\n", filePath)
 		NoErr(file.Close())
 
 	} else {
-		fmt.Printf("file %s already exists\n", filePath)
+		fmt.Printf("[OS] File %s already exists.\n", filePath)
 
 	}
 

@@ -1,7 +1,10 @@
 package nokocore
 
 import (
+	"errors"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
+	"net/url"
 	"time"
 )
 
@@ -94,4 +97,34 @@ func ToTimeUtcStringISO8601(value any) string {
 		return Default[time.Time]().Format(TimeFormatISO8601)
 	}
 	return t.Format(TimeFormatISO8601)
+}
+
+func GetURL(value any) (url.URL, error) {
+	// TODO: implement it
+	return url.URL{}, errors.New("not implemented yet")
+}
+
+func IsURL(value any) bool {
+	// TODO: implement it
+	return false
+}
+
+func ToURLString(value any) string {
+	// TODO: implement it
+	panic("not implemented yet")
+}
+
+func GetUUID(value any) (uuid.UUID, error) {
+	// TODO: implement it
+	return uuid.Nil, errors.New("not implemented yet")
+}
+
+func IsUUID(value any) bool {
+	// TODO: implement it
+	return false
+}
+
+func ToUUIDString(value any) string {
+	// TODO: implement it
+	panic("not implemented yet")
 }

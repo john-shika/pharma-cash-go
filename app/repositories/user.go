@@ -29,20 +29,29 @@ func (u *UserRepository) SafeLogin(username string, password string) (*models.Us
 	var user *models.User
 	nokocore.KeepVoid(err, user)
 
-	if email := username; nokocore.EmailRegex().MatchString(email) {
+	// maybe username is an email or phone
+	email := username
+	phone := username
+
+	// try to find the user
+	switch {
+	case nokocore.EmailRegex().MatchString(email):
 		if user, err = u.SafeFirst("email = ?", email); err != nil {
 			return nil, err
 		}
+		break
 
-	} else if phone := username; nokocore.PhoneRegex().MatchString(phone) {
+	case nokocore.PhoneRegex().MatchString(phone):
 		if user, err = u.SafeFirst("phone = ?", phone); err != nil {
 			return nil, err
 		}
+		break
 
-	} else {
+	default:
 		if user, err = u.SafeFirst("username = ?", username); err != nil {
 			return nil, err
 		}
+		break
 	}
 
 	if user != nil {

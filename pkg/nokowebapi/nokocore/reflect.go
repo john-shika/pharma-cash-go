@@ -286,8 +286,31 @@ func ToStringReflect(value any) string {
 	case reflect.String:
 		return val.String()
 
-	case reflect.Array, reflect.Slice:
-		return "<array>"
+	case reflect.Array:
+		elem := val.Type().Elem()
+		switch elem.Kind() {
+		case reflect.Uint8:
+			size := val.Len()
+			temp := make([]byte, size)
+			for i := 0; i < size; i++ {
+				temp[i] = byte(val.Index(i).Uint())
+			}
+
+			return fmt.Sprintf("%s", temp)
+
+		default:
+			return "<array>"
+		}
+
+	case reflect.Slice:
+		elem := val.Type().Elem()
+		switch elem.Kind() {
+		case reflect.Uint8:
+			return fmt.Sprintf("%s", val.Bytes())
+
+		default:
+			return "<array>"
+		}
 
 	case reflect.Map:
 		return "<object>"
@@ -297,8 +320,15 @@ func ToStringReflect(value any) string {
 			return strconv.Quote(ToTimeUtcStringISO8601(val))
 		}
 
-		//return GetNameType(val.Interface())
-		return "<object>"
+		if IsURL(val) {
+			return strconv.Quote(ToURLString(val))
+		}
+
+		if IsUUID(val) {
+			return strconv.Quote(ToUUIDString(val))
+		}
+
+		return fmt.Sprintf("%s {}", GetNameTypeReflect(val))
 
 	default:
 		return fmt.Sprint(val.Interface())
@@ -843,9 +873,7 @@ func GetMapStrAnyValueReflect(value any) map[string]any {
 
 	case reflect.Struct:
 		temp := make(map[string]any)
-		options := &ForEachStructFieldsOptions{
-			Validation: false,
-		}
+		options := NewForEachStructFieldsOptions()
 
 		// for each struct field
 		NoErr(ForEachStructFieldsReflect(val.Interface(), options, func(name string, sFieldX StructFieldExImpl) error {
@@ -1054,9 +1082,7 @@ func ParseValueReflect(value any, key string) any {
 		var temp any
 		KeepVoid(temp)
 
-		options := &ForEachStructFieldsOptions{
-			Validation: false,
-		}
+		options := NewForEachStructFieldsOptions()
 
 		KeepVoid(ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExImpl) error {
 			if name != key {
@@ -1219,9 +1245,7 @@ func GetValueWithSuperKeyReflect(data any, key string) reflect.Value {
 		break
 
 	case reflect.Struct:
-		options := &ForEachStructFieldsOptions{
-			Validation: false,
-		}
+		options := NewForEachStructFieldsOptions()
 
 		// for each struct field
 		KeepVoid(ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExImpl) error {
@@ -1243,6 +1267,16 @@ func GetValueWithSuperKeyReflect(data any, key string) reflect.Value {
 	}
 
 	return temp
+}
+
+func SetValueWithSuperKeyReflect(data any, key string, value any) bool {
+	KeepVoid(data, key, value)
+
+	// TODO: implement it
+
+	// using SetIndex, SetMapIndex, Field.Set
+
+	panic("not implemented yet")
 }
 
 func defaultValueReflect(value any) any {
@@ -1355,9 +1389,7 @@ func SetValueReflect(field any, value any) error {
 		temp := GetMapStrAnyValueReflect(val)
 
 		if temp != nil {
-			options := &ForEachStructFieldsOptions{
-				Validation: false,
-			}
+			options := NewForEachStructFieldsOptions()
 
 			return ForEachStructFieldsReflect(f, options, func(name string, sFieldX StructFieldExImpl) error {
 
@@ -1938,7 +1970,7 @@ type ForEachStructFieldsOptions struct {
 
 func NewForEachStructFieldsOptions() *ForEachStructFieldsOptions {
 	return &ForEachStructFieldsOptions{
-		Validation: true,
+		Validation: false,
 	}
 }
 

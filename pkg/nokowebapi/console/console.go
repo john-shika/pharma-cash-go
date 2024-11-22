@@ -6,130 +6,213 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"io"
-	"moul.io/zapgorm2"
+	"nokowebapi/console/zapgorm"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
 	"nokowebapi/xterm"
 )
 
 type LoggerImpl interface {
-	ZapLogger() *zap.Logger
-	GORMLogger() zapgorm2.Logger
+	GetZapStdout() *zap.Logger
+	GetZapStderr() *zap.Logger
+	GORMLogger() zapgorm.LoggerImpl
+	Sugar() *zap.SugaredLogger
+	Named(s string) *zap.Logger
+	WithOptions(opts ...zap.Option) *zap.Logger
+	With(fields ...zap.Field) *zap.Logger
+	WithLazy(fields ...zap.Field) *zap.Logger
+	Level() zapcore.Level
+	Check(level zapcore.Level, msg string) *zapcore.CheckedEntry
+	Log(level zapcore.Level, msg string, fields ...zap.Field)
 	Debug(msg string, fields ...zap.Field)
 	Info(msg string, fields ...zap.Field)
 	Dir(obj any, fields ...zap.Field)
-	Log(msg string, fields ...zap.Field)
 	Warn(msg string, fields ...zap.Field)
 	Error(msg string, fields ...zap.Field)
+	Panic(msg string, fields ...zap.Field)
 	Fatal(msg string, fields ...zap.Field)
+	Sync() error
+	Core() zapcore.Core
+	Name() string
 }
 
 type Logger struct {
-	*zap.Logger
+	stdout *zap.Logger
+	stderr *zap.Logger
 }
 
-func NewLogger(logger *zap.Logger) LoggerImpl {
+func NewLogger(stdout *zap.Logger, stderr *zap.Logger) LoggerImpl {
 	return &Logger{
-		Logger: logger,
+		stdout: stdout,
+		stderr: stderr,
 	}
 }
 
-func (l *Logger) ZapLogger() *zap.Logger {
-	return l.Logger
+func (w *Logger) GetZapStdout() *zap.Logger {
+	return w.stdout
 }
 
-func (l *Logger) GORMLogger() zapgorm2.Logger {
-	return zapgorm2.New(l.Logger)
+func (w *Logger) GetZapStderr() *zap.Logger {
+	return w.stderr
 }
 
-func (l *Logger) Debug(msg string, fields ...zap.Field) {
-	msg = color.New(color.FgCyan).Sprint(msg)
-	l.Logger.Debug(msg, fields...)
+func (w *Logger) GORMLogger() zapgorm.LoggerImpl {
+	return zapgorm.New(w)
 }
 
-func (l *Logger) Info(msg string, fields ...zap.Field) {
-	msg = color.New(color.FgCyan).Sprint(msg)
-	l.Logger.Info(msg, fields...)
+func (w *Logger) Sugar() *zap.SugaredLogger {
+	// level error, panic, fatal may wrong directly
+	return w.stdout.Sugar()
 }
 
-func (l *Logger) Dir(obj any, fields ...zap.Field) {
-	temp := nokocore.ShikaYamlEncode(obj)
-	temp = color.New(color.FgYellow).Sprint(temp)
-	l.Logger.Info(temp, fields...)
+func (w *Logger) Named(s string) *zap.Logger {
+	// level error, panic, fatal may wrong directly
+	return w.stdout.Named(s)
 }
 
-func (l *Logger) Log(msg string, fields ...zap.Field) {
+func (w *Logger) WithOptions(opts ...zap.Option) *zap.Logger {
+	// level error, panic, fatal may wrong directly
+	return w.stdout.WithOptions(opts...)
+}
+
+func (w *Logger) With(fields ...zap.Field) *zap.Logger {
+	// level error, panic, fatal may wrong directly
+	return w.stdout.With(fields...)
+}
+
+func (w *Logger) WithLazy(fields ...zap.Field) *zap.Logger {
+	// level error, panic, fatal may wrong directly
+	return w.stdout.WithLazy(fields...)
+}
+
+func (w *Logger) Level() zapcore.Level {
+	// level error, panic, fatal may wrong directly
+	return w.stdout.Level()
+}
+
+func (w *Logger) Check(level zapcore.Level, msg string) *zapcore.CheckedEntry {
+	// level error, panic, fatal may wrong directly
+	return w.stdout.Check(level, msg)
+}
+
+func (w *Logger) Log(level zapcore.Level, msg string, fields ...zap.Field) {
 	msg = color.New(color.FgGreen).Sprint(msg)
-	l.Logger.Info(msg, fields...)
+	w.stdout.Log(level, msg, fields...)
 }
 
-func (l *Logger) Warn(msg string, fields ...zap.Field) {
+func (w *Logger) Debug(msg string, fields ...zap.Field) {
+	msg = color.New(color.FgCyan).Sprint(msg)
+	w.stdout.Debug(msg, fields...)
+}
+
+func (w *Logger) Info(msg string, fields ...zap.Field) {
+	msg = color.New(color.FgCyan).Sprint(msg)
+	w.stdout.Info(msg, fields...)
+}
+
+func (w *Logger) Dir(obj any, fields ...zap.Field) {
+	temp := nokocore.ShikaYamlEncode(obj)
+	w.Info(temp, fields...)
+}
+
+func (w *Logger) Warn(msg string, fields ...zap.Field) {
 	msg = color.New(color.FgYellow).Sprint(msg)
-	l.Logger.Warn(msg, fields...)
+	w.stdout.Warn(msg, fields...)
 }
 
-func (l *Logger) Error(msg string, fields ...zap.Field) {
+func (w *Logger) Error(msg string, fields ...zap.Field) {
 	msg = color.New(color.FgRed).Sprint(msg)
-	l.Logger.Error(msg, fields...)
+	w.stderr.Error(msg, fields...)
 }
 
-func (l *Logger) Fatal(msg string, fields ...zap.Field) {
+func (w *Logger) Panic(msg string, fields ...zap.Field) {
 	msg = color.New(color.FgRed).Sprint(msg)
-	l.Logger.Fatal(msg, fields...)
+	w.stderr.Panic(msg, fields...)
+}
+
+func (w *Logger) Fatal(msg string, fields ...zap.Field) {
+	msg = color.New(color.FgRed).Sprint(msg)
+	w.stderr.Fatal(msg, fields...)
+}
+
+func (w *Logger) Sync() error {
+	// level error, panic, fatal may wrong directly
+	return w.stdout.Sync()
+}
+
+func (w *Logger) Core() zapcore.Core {
+	// level error, panic, fatal may wrong directly
+	return w.stdout.Core()
+}
+
+func (w *Logger) Name() string {
+	// level error, panic, fatal may wrong directly
+	return w.stdout.Name()
 }
 
 func GetWriterSyncer(stdout any) zapcore.WriteSyncer {
 	var ok bool
 	var writer io.Writer
-	var writeSyncer zapcore.WriteSyncer
-	nokocore.KeepVoid(ok, writer, writeSyncer)
+	var syncer zapcore.WriteSyncer
+	nokocore.KeepVoid(ok, writer, syncer)
 
-	if writeSyncer, ok = stdout.(zapcore.WriteSyncer); !ok {
+	if syncer, ok = stdout.(zapcore.WriteSyncer); !ok {
 		if writer, ok = stdout.(io.Writer); !ok {
 			panic("failed to convert stdout to either zapcore.WriteSyncer or io.Writer")
 		}
 		return zapcore.Lock(zapcore.AddSync(writer))
 	}
 
-	return writeSyncer
+	return syncer
 }
 
-func makeLogger(name string) LoggerImpl {
+func createZapLogger(writer io.Writer, config *nokocore.LoggerConfig, development bool) *zap.Logger {
 	var zapLogger *zap.Logger
 	nokocore.KeepVoid(zapLogger)
 
-	isDevelopment := globals.IsDevelopment()
-	loggerConfig := globals.GetLoggerConfig()
-
-	writerSyncer := GetWriterSyncer(xterm.Stdout)
-	level := loggerConfig.GetLevel()
+	level := config.GetLevel()
+	syncer := GetWriterSyncer(writer)
 
 	options := []zap.Option{
 		zap.AddCaller(),
 		zap.AddCallerSkip(2),
 	}
 
-	if loggerConfig.StackTraceEnabled {
+	if config.StackTraceEnabled {
 		options = append(options, zap.AddStacktrace(zapcore.ErrorLevel))
 	}
 
 	options = append(options, zap.IncreaseLevel(level))
 
-	if isDevelopment {
+	if development {
 		encoderConfig := zap.NewProductionEncoderConfig()
-		encoder := loggerConfig.GetEncoder(encoderConfig)
-		core := zapcore.NewCore(encoder, writerSyncer, level)
+		encoder := config.GetEncoder(encoderConfig)
+		core := zapcore.NewCore(encoder, syncer, level)
 		zapLogger = zap.New(core, options...)
 	} else {
 		encoderConfig := zap.NewDevelopmentEncoderConfig()
-		encoder := loggerConfig.GetEncoder(encoderConfig)
-		core := zapcore.NewCore(encoder, writerSyncer, level)
+		encoder := config.GetEncoder(encoderConfig)
+		core := zapcore.NewCore(encoder, syncer, level)
 		zapLogger = zap.New(core, options...)
 	}
 
-	zapLogger = zapLogger.Named(fmt.Sprintf("[%s]", name))
-	zap.ReplaceGlobals(zapLogger)
-	return NewLogger(zapLogger)
+	return zapLogger
+}
+
+func makeLogger(name string) LoggerImpl {
+	development := globals.IsDevelopment()
+	config := globals.GetLoggerConfig()
+
+	// stdout logger
+	stdout := createZapLogger(xterm.Stdout, config, development)
+	stdout = stdout.Named(fmt.Sprintf("[%s]", name))
+	zap.ReplaceGlobals(stdout)
+
+	// stderr logger
+	stderr := createZapLogger(xterm.Stderr, config, development)
+	stderr = stderr.Named(fmt.Sprintf("[%s]", name))
+
+	return NewLogger(stdout, stderr)
 }
 
 var cachesLogger = make(map[string]LoggerImpl)
@@ -163,9 +246,9 @@ func Dir(obj any, fields ...zap.Field) {
 	logger.Dir(obj, fields...)
 }
 
-func Log(msg string, fields ...zap.Field) {
+func Log(level zapcore.Level, msg string, fields ...zap.Field) {
 	logger := GetLogger("NokoWebApi.Console")
-	logger.Log(msg, fields...)
+	logger.Log(level, msg, fields...)
 }
 
 func Warn(msg string, fields ...zap.Field) {
@@ -176,6 +259,11 @@ func Warn(msg string, fields ...zap.Field) {
 func Error(msg string, fields ...zap.Field) {
 	logger := GetLogger("NokoWebApi.Console")
 	logger.Error(msg, fields...)
+}
+
+func Panic(msg string, fields ...zap.Field) {
+	logger := GetLogger("NokoWebApi.Console")
+	logger.Panic(msg, fields...)
 }
 
 func Fatal(msg string, fields ...zap.Field) {

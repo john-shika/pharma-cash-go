@@ -50,38 +50,13 @@ func injectQuery(query string, conditions ...string) string {
 		nokocore.KeepVoid(i)
 
 		condition = strings.TrimSpace(condition)
-		if strings.HasPrefix(condition, "AND ") {
-			if !strings.Contains(query, condition) {
-				if query != "" {
-					query = fmt.Sprintf("%s  %s", query, condition)
-					continue
-				}
-
-				query = condition
+		if !strings.Contains(query, condition) {
+			if query != "" {
+				query = fmt.Sprintf("%s  %s", query, condition)
 				continue
 			}
 
-		} else if strings.HasPrefix(condition, "OR ") {
-			if !strings.Contains(query, condition) {
-				if query != "" {
-					query = fmt.Sprintf("%s %s", query, condition)
-					continue
-				}
-
-				query = condition
-				continue
-			}
-
-		} else {
-			if !strings.Contains(query, condition) {
-				if query != "" {
-					query = fmt.Sprintf("%s %s", query, condition)
-					continue
-				}
-
-				query = condition
-				continue
-			}
+			query = condition
 		}
 	}
 
@@ -296,7 +271,7 @@ func (b *BaseRepository[T]) baseInit(schema *T) error {
 		timeUtcNow := nokocore.GetTimeUtcNow()
 		identity = nokocore.NewUUID()
 
-		err = mapstructure.Decode(nokocore.MapAny{
+		err = mapstructure.Decode(&nokocore.MapAny{
 			"BaseModel": nokocore.MapAny{
 				"uuid":       identity,
 				"created_at": timeUtcNow,

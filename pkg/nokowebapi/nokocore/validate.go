@@ -1,27 +1,29 @@
-package validators
+package nokocore
 
 import (
 	"errors"
 	"fmt"
-	"nokowebapi/nokocore"
 	"reflect"
 	"strconv"
 	"strings"
 )
 
-type EchoValidatorImpl interface {
-	Validate(data any) error
+type ValidatorImpl interface {
+	Validate(value any) error
 }
 
-type EchoValidator struct {
+type Validator struct {
+	Void any
 }
 
-func NewEchoValidator() EchoValidatorImpl {
-	return &EchoValidator{}
+func NewValidator() ValidatorImpl {
+	return &Validator{
+		Void: nil,
+	}
 }
 
-func (v *EchoValidator) Validate(data any) error {
-	return ValidateStruct(data)
+func (e *Validator) Validate(value any) error {
+	return ValidateStruct(value)
 }
 
 type ValidateErrorImpl interface {
@@ -49,7 +51,7 @@ func (v *ValidateError) Error() string {
 
 func CheckPassword(password string) error {
 	var temp []string
-	nokocore.KeepVoid(temp)
+	KeepVoid(temp)
 
 	size := len(password)
 	if size < 8 {
@@ -57,22 +59,22 @@ func CheckPassword(password string) error {
 		temp = append(temp, message)
 	}
 
-	if !strings.ContainsAny(password, nokocore.AsciiLower) {
+	if !strings.ContainsAny(password, AsciiLower) {
 		message := "password must contain at least one lowercase letter"
 		temp = append(temp, message)
 	}
 
-	if !strings.ContainsAny(password, nokocore.AsciiUpper) {
+	if !strings.ContainsAny(password, AsciiUpper) {
 		message := "password must contain at least one uppercase letter"
 		temp = append(temp, message)
 	}
 
-	if !strings.ContainsAny(password, nokocore.Digits) {
+	if !strings.ContainsAny(password, Digits) {
 		message := "password must contain at least one digit"
 		temp = append(temp, message)
 	}
 
-	if !strings.ContainsAny(password, nokocore.Punctuation) {
+	if !strings.ContainsAny(password, Punctuation) {
 		message := "password must contain at least one special character"
 		temp = append(temp, message)
 	}
@@ -87,19 +89,19 @@ func CheckPassword(password string) error {
 func ValidateStruct(value any) error {
 	var ok bool
 	var err error
-	nokocore.KeepVoid(ok, err)
+	KeepVoid(ok, err)
 
-	val := nokocore.PassValueIndirectReflect(value)
+	val := PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
 	}
 
 	switch val.Kind() {
 	case reflect.Struct:
-		options := nokocore.NewForEachStructFieldsOptions()
+		options := NewForEachStructFieldsOptions()
 		errorStack := make([]error, 0)
 
-		err = nokocore.ForEachStructFieldsReflect(val, options, func(name string, sFieldX nokocore.StructFieldExImpl) error {
+		err = ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExImpl) error {
 			err = func() error {
 				vField := sFieldX.GetValue()
 				sTag := sFieldX.GetTag()
@@ -126,7 +128,7 @@ func ValidateStruct(value any) error {
 				setMaximum := false
 
 				for i, token := range tokens {
-					nokocore.KeepVoid(i)
+					KeepVoid(i)
 
 					token = strings.TrimSpace(token)
 					if token, ok = strings.CutPrefix(token, "min="); ok {
@@ -194,7 +196,7 @@ func ValidateStruct(value any) error {
 					return nil
 				}
 
-				if nokocore.IsNoneOrEmptyWhiteSpace(vField) {
+				if IsNoneOrEmptyWhiteSpace(vField) {
 					if !omitEmpty {
 						return errors.New(fmt.Sprintf("field '%s' is required", name))
 					}
@@ -214,7 +216,7 @@ func ValidateStruct(value any) error {
 						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
 					}
 
-					num := nokocore.ToInt(vField.Interface())
+					num := ToInt(vField.Interface())
 
 					minInt64 := int64(minimum)
 					if setMinimum && num < minInt64 {
@@ -232,7 +234,7 @@ func ValidateStruct(value any) error {
 						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
 					}
 
-					num := nokocore.ToFloat(vField.Interface())
+					num := ToFloat(vField.Interface())
 
 					if setMinimum && num < minimum {
 						temp := strconv.FormatFloat(minimum, 'f', -1, 64)
@@ -298,7 +300,7 @@ func ValidateStruct(value any) error {
 		if len(errorStack) > 0 {
 			fields := make([]string, 0)
 			for i, err := range errorStack {
-				nokocore.KeepVoid(i)
+				KeepVoid(i)
 
 				var validateErr *ValidateError
 				if errors.As(err, &validateErr) {
@@ -320,7 +322,7 @@ func ValidateStruct(value any) error {
 }
 
 func ValidateBoolean(value any) error {
-	val := nokocore.PassValueIndirectReflect(value)
+	val := PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
 	}
@@ -330,7 +332,7 @@ func ValidateBoolean(value any) error {
 		return nil
 
 	case reflect.String:
-		if !nokocore.BooleanRegex().MatchString(val.String()) {
+		if !BooleanRegex().MatchString(val.String()) {
 			return errors.New("invalid boolean format")
 		}
 
@@ -342,7 +344,7 @@ func ValidateBoolean(value any) error {
 }
 
 func ValidateNumber(value any) error {
-	val := nokocore.PassValueIndirectReflect(value)
+	val := PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
 	}
@@ -361,7 +363,7 @@ func ValidateNumber(value any) error {
 		return nil
 
 	case reflect.String:
-		if !nokocore.NumberRegex().MatchString(val.String()) {
+		if !NumberRegex().MatchString(val.String()) {
 			return errors.New("invalid number format")
 		}
 
@@ -373,7 +375,7 @@ func ValidateNumber(value any) error {
 }
 
 func ValidateNumeric(value any) error {
-	val := nokocore.PassValueIndirectReflect(value)
+	val := PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
 	}
@@ -392,7 +394,7 @@ func ValidateNumeric(value any) error {
 		return nil
 
 	case reflect.String:
-		if !nokocore.NumericRegex().MatchString(val.String()) {
+		if !NumericRegex().MatchString(val.String()) {
 			return errors.New("invalid numeric format")
 		}
 
@@ -404,14 +406,14 @@ func ValidateNumeric(value any) error {
 }
 
 func ValidateAlpha(value any) error {
-	val := nokocore.PassValueIndirectReflect(value)
+	val := PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
 	}
 
 	switch val.Kind() {
 	case reflect.String:
-		if !nokocore.AlphaRegex().MatchString(val.String()) {
+		if !AlphaRegex().MatchString(val.String()) {
 			return errors.New("invalid alpha format")
 		}
 
@@ -423,14 +425,14 @@ func ValidateAlpha(value any) error {
 }
 
 func ValidateAscii(value any) error {
-	val := nokocore.PassValueIndirectReflect(value)
+	val := PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
 	}
 
 	switch val.Kind() {
 	case reflect.String:
-		if !nokocore.AsciiRegex().MatchString(val.String()) {
+		if !AsciiRegex().MatchString(val.String()) {
 			return errors.New("invalid ascii format")
 		}
 
@@ -442,14 +444,14 @@ func ValidateAscii(value any) error {
 }
 
 func ValidateEmail(value any) error {
-	val := nokocore.PassValueIndirectReflect(value)
+	val := PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
 	}
 
 	switch val.Kind() {
 	case reflect.String:
-		if !nokocore.EmailRegex().MatchString(val.String()) {
+		if !EmailRegex().MatchString(val.String()) {
 			return errors.New("invalid email format")
 		}
 
@@ -461,14 +463,14 @@ func ValidateEmail(value any) error {
 }
 
 func ValidatePhone(value any) error {
-	val := nokocore.PassValueIndirectReflect(value)
+	val := PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
 	}
 
 	switch val.Kind() {
 	case reflect.String:
-		if !nokocore.PhoneRegex().MatchString(val.String()) {
+		if !PhoneRegex().MatchString(val.String()) {
 			return errors.New("invalid phone format")
 		}
 
@@ -481,9 +483,9 @@ func ValidatePhone(value any) error {
 
 func ValidatePassword(value any) error {
 	var err error
-	nokocore.KeepVoid(err)
+	KeepVoid(err)
 
-	val := nokocore.PassValueIndirectReflect(value)
+	val := PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
 	}

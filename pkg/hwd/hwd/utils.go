@@ -21,7 +21,7 @@ func GetDevicePorts() ([]*enumerator.PortDetails, error) {
 	for i, port := range ports {
 		nokocore.KeepVoid(i)
 
-		console.Log(fmt.Sprintf("Found port: %s", port.Name))
+		console.Info(fmt.Sprintf("Found port: %s", port.Name))
 	}
 
 	if len(ports) == 0 {

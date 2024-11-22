@@ -10,7 +10,6 @@ import (
 	"nokowebapi/apis/extras"
 	"nokowebapi/apis/middlewares"
 	"nokowebapi/apis/models"
-	"nokowebapi/apis/validators"
 	"nokowebapi/console"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
@@ -30,7 +29,7 @@ func Main(args []string) nokocore.ExitCode {
 
 	/// Echo Configs Start
 
-	e.Validator = validators.NewEchoValidator()
+	e.Validator = nokocore.NewValidator()
 
 	e.HideBanner = false
 	e.HidePort = false

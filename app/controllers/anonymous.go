@@ -7,7 +7,6 @@ import (
 	"nokowebapi/apis/extras"
 	"nokowebapi/apis/models"
 	"nokowebapi/apis/schemas"
-	"nokowebapi/apis/validators"
 	"nokowebapi/console"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
@@ -55,7 +54,7 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 			return err
 		}
 
-		if err = validators.ValidatePassword(userBody.Password); err != nil {
+		if err = nokocore.ValidatePassword(userBody.Password); err != nil {
 			return err
 		}
 

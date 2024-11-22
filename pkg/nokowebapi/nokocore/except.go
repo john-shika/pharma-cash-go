@@ -1,6 +1,7 @@
 package nokocore
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -17,21 +18,14 @@ func NewThrow(message string, err error, more ...error) error {
 	var format string
 	KeepVoid(format, args)
 
-	if message != "" {
-		format = "%w, %s"
-		args = []any{err, message}
-
-	} else {
-		format = "%w"
-		args = []any{err}
-		
-	}
+	args = []any{errors.New(message), err}
+	format = "%w, %w"
 
 	for i, e := range more {
-		KeepVoid(i, e)
+		KeepVoid(i)
 
-		format += ", %w"
 		args = append(args, e)
+		format += ", %w"
 	}
 
 	return fmt.Errorf(format, args...)

@@ -545,16 +545,29 @@ func GetShikaObjectProperty(obj any) ShikaObjectPropertyImpl {
 			return shikaObjectProperty
 		}
 
+		// TODO: storing all converters in another struct
+
+		/// START CONVERTERS
+
 		if IsTimeUtcISO8601(val) {
 			return NewShikaObjectProperty(ToTimeUtcStringISO8601(val), ShikaObjectDataTypeTime)
 		}
 
+		if IsURL(val) {
+			return NewShikaObjectProperty(ToURLString(val), ShikaObjectDataTypeString)
+		}
+
+		if IsUUID(val) {
+			return NewShikaObjectProperty(ToUUIDString(val), ShikaObjectDataTypeString)
+		}
+
+		/// END CONVERTERS
+
 		temp := make([]ShikaVarObjectImpl, 0)
 
 		// create foreach struct fields options
-		options := &ForEachStructFieldsOptions{
-			Validation: true,
-		}
+		options := NewForEachStructFieldsOptions()
+		options.Validation = true
 
 		// get struct fields
 		NoErr(ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExImpl) error {

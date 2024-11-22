@@ -136,48 +136,48 @@ func NewConfig(name string, exec string, args []string, workdir string, environ 
 	}
 }
 
-func (t *Config) GetName() string {
-	return strings.TrimSpace(t.Name)
+func (w *Config) GetName() string {
+	return strings.TrimSpace(w.Name)
 }
 
-func (t *Config) SetName(name string) {
-	t.Name = name
+func (w *Config) SetName(name string) {
+	w.Name = name
 }
 
-func (t *Config) GetExec() string {
-	return t.Exec
+func (w *Config) GetExec() string {
+	return w.Exec
 }
 
-func (t *Config) SetExec(exec string) {
-	t.Exec = exec
+func (w *Config) SetExec(exec string) {
+	w.Exec = exec
 }
 
-func (t *Config) GetArgs() []string {
-	return t.Args
+func (w *Config) GetArgs() []string {
+	return w.Args
 }
 
-func (t *Config) SetArgs(args []string) {
-	t.Args = args
+func (w *Config) SetArgs(args []string) {
+	w.Args = args
 }
 
-func (t *Config) GetWorkdir() string {
-	return t.Workdir
+func (w *Config) GetWorkdir() string {
+	return w.Workdir
 }
 
-func (t *Config) SetWorkdir(workdir string) {
-	t.Workdir = workdir
+func (w *Config) SetWorkdir(workdir string) {
+	w.Workdir = workdir
 }
 
-func (t *Config) GetEnviron() []string {
-	return t.Environ
+func (w *Config) GetEnviron() []string {
+	return w.Environ
 }
 
-func (t *Config) SetEnviron(environ []string) {
-	t.Environ = environ
+func (w *Config) SetEnviron(environ []string) {
+	w.Environ = environ
 }
 
-func (t *Config) GetStdin() io.Reader {
-	switch strings.ToLower(strings.TrimSpace(t.Stdin)) {
+func (w *Config) GetStdin() io.Reader {
+	switch strings.ToLower(strings.TrimSpace(w.Stdin)) {
 	case "console":
 		return nokocore.NewSafeReader(xterm.Stdin)
 	default:
@@ -185,12 +185,12 @@ func (t *Config) GetStdin() io.Reader {
 	}
 }
 
-func (t *Config) SetStdin(stdin string) {
-	t.Stdin = stdin
+func (w *Config) SetStdin(stdin string) {
+	w.Stdin = stdin
 }
 
-func (t *Config) GetStdout() io.Writer {
-	switch strings.ToLower(strings.TrimSpace(t.Stdout)) {
+func (w *Config) GetStdout() io.Writer {
+	switch strings.ToLower(strings.TrimSpace(w.Stdout)) {
 	case "console":
 		return nokocore.NewSafeWriter(xterm.Stdout)
 	default:
@@ -198,12 +198,12 @@ func (t *Config) GetStdout() io.Writer {
 	}
 }
 
-func (t *Config) SetStdout(stdout string) {
-	t.Stdout = stdout
+func (w *Config) SetStdout(stdout string) {
+	w.Stdout = stdout
 }
 
-func (t *Config) GetStderr() io.Writer {
-	switch strings.ToLower(strings.TrimSpace(t.Stderr)) {
+func (w *Config) GetStderr() io.Writer {
+	switch strings.ToLower(strings.TrimSpace(w.Stderr)) {
 	case "console":
 		return nokocore.NewSafeWriter(xterm.Stderr)
 	default:
@@ -211,24 +211,24 @@ func (t *Config) GetStderr() io.Writer {
 	}
 }
 
-func (t *Config) SetStderr(stderr string) {
-	t.Stderr = stderr
+func (w *Config) SetStderr(stderr string) {
+	w.Stderr = stderr
 }
 
-func (t *Config) GetNetwork() *nokocore.NetworkConfig {
-	return t.Network
+func (w *Config) GetNetwork() *nokocore.NetworkConfig {
+	return w.Network
 }
 
-func (t *Config) SetNetwork(network *nokocore.NetworkConfig) {
-	t.Network = network
+func (w *Config) SetNetwork(network *nokocore.NetworkConfig) {
+	w.Network = network
 }
 
-func (t *Config) GetDependsOn() []*DependsOnTaskConfig[string] {
-	return t.DependsOn
+func (w *Config) GetDependsOn() []*DependsOnTaskConfig[string] {
+	return w.DependsOn
 }
 
-func (t *Config) SetDependsOn(dependsOn []*DependsOnTaskConfig[string]) {
-	t.DependsOn = dependsOn
+func (w *Config) SetDependsOn(dependsOn []*DependsOnTaskConfig[string]) {
+	w.DependsOn = dependsOn
 }
 
 // TasksConfig struct, keep it mind, parsing by viper config file
@@ -239,12 +239,12 @@ func NewTasksConfig() TasksConfig {
 	return temp
 }
 
-func (t *TasksConfig) GetNameType() string {
+func (w *TasksConfig) GetNameType() string {
 	return "Tasks"
 }
 
-func (t *TasksConfig) GetTaskConfig(name string) ConfigImpl {
-	for i, task := range *t {
+func (w *TasksConfig) GetTaskConfig(name string) ConfigImpl {
+	for i, task := range *w {
 		nokocore.KeepVoid(i)
 
 		name = strings.TrimSpace(name)
@@ -258,7 +258,7 @@ func (t *TasksConfig) GetTaskConfig(name string) ConfigImpl {
 	return nil
 }
 
-func (t *TasksConfig) GetDependsOnTaskConfig(task ConfigImpl) []DependsOnTaskConfigImpl[ConfigImpl] {
+func (w *TasksConfig) GetDependsOnTaskConfig(task ConfigImpl) []DependsOnTaskConfigImpl[ConfigImpl] {
 	temp := make([]DependsOnTaskConfigImpl[ConfigImpl], 0)
 	for i, dependsOn := range task.GetDependsOn() {
 		nokocore.KeepVoid(i)
@@ -267,7 +267,7 @@ func (t *TasksConfig) GetDependsOnTaskConfig(task ConfigImpl) []DependsOnTaskCon
 		waiter := dependsOn.GetWaiter()
 		params := dependsOn.GetParams()
 
-		config := t.GetTaskConfig(target)
+		config := w.GetTaskConfig(target)
 		dependsOnTask := NewDependsOnTaskConfig(config, waiter, params)
 		temp = append(temp, dependsOnTask)
 	}
@@ -649,14 +649,14 @@ func waitRunTask(tasks *TasksConfig, pTasks ProcessTasksImpl, task ConfigImpl) e
 	}
 }
 
-func (t *TasksConfig) Apply(pTasks ProcessTasksImpl) error {
+func (w *TasksConfig) Apply(pTasks ProcessTasksImpl) error {
 	var err error
 	nokocore.KeepVoid(err)
 
-	tasks := *t
+	tasks := *w
 	for i, task := range tasks {
 		nokocore.KeepVoid(i)
-		if err = waitRun(t, pTasks, task); err != nil {
+		if err = waitRun(w, pTasks, task); err != nil {
 			return err
 		}
 	}
@@ -682,25 +682,25 @@ func NewWaitTasks() *WaitTasks {
 	}
 }
 
-func (t *WaitTasks) Wait() error {
-	t.WaitGroup.Wait()
-	return t.err
+func (w *WaitTasks) Wait() error {
+	w.WaitGroup.Wait()
+	return w.err
 }
 
-func (t *WaitTasks) Add(delta int) {
-	t.WaitGroup.Add(delta)
+func (w *WaitTasks) Add(delta int) {
+	w.WaitGroup.Add(delta)
 }
 
-func (t *WaitTasks) Run(action nokocore.ActionReturn[error]) {
-	defer t.WaitGroup.Done()
-	t.err = action.Call()
+func (w *WaitTasks) Run(action nokocore.ActionReturn[error]) {
+	defer w.WaitGroup.Done()
+	w.err = action.Call()
 }
 
-func (t *TasksConfig) ApplyAsync(pTasks ProcessTasksImpl) *WaitTasks {
+func (w *TasksConfig) ApplyAsync(pTasks ProcessTasksImpl) *WaitTasks {
 	var err error
 	nokocore.KeepVoid(err)
 
-	tasks := *t
+	tasks := *w
 	size := len(tasks)
 
 	wt := NewWaitTasks()
@@ -711,7 +711,7 @@ func (t *TasksConfig) ApplyAsync(pTasks ProcessTasksImpl) *WaitTasks {
 
 		// no need goroutine's for a wait run task, already run in goroutine.
 		wt.Run(func() error {
-			return waitRunTask(t, pTasks, task)
+			return waitRunTask(w, pTasks, task)
 		})
 	}
 

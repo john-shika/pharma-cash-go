@@ -344,7 +344,17 @@ func IsNoneOrEmptyWhiteSpace(value any) bool {
 		return true
 	}
 	temp := strings.TrimSpace(ToString(value))
-	return temp == "" || strings.ContainsAny(WhiteSpace, temp)
+	if temp != "" {
+		for i, c := range temp {
+			KeepVoid(i)
+
+			// maybe some character is not white space
+			if !strings.Contains(WhiteSpace, string(c)) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func Unwrap[T any, E ErrOrOkImpl](result T, eOk E) T {

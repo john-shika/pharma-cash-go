@@ -70,26 +70,26 @@ type RegexpImpl interface {
 
 var cachesRegex = make(map[string]RegexpImpl)
 
-type ReOrStrImpl interface {
+type RegexOrStringImpl interface {
 	string | *regexp.Regexp
 }
 
-func GetRegexPattern[T ReOrStrImpl](pattern T) RegexpImpl {
+func GetRegexPattern[T RegexOrStringImpl](pattern T) RegexpImpl {
 	var ok bool
 	var re RegexpImpl
-	var str string
-	KeepVoid(ok, re, str)
+	var temp string
+	KeepVoid(ok, re, temp)
 
 	// check pattern is regex pointer or string
 	if re, ok = Cast[RegexpImpl](pattern); !ok {
-		if str, ok = Cast[string](pattern); !ok {
+		if temp, ok = Cast[string](pattern); !ok {
 			panic("pattern must be 'regexp.Regexp' or string type")
 		}
 
 		// register new regex and store in cachesRegex
-		if re, ok = cachesRegex[str]; !ok {
-			re = regexp.MustCompile(str)
-			cachesRegex[str] = re
+		if re, ok = cachesRegex[temp]; !ok {
+			re = regexp.MustCompile(temp)
+			cachesRegex[temp] = re
 			return re
 		}
 
@@ -99,7 +99,7 @@ func GetRegexPattern[T ReOrStrImpl](pattern T) RegexpImpl {
 	return nil
 }
 
-func LazyRegexCompile[T ReOrStrImpl](pattern T) func() RegexpImpl {
+func LazyRegexCompile[T RegexOrStringImpl](pattern T) func() RegexpImpl {
 	var regex RegexpImpl
 	var once sync.Once
 	return func() RegexpImpl {
@@ -110,47 +110,47 @@ func LazyRegexCompile[T ReOrStrImpl](pattern T) func() RegexpImpl {
 	}
 }
 
-func RegexMatch[T ReOrStrImpl](pattern T, value []byte) bool {
+func RegexMatch[T RegexOrStringImpl, V BytesOrStringImpl](pattern T, value V) bool {
 	re := GetRegexPattern(pattern)
-	return re.Match(value)
+	return re.Match([]byte(value))
 }
 
-func RegexMatchString[T ReOrStrImpl](pattern T, value string) bool {
+func RegexMatchString[T RegexOrStringImpl, V BytesOrStringImpl](pattern T, value V) bool {
 	re := GetRegexPattern(pattern)
-	return re.MatchString(value)
+	return re.MatchString(string(value))
 }
 
-func RegexFind[T ReOrStrImpl](pattern T, value []byte) []byte {
+func RegexFind[T RegexOrStringImpl, V BytesOrStringImpl](pattern T, value V) []byte {
 	re := GetRegexPattern(pattern)
-	return re.Find(value)
+	return re.Find([]byte(value))
 }
 
-func RegexFindString[T ReOrStrImpl](pattern T, value string) string {
+func RegexFindString[T RegexOrStringImpl, V BytesOrStringImpl](pattern T, value V) string {
 	re := GetRegexPattern(pattern)
-	return re.FindString(value)
+	return re.FindString(string(value))
 }
 
-func RegexFindAll[T ReOrStrImpl](pattern T, value []byte, n int) [][]byte {
+func RegexFindAll[T RegexOrStringImpl, V BytesOrStringImpl](pattern T, value V, n int) [][]byte {
 	re := GetRegexPattern(pattern)
-	return re.FindAll(value, n)
+	return re.FindAll([]byte(value), n)
 }
 
-func RegexFindAllString[T ReOrStrImpl](pattern T, value string, n int) []string {
+func RegexFindAllString[T RegexOrStringImpl, V BytesOrStringImpl](pattern T, value V, n int) []string {
 	re := GetRegexPattern(pattern)
-	return re.FindAllString(value, n)
+	return re.FindAllString(string(value), n)
 }
 
-func RegexReplaceAll[T ReOrStrImpl](pattern T, value []byte, replace []byte) []byte {
+func RegexReplaceAll[T RegexOrStringImpl, V1, V2 BytesOrStringImpl](pattern T, value V1, replace V2) []byte {
 	re := GetRegexPattern(pattern)
-	return re.ReplaceAll(value, replace)
+	return re.ReplaceAll([]byte(value), []byte(replace))
 }
 
-func RegexReplaceAllString[T ReOrStrImpl](pattern T, value string, replace string) string {
+func RegexReplaceAllString[T RegexOrStringImpl, V1, V2 BytesOrStringImpl](pattern T, value V1, replace V2) string {
 	re := GetRegexPattern(pattern)
-	return re.ReplaceAllString(value, replace)
+	return re.ReplaceAllString(string(value), string(replace))
 }
 
-func RegexSplit[T ReOrStrImpl](pattern T, value string, n int) []string {
+func RegexSplit[T RegexOrStringImpl, V BytesOrStringImpl](pattern T, value V, n int) []string {
 	re := GetRegexPattern(pattern)
-	return re.Split(value, n)
+	return re.Split(string(value), n)
 }

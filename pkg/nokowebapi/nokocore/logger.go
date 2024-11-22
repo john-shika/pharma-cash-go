@@ -15,16 +15,16 @@ func NewLoggerConfig() *LoggerConfig {
 	return &LoggerConfig{}
 }
 
-func (l *LoggerConfig) GetNameType() string {
+func (w *LoggerConfig) GetNameType() string {
 	return "Logger"
 }
 
-func (l *LoggerConfig) GetLevel() zapcore.Level {
-	return GetLoggerConfigLevel(l)
+func (w *LoggerConfig) GetLevel() zapcore.Level {
+	return GetLoggerConfigLevel(w)
 }
 
-func (l *LoggerConfig) GetEncoder(encoderConfig zapcore.EncoderConfig) zapcore.Encoder {
-	return GetLoggerConfigEncoder(l, encoderConfig)
+func (w *LoggerConfig) GetEncoder(encoderConfig zapcore.EncoderConfig) zapcore.Encoder {
+	return GetLoggerConfigEncoder(w, encoderConfig)
 }
 
 func GetLoggerConfigLevel(loggerConfig *LoggerConfig) zapcore.Level {

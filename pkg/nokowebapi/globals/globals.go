@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/viper"
 	"nokowebapi/nokocore"
 	"nokowebapi/task"
+	"reflect"
 	"strings"
 )
 
@@ -205,24 +206,29 @@ func GetConfigGlobals[T any]() *T {
 		panic("failed to unmarshal viper config")
 	}
 
-	// TODO: Implement support for array, slice.
-	// TODO: Implement support for setting values in nested maps within nested structs.
-	//options := nokocore.NewForEachStructFieldsOptions()
-	//options.Validation = false
+	vConfig := nokocore.PassValueIndirectReflect(config)
+	switch vConfig.Kind() {
+	case reflect.Struct:
+		options := nokocore.NewForEachStructFieldsOptions()
 
-	//nokocore.ForEachStructFieldsReflect(config, options, func(name string, sFieldX nokocore.StructFieldExImpl) {
-	//	if sFieldX.IsZero() {
-	//		//nokocore.SetValueReflect(sFieldX.GetValue(), locals.(nokocore.MapAny).Get(name))
-	//		val := nokocore.GetValueReflect(locals.(nokocore.MapAny).Get(name))
-	//		sFieldX.Set(val)
-	//		return
-	//	}
-	//	locals.(nokocore.MapAny).Set(name, sFieldX.Interface())
-	//})
+		nokocore.KeepVoid(nokocore.ForEachStructFieldsReflect(config, options, func(name string, sFieldX nokocore.StructFieldExImpl) error {
+			if sFieldX.IsZero() {
+				val := nokocore.PassValueIndirectReflect(nokocore.GetMapValueReflect(locals, name))
+				//nokocore.SetValueReflect(sFieldX.GetValue(), val)
+				sFieldX.Set(val)
+				return nil
+			}
 
-	//nokocore.NoErr(mapstructure.Decode(locals, config))
-	nokocore.NoErr(mapstructure.Decode(config, &locals))
+			// TODO: check the type
+			// maybe the value strict with interface or pointer
+			nokocore.SetMapValueReflect(locals, name, sFieldX.GetValue())
+			return nil
+		}))
+
+	default:
+		nokocore.KeepVoid(mapstructure.Decode(config, locals))
+	}
+
 	defaultConfig.Set(keyName, locals)
-
 	return config
 }

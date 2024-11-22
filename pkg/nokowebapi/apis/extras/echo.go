@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"net/http"
 	"nokowebapi/apis/schemas"
-	"nokowebapi/apis/validators"
 	"nokowebapi/nokocore"
 	"strings"
 )
@@ -70,11 +69,11 @@ func EchoHTTPErrorHandler() echo.HTTPErrorHandler {
 			return
 		}
 
-		var validationError *validators.ValidateError
+		var validationError *nokocore.ValidateError
 		if errors.As(err, &validationError) {
 			message := "Validation failed."
 			fields := validationError.Fields()
-			err = NewMessageBodyUnprocessableEntity(ctx, message, nokocore.MapAny{
+			err = NewMessageBodyUnprocessableEntity(ctx, message, &nokocore.MapAny{
 				"fields": fields,
 			})
 			return

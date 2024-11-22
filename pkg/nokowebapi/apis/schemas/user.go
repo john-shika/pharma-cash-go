@@ -2,7 +2,7 @@ package schemas
 
 import (
 	"nokowebapi/apis/models"
-	"time"
+	"nokowebapi/nokocore"
 )
 
 type UserBody struct {
@@ -23,8 +23,8 @@ type UserResp struct {
 	Admin     bool          `json:"admin" yaml:"admin" form:"admin"`
 	Roles     []string      `json:"roles" yaml:"roles" form:"roles"`
 	Level     int           `json:"level" yaml:"level" form:"level"`
-	CreatedAt time.Time     `json:"createdAt" yaml:"created_at" form:"created_at"`
-	UpdatedAt time.Time     `json:"updatedAt" yaml:"updated_at" form:"updated_at"`
+	CreatedAt string        `json:"createdAt" yaml:"created_at" form:"created_at"`
+	UpdatedAt string        `json:"updatedAt" yaml:"updated_at" form:"updated_at"`
 	Sessions  []SessionResp `json:"-" yaml:"-"`
 }
 
@@ -36,8 +36,8 @@ func ToUserResp(user *models.User) UserResp {
 		Admin:     user.Admin,
 		Roles:     user.GetRoles(),
 		Level:     user.Level,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
+		CreatedAt: nokocore.ToTimeUtcStringISO8601(user.CreatedAt),
+		UpdatedAt: nokocore.ToTimeUtcStringISO8601(user.UpdatedAt),
 
 		// TODO: sessions
 	}

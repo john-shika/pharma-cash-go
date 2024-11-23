@@ -31,19 +31,21 @@ func ToUserModel(user *UserBody) *models.User {
 }
 
 type UserResult struct {
-	Username  string          `json:"username" yaml:"username" form:"username"`
-	Email     string          `json:"email" yaml:"email" form:"email"`
-	Phone     string          `json:"phone" yaml:"phone" form:"phone"`
-	Admin     bool            `json:"admin" yaml:"admin" form:"admin"`
-	Roles     []string        `json:"roles" yaml:"roles" form:"roles"`
-	Level     int             `json:"level" yaml:"level" form:"level"`
-	CreatedAt string          `json:"createdAt" yaml:"created_at" form:"created_at"`
-	UpdatedAt string          `json:"updatedAt" yaml:"updated_at" form:"updated_at"`
+	FullName  string          `json:"fullName" yaml:"full_name"`
+	Username  string          `json:"username" yaml:"username"`
+	Email     string          `json:"email" yaml:"email"`
+	Phone     string          `json:"phone" yaml:"phone"`
+	Admin     bool            `json:"admin" yaml:"admin"`
+	Roles     []string        `json:"roles" yaml:"roles"`
+	Level     int             `json:"level" yaml:"level"`
+	CreatedAt string          `json:"createdAt" yaml:"created_at"`
+	UpdatedAt string          `json:"updatedAt" yaml:"updated_at"`
 	Sessions  []SessionResult `json:"sessions" yaml:"sessions"`
 }
 
 func ToUserResult(user *models.User, sessions []SessionResult) UserResult {
 	return UserResult{
+		FullName:  user.FullName.String,
 		Username:  user.Username,
 		Email:     user.Email.String,
 		Phone:     user.Phone.String,

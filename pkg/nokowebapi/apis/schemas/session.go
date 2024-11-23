@@ -26,14 +26,14 @@ func ToSessionModel(session *SessionBody, userId int, expires time.Time) *models
 }
 
 type SessionResult struct {
-	UserID         uuid.UUID  `json:"userId" yaml:"user_id" form:"user_id"`
-	TokenId        string     `json:"tokenId" yaml:"token_id" form:"token_id"`
-	RefreshTokenId string     `json:"refreshTokenId" yaml:"refresh_token_id" form:"refresh_token_id"`
-	IPAddress      string     `json:"ipAddr" yaml:"ip_addr" form:"ip_addr"`
-	UserAgent      string     `json:"userAgent" yaml:"user_agent" form:"user_agent"`
-	Expires        string     `json:"expires" yaml:"expires" form:"expires"`
-	CreatedAt      string     `json:"createdAt" yaml:"created_at" form:"created_at"`
-	UpdatedAt      string     `json:"updatedAt" yaml:"updated_at" form:"updated_at"`
+	UserID         uuid.UUID  `json:"userId" yaml:"user_id"`
+	TokenId        string     `json:"tokenId" yaml:"token_id"`
+	RefreshTokenId string     `json:"refreshTokenId" yaml:"refresh_token_id"`
+	IPAddress      string     `json:"ipAddr" yaml:"ip_addr"`
+	UserAgent      string     `json:"userAgent" yaml:"user_agent"`
+	Expires        string     `json:"expires" yaml:"expires"`
+	CreatedAt      string     `json:"createdAt" yaml:"created_at"`
+	UpdatedAt      string     `json:"updatedAt" yaml:"updated_at"`
 	User           UserResult `json:"user" yaml:"user"`
 }
 

@@ -70,7 +70,7 @@ func CreateUserHandler(DB *gorm.DB) echo.HandlerFunc {
 				return extras.NewMessageBodyInternalServerError(ctx, "Failed to create a new user.", nil)
 			}
 
-			return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
+			return extras.NewMessageBodyOk(ctx, "Successfully created a new user.", &nokocore.MapAny{
 				"user": schemas.ToUserResult(user, nil),
 			})
 		}

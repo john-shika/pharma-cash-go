@@ -4,9 +4,9 @@ import "nokowebapi/apis/models"
 
 type Product struct {
 	models.BaseModel
-	Name string `db:"name" gorm:"unique;not null;index;" mapstructure:"name" json:"name" yaml:"name"`
+	Name string `db:"name" gorm:"unique;not null;index;" mapstructure:"name" json:"name"`
 }
 
-func (Product) TableName() string {
+func (p *Product) TableName() string {
 	return "products"
 }

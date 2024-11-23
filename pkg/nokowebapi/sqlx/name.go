@@ -48,9 +48,16 @@ func GetTableNameReflect(value any) string {
 	return pluralize(name)
 }
 
+// pluralize method, not perfect but good enough
 func pluralize(name string) string {
-	if strings.HasSuffix(name, "y") {
-		return name + "ies"
+	if strings.HasSuffix(name, "ies") {
+		return name
+	}
+	if value, ok := strings.CutSuffix(name, "y"); ok {
+		return value + "ies"
+	}
+	if strings.HasSuffix(name, "es") {
+		return name
 	}
 	if strings.HasSuffix(name, "s") {
 		return name + "es"

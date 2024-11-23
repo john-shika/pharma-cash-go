@@ -226,20 +226,20 @@ type JwtClaimsDataAccessImpl interface {
 }
 
 type JwtClaimsDataAccess struct {
-	Identity  string           `mapstructure:"jti" json:"jti,omitempty" yaml:"jti,omitempty"`
-	Issuer    string           `mapstructure:"iss" json:"iss,omitempty" yaml:"iss,omitempty"`
-	Subject   string           `mapstructure:"sub" json:"sub,omitempty" yaml:"sub,omitempty"`
-	Audience  []string         `mapstructure:"aud" json:"aud,omitempty" yaml:"aud,omitempty"`
-	NotBefore *jwt.NumericDate `mapstructure:"nbf" json:"nbf,omitempty" yaml:"nbf,omitempty"`
-	IssuedAt  *jwt.NumericDate `mapstructure:"iat" json:"iat,omitempty" yaml:"iat,omitempty"`
-	ExpiresAt *jwt.NumericDate `mapstructure:"exp" json:"exp,omitempty" yaml:"exp,omitempty"`
-	SessionId string           `mapstructure:"sid" json:"sid,omitempty" yaml:"sid,omitempty"`
-	User      string           `mapstructure:"user" json:"user,omitempty" yaml:"user,omitempty"`
-	Email     string           `mapstructure:"email" json:"email,omitempty" yaml:"email,omitempty"`
-	Phone     string           `mapstructure:"phone" json:"phone,omitempty" yaml:"phone,omitempty"`
-	Roles     []string         `mapstructure:"roles" json:"roles,omitempty" yaml:"roles,omitempty"`
-	Admin     bool             `mapstructure:"admin" json:"admin,omitempty" yaml:"admin,omitempty"`
-	Level     int              `mapstructure:"level" json:"level,omitempty" yaml:"level,omitempty"`
+	Identity  string           `mapstructure:"jti" json:"jti,omitempty"`
+	Issuer    string           `mapstructure:"iss" json:"iss,omitempty"`
+	Subject   string           `mapstructure:"sub" json:"sub,omitempty"`
+	Audience  []string         `mapstructure:"aud" json:"aud,omitempty"`
+	NotBefore *jwt.NumericDate `mapstructure:"nbf" json:"nbf,omitempty"`
+	IssuedAt  *jwt.NumericDate `mapstructure:"iat" json:"iat,omitempty"`
+	ExpiresAt *jwt.NumericDate `mapstructure:"exp" json:"exp,omitempty"`
+	SessionId string           `mapstructure:"sid" json:"sid,omitempty"`
+	User      string           `mapstructure:"user" json:"user,omitempty"`
+	Email     string           `mapstructure:"email" json:"email,omitempty"`
+	Phone     string           `mapstructure:"phone" json:"phone,omitempty"`
+	Roles     []string         `mapstructure:"roles" json:"roles,omitempty"`
+	Admin     bool             `mapstructure:"admin" json:"admin,omitempty"`
+	Level     int              `mapstructure:"level" json:"level,omitempty"`
 }
 
 func NewJwtClaimsDataAccess(claims *jwt.RegisteredClaims) JwtClaimsDataAccessImpl {

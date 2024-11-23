@@ -16,13 +16,17 @@ type SessionBody struct {
 }
 
 func ToSessionModel(session *SessionBody, userId int, expires time.Time) *models.Session {
-	return &models.Session{
-		UserID:    userId,
-		TokenId:   session.TokenId,
-		IPAddress: session.IPAddress,
-		UserAgent: session.UserAgent,
-		Expires:   expires,
+	if session != nil {
+		return &models.Session{
+			UserID:    userId,
+			TokenId:   session.TokenId,
+			IPAddress: session.IPAddress,
+			UserAgent: session.UserAgent,
+			Expires:   expires,
+		}
 	}
+
+	return nil
 }
 
 type SessionResult struct {
@@ -38,15 +42,19 @@ type SessionResult struct {
 }
 
 func ToSessionResult(session *models.Session, user UserResult) SessionResult {
-	return SessionResult{
-		UserID:         session.User.UUID,
-		TokenId:        session.TokenId,
-		RefreshTokenId: session.RefreshTokenId.String,
-		IPAddress:      session.IPAddress,
-		UserAgent:      session.UserAgent,
-		Expires:        nokocore.ToTimeUtcStringISO8601(session.Expires),
-		CreatedAt:      nokocore.ToTimeUtcStringISO8601(session.CreatedAt),
-		UpdatedAt:      nokocore.ToTimeUtcStringISO8601(session.UpdatedAt),
-		User:           user,
+	if session != nil {
+		return SessionResult{
+			UserID:         session.User.UUID,
+			TokenId:        session.TokenId,
+			RefreshTokenId: session.RefreshTokenId.String,
+			IPAddress:      session.IPAddress,
+			UserAgent:      session.UserAgent,
+			Expires:        nokocore.ToTimeUtcStringISO8601(session.Expires),
+			CreatedAt:      nokocore.ToTimeUtcStringISO8601(session.CreatedAt),
+			UpdatedAt:      nokocore.ToTimeUtcStringISO8601(session.UpdatedAt),
+			User:           user,
+		}
 	}
+
+	return SessionResult{}
 }

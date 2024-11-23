@@ -114,7 +114,7 @@ func (w *Logger) Trace(ctx context.Context, begin time.Time, fc func() (sql stri
 
 	if w.LogLevel >= logger.Info || w.LogLevel >= logger.Warn || w.LogLevel >= logger.Error {
 		sql, rows := fc()
-		message := fmt.Sprintf("elapsed= %s, rows= %d, sql= %s\n", elapsed.String(), rows, sql)
+		message := fmt.Sprintf("elapsed = %s, rows = %d, sql = %s\n", elapsed.String(), rows, sql)
 		switch {
 		case err != nil && w.LogLevel >= logger.Error && (!w.IgnoreRecordNotFoundError || !errors.Is(err, gorm.ErrRecordNotFound)):
 			zapLogger.Error(message, zap.Error(err), zap.Duration("elapsed", elapsed), zap.Int64("rows", rows), zap.String("sql", sql))

@@ -13,10 +13,7 @@ import (
 	"nokowebapi/console"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
-	"nokowebapi/sqlx"
-	"pharma-cash-go/app/controllers"
-	m "pharma-cash-go/app/models"
-	"pharma-cash-go/app/repositories"
+	"pharma-cash-go/app/factories"
 	"time"
 )
 
@@ -58,65 +55,19 @@ func Main(args []string) nokocore.ExitCode {
 	}
 
 	tables := []any{
-
-		// cores
 		&models.User{},
 		&models.Session{},
-
-		// app locals
-		&m.Product{},
 	}
 
+	tables = append(tables, Tables()...)
 	if err = DB.AutoMigrate(tables...); err != nil {
 		console.Fatal(fmt.Sprintf("failed to migrate database: %s\n", err.Error()))
 	}
 
 	/// dummy data
 
-	users := []models.User{
-		{
-			Username: "admin",
-			Password: "Admin@1234",
-			FullName: sqlx.NewString("John, Doe"),
-			Email:    sqlx.NewString("admin@example.com"),
-			Phone:    sqlx.NewString("+62 812-3456-7890"),
-			Admin:    true,
-			Level:    1,
-		},
-		{
-			Username: "user",
-			Password: "User@1234",
-			FullName: sqlx.NewString("Angeline, Rose"),
-			Email:    sqlx.NewString("user@example.com"),
-			Phone:    sqlx.NewString("+62 823-4567-8901"),
-			Admin:    false,
-			Level:    1,
-		},
-	}
-
-	userRepository := repositories.NewUserRepository(DB)
-
-	var check *models.User
-	for i, user := range users {
-		nokocore.KeepVoid(i)
-
-		if check, err = userRepository.First("username = ?", user.Username); err != nil {
-			console.Warn(err.Error())
-			continue
-		}
-
-		if check != nil {
-			console.Warn(fmt.Sprintf("user '%s' already exists", user.Username))
-			continue
-		}
-
-		if err = userRepository.Create(&user); err != nil {
-			console.Warn(err.Error())
-			continue
-		}
-
-		console.Warn(fmt.Sprintf("user '%s' has been created", user.Username))
-	}
+	factories.UserFactory(DB)
+	factories.ShiftFactory(DB)
 
 	/// dummy data
 
@@ -161,18 +112,8 @@ func Main(args []string) nokocore.ExitCode {
 		MaxAge:      86400,
 	}))
 
-	g := e.Group("/api/v1")
-
-	gAuth := g.Group("/auth")
-	gAuth.Use(middlewares.JWTAuth(DB))
-
-	/// Controllers Start
-
-	controllers.AnonymousController(g, DB)
-	controllers.UserController(gAuth, DB)
-	controllers.AdminController(gAuth, DB)
-
-	/// Controllers End
+	group := e.Group("/api/v1")
+	Controllers(group, DB)
 
 	h2s := &http2.Server{
 		MaxConcurrentStreams: 100,

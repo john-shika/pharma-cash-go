@@ -13,7 +13,7 @@ type Session struct {
 	IPAddress      string         `db:"ip_addr" gorm:"index;not null;" mapstructure:"ip_addr" json:"ipAddr"`
 	UserAgent      string         `db:"user_agent" gorm:"index;not null;" mapstructure:"user_agent" json:"userAgent"`
 	Expires        time.Time      `db:"expires" gorm:"not null;" mapstructure:"expires" json:"expires"`
-	User           User           `db:"-" gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" mapstructure:"-" json:"-"`
+	User           User           `db:"-" gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" mapstructure:"user" json:"user"`
 }
 
 func (s *Session) TableName() string {

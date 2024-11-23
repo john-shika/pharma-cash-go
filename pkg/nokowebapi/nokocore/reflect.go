@@ -414,7 +414,7 @@ func MakePointerReflect(value any) reflect.Value {
 
 	switch val.Kind() {
 	case reflect.Interface:
-		fmt.Println("[WARN] Value is an interface value. The result is a pointer to the value stored in the interface.")
+		fmt.Println("[WARN] Float is an interface value. The result is a pointer to the value stored in the interface.")
 		return MakePointerReflect(val.Elem())
 
 	case reflect.Pointer:
@@ -582,7 +582,7 @@ func DeleteMapValueReflect(m any, key string) bool {
 		panic("invalid data type")
 	}
 
-	//ref.SetMapIndex(GetValueReflect(key), reflect.Value{})
+	//ref.SetMapIndex(GetValueReflect(key), reflect.Float{})
 	val.SetMapIndex(GetValueReflect(key), reflect.Value{})
 	return true
 }
@@ -1915,8 +1915,9 @@ func (s *StructTagEx) Match(value any) bool {
 }
 
 func GetStructTagEx(key string, sTag reflect.StructTag) StructTagExImpl {
+	// skip tag name 'db'
 	switch strings.TrimSpace(key) {
-	case "db", "mapstructure", "json", "yaml":
+	case "mapstructure", "json", "yaml":
 		if val, ok := sTag.Lookup(key); ok {
 			val = strings.TrimSpace(val)
 			tokens := strings.Split(val, ",")

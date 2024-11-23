@@ -18,16 +18,20 @@ type UserBody struct {
 }
 
 func ToUserModel(user *UserBody) *models.User {
-	return &models.User{
-		FullName: sqlx.NewString(user.FullName),
-		Username: user.Username,
-		Password: user.Password,
-		Email:    sqlx.NewString(user.Email),
-		Phone:    sqlx.NewString(user.Phone),
-		Admin:    user.Admin,
-		Roles:    nokocore.RolesPack(user.Roles),
-		Level:    user.Level,
+	if user != nil {
+		return &models.User{
+			FullName: sqlx.NewString(user.FullName),
+			Username: user.Username,
+			Password: user.Password,
+			Email:    sqlx.NewString(user.Email),
+			Phone:    sqlx.NewString(user.Phone),
+			Admin:    user.Admin,
+			Roles:    nokocore.RolesPack(user.Roles),
+			Level:    user.Level,
+		}
 	}
+
+	return nil
 }
 
 type UserResult struct {
@@ -44,16 +48,20 @@ type UserResult struct {
 }
 
 func ToUserResult(user *models.User, sessions []SessionResult) UserResult {
-	return UserResult{
-		FullName:  user.FullName.String,
-		Username:  user.Username,
-		Email:     user.Email.String,
-		Phone:     user.Phone.String,
-		Admin:     user.Admin,
-		Roles:     nokocore.RolesUnpack(user.Roles),
-		Level:     user.Level,
-		CreatedAt: nokocore.ToTimeUtcStringISO8601(user.CreatedAt),
-		UpdatedAt: nokocore.ToTimeUtcStringISO8601(user.UpdatedAt),
-		Sessions:  sessions,
+	if user != nil {
+		return UserResult{
+			FullName:  user.FullName.String,
+			Username:  user.Username,
+			Email:     user.Email.String,
+			Phone:     user.Phone.String,
+			Admin:     user.Admin,
+			Roles:     nokocore.RolesUnpack(user.Roles),
+			Level:     user.Level,
+			CreatedAt: nokocore.ToTimeUtcStringISO8601(user.CreatedAt),
+			UpdatedAt: nokocore.ToTimeUtcStringISO8601(user.UpdatedAt),
+			Sessions:  sessions,
+		}
 	}
+
+	return UserResult{}
 }

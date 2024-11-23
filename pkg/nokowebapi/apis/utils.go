@@ -16,12 +16,12 @@ func IsUser[T UserOrJwtAuthInfoImpl](userOrJwtAuthInfo T) bool {
 }
 
 func GetUser[T UserOrJwtAuthInfoImpl](userOrJwtAuthInfo T) *models.User {
-	temp := nokocore.Unwrap(nokocore.CastAny(userOrJwtAuthInfo))
-	switch t := temp.(type) {
+	value := nokocore.Unwrap(nokocore.CastAny(userOrJwtAuthInfo))
+	switch val := value.(type) {
 	case *extras.JwtAuthInfo:
-		return t.User
+		return val.User
 	case *models.User:
-		return t
+		return val
 	default:
 		return nil
 	}
@@ -32,10 +32,10 @@ func IsJwtAuthInfo[T UserOrJwtAuthInfoImpl](userOrJwtAuthInfo T) bool {
 }
 
 func GetJwtAuthInfo[T UserOrJwtAuthInfoImpl](userOrJwtAuthInfo T) *extras.JwtAuthInfo {
-	temp := nokocore.Unwrap(nokocore.CastAny(userOrJwtAuthInfo))
-	switch t := temp.(type) {
+	value := nokocore.Unwrap(nokocore.CastAny(userOrJwtAuthInfo))
+	switch val := value.(type) {
 	case *extras.JwtAuthInfo:
-		return t
+		return val
 	default:
 		return nil
 	}

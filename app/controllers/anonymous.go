@@ -11,7 +11,9 @@ import (
 	"nokowebapi/console"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
+	models2 "pharma-cash-go/app/models"
 	"pharma-cash-go/app/repositories"
+	schemas2 "pharma-cash-go/app/schemas"
 )
 
 func MessageHandler(DB *gorm.DB) echo.HandlerFunc {
@@ -31,12 +33,14 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 
 	userRepository := repositories.NewUserRepository(DB)
 	sessionRepository := repositories.NewSessionRepository(DB)
+	employeeRepository := repositories.NewEmployeeRepository(DB)
 
 	return func(ctx echo.Context) error {
 		var err error
-		var user *models.User
 		var username string
-		nokocore.KeepVoid(err, user, username)
+		var user *models.User
+		var employee *models2.Employee
+		nokocore.KeepVoid(err, username, user, employee)
 
 		req := ctx.Request()
 		ipAddr := ctx.RealIP()
@@ -45,7 +49,6 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 		userBody := new(schemas.UserBody)
 		if err = ctx.Bind(userBody); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-
 			return extras.NewMessageBodyInternalServerError(ctx, "Invalid request body.", nil)
 		}
 
@@ -55,7 +58,6 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 
 		if user, err = userRepository.SafeLogin(userBody.Username, userBody.Password); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-
 			return extras.NewMessageBodyUnauthorized(ctx, "Invalid username or password.", nil)
 		}
 
@@ -93,14 +95,25 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 		session.UUID = sessionId
 		if err = sessionRepository.SafeCreate(session); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to create session.", nil)
+		}
+
+		preloads := []string{"Shift"}
+		if employee, err = employeeRepository.SafePreFirst(preloads, "user_id = ?", user.ID); err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get employee.", nil)
+		}
+
+		var shift schemas2.ShiftResult
+		if employee != nil {
+			shift = schemas2.ToShiftResult(&employee.Shift)
 		}
 
 		roles = nokocore.RolesUnpack(user.Roles)
 		return extras.NewMessageBodyOk(ctx, "Successfully logged in.", &nokocore.MapAny{
 			"accessToken": jwtToken,
 			"user":        schemas.ToUserResult(user, nil),
+			"shift":       shift,
 		})
 	}
 }

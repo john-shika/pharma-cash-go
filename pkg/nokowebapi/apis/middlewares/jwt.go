@@ -7,10 +7,10 @@ import (
 	"gorm.io/gorm"
 	"nokowebapi/apis/extras"
 	"nokowebapi/apis/models"
+	"nokowebapi/apis/repositories"
 	"nokowebapi/console"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
-	"pharma-cash-go/app/repositories"
 )
 
 func JWTAuth(DB *gorm.DB) echo.MiddlewareFunc {

@@ -60,7 +60,7 @@ func TestDB(t *testing.T) {
 			Password: "User@1234",
 			FullName: sqlx.NewString("Angeline, Rose"),
 			Email:    sqlx.NewString("user@example.com"),
-			Phone:    sqlx.NewString("+62 812-3456-7890"), // conflict, same phone number
+			Phone:    sqlx.NewString("+62 823-4567-8901"), // conflict, same phone number
 			Admin:    false,
 			Level:    1,
 		},
@@ -93,7 +93,7 @@ func TestDB(t *testing.T) {
 	/// unit tests
 
 	// find all users
-	if users, err = userRepository.SafeMany("1=1"); err != nil {
+	if users, err = userRepository.SafeMany(0, 2, "1=1"); err != nil {
 		t.Error(err)
 		return
 	}
@@ -126,7 +126,7 @@ func TestDB(t *testing.T) {
 	}
 
 	// safe delete admin user
-	if err = userRepository.SafeDelete(user); err != nil {
+	if err = userRepository.SafeDelete(user, "username = ?", "admin"); err != nil {
 		t.Error(errors.New("user can't be deleted"))
 		return
 	}
@@ -157,7 +157,7 @@ func TestDB(t *testing.T) {
 	}
 
 	// delete admin user
-	if err = userRepository.Delete(user); err != nil {
+	if err = userRepository.Delete(user, "username = ?", "admin"); err != nil {
 		t.Error(errors.New("user can't be deleted"))
 		return
 	}

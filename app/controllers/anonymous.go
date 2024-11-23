@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 	"nokowebapi/apis/extras"
@@ -45,7 +46,7 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 
 		userBody := new(schemas.UserBody)
 		if err = ctx.Bind(userBody); err != nil {
-			console.Error(err.Error())
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 
 			return extras.NewMessageBodyInternalServerError(ctx, "Invalid request body.", nil)
 		}
@@ -54,22 +55,20 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 			return err
 		}
 
-		if err = nokocore.ValidatePassword(userBody.Password); err != nil {
-			return err
-		}
-
 		if user, err = userRepository.SafeLogin(userBody.Username, userBody.Password); err != nil {
-			console.Error(err.Error())
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 
 			return extras.NewMessageBodyUnauthorized(ctx, "Invalid username or password.", nil)
 		}
+
+		// get user roles
+		roles := nokocore.RolesUnpack(user.Roles)
 
 		sessionId := nokocore.NewUUID()
 		timeUtcNow := nokocore.GetTimeUtcNow()
 		expires := timeUtcNow.Add(expiresIn)
 
 		jwtClaimsDataAccess := nokocore.NewEmptyJwtClaimsDataAccess()
-
 		jwtClaimsDataAccess.SetSubject("NokoWebApiToken")
 		jwtClaimsDataAccess.SetIssuer(jwtConfig.Issuer)
 		jwtClaimsDataAccess.SetAudience(jwtConfig.Audience)
@@ -77,7 +76,7 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 		jwtClaimsDataAccess.SetExpiresAt(expires)
 		jwtClaimsDataAccess.SetUser(user.Username)
 		jwtClaimsDataAccess.SetSessionId(sessionId.String())
-		jwtClaimsDataAccess.SetRoles(user.GetRoles())
+		jwtClaimsDataAccess.SetRoles(roles)
 		jwtClaimsDataAccess.SetAdmin(user.Admin)
 		jwtClaimsDataAccess.SetLevel(user.Level)
 
@@ -95,11 +94,12 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 
 		session.UUID = sessionId
 		if err = sessionRepository.SafeCreate(session); err != nil {
-			console.Error(err.Error())
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to create session.", nil)
 		}
 
+		roles = nokocore.RolesUnpack(user.Roles)
 		return extras.NewMessageBodyOk(ctx, "Successfully logged in.", &nokocore.MapAny{
 			"token": jwtToken,
 			"user": nokocore.MapAny{
@@ -108,7 +108,7 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 				"email":    user.Email.String,
 				"phone":    user.Phone.String,
 				"admin":    user.Admin,
-				"roles":    user.GetRoles(),
+				"roles":    roles,
 				"level":    user.Level,
 			},
 		})

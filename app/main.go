@@ -26,6 +26,7 @@ func Main(args []string) nokocore.ExitCode {
 	nokocore.KeepVoid(DB, err, args)
 
 	e := echo.New()
+	e.Use(middlewares.Recovery())
 
 	/// Echo Configs Start
 
@@ -87,7 +88,7 @@ func Main(args []string) nokocore.ExitCode {
 			Password: "User@1234",
 			FullName: sqlx.NewString("Angeline, Rose"),
 			Email:    sqlx.NewString("user@example.com"),
-			Phone:    sqlx.NewString("+62 812-3456-7890"),
+			Phone:    sqlx.NewString("+62 823-4567-8901"),
 			Admin:    false,
 			Level:    1,
 		},
@@ -169,6 +170,7 @@ func Main(args []string) nokocore.ExitCode {
 
 	controllers.AnonymousController(g, DB)
 	controllers.UserController(gAuth, DB)
+	controllers.AdminController(gAuth, DB)
 
 	/// Controllers End
 

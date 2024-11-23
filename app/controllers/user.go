@@ -16,7 +16,7 @@ func ProfileHandler(DB *gorm.DB) echo.HandlerFunc {
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
 
 		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
-			"user": schemas.ToUserResp(&jwtAuthInfo.Session.User),
+			"user": schemas.ToUserResult(&jwtAuthInfo.Session.User, nil),
 		})
 	}
 }
@@ -27,8 +27,9 @@ func SessionHandler(DB *gorm.DB) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
 
+		userResult := schemas.ToUserResult(jwtAuthInfo.User, nil)
 		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
-			"session": schemas.ToSessionResp(jwtAuthInfo.Session),
+			"session": schemas.ToSessionResult(jwtAuthInfo.Session, userResult),
 		})
 	}
 }
@@ -41,7 +42,8 @@ func LogoutHandler(DB *gorm.DB) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
 
-		if err := sessionRepository.SafeDelete(jwtAuthInfo.Session); err != nil {
+		sessionId := jwtAuthInfo.Session.UUID
+		if err := sessionRepository.SafeDelete(jwtAuthInfo.Session, "uuid = ?", sessionId); err != nil {
 			return err
 		}
 

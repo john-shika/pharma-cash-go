@@ -10,7 +10,11 @@ func NewValue[T any](value T) sql.Null[T] {
 }
 
 func NewString(value string) sql.NullString {
-	return sql.NullString{String: value, Valid: true}
+	if value != "" {
+		return sql.NullString{String: value, Valid: true}
+	}
+
+	return sql.NullString{}
 }
 
 func NewTime(value time.Time) sql.NullTime {
@@ -40,17 +44,3 @@ func NewInt64(value int64) sql.NullInt64 {
 func NewFloat64(value float64) sql.NullFloat64 {
 	return sql.NullFloat64{Float64: value, Valid: true}
 }
-
-// TODO: untested, big.Int, big.Float, big.Rat must be using string
-
-//func NewBigInt(value *big.Int) sql.Null[*big.Int] {
-//	return sql.Null[*big.Int]{V: value, Valid: true}
-//}
-//
-//func NewBigFloat(value *big.Float) sql.Null[*big.Float] {
-//	return sql.Null[*big.Float]{V: value, Valid: true}
-//}
-//
-//func NewBigRat(value *big.Rat) sql.Null[*big.Rat] {
-//	return sql.Null[*big.Rat]{V: value, Valid: true}
-//}

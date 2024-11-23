@@ -12,6 +12,7 @@ type JwtAuthInfo struct {
 	JwtClaims           nokocore.JwtClaimsImpl           `mapstructure:"jwt_claims" json:"jwtClaims" yaml:"jwt_claims"`
 	JwtClaimsDataAccess nokocore.JwtClaimsDataAccessImpl `mapstructure:"jwt_claims_data_access" json:"jwtClaimsDataAccess" yaml:"jwt_claims_data_access"`
 	Session             *models.Session                  `mapstructure:"session" json:"session" yaml:"session"`
+	User                *models.User                     `mapstructure:"user" json:"user" yaml:"user"`
 }
 
 func GetJwtAuthInfoFromEchoContext(ctx echo.Context) *JwtAuthInfo {

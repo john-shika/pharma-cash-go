@@ -46,11 +46,16 @@ type UserResult struct {
 	Level     int             `mapstructure:"level" json:"level"`
 	CreatedAt string          `mapstructure:"created_at" json:"createdAt"`
 	UpdatedAt string          `mapstructure:"updated_at" json:"updatedAt"`
+	DeletedAt string          `mapstructure:"deleted_at" json:"deletedAt,omitempty"`
 	Sessions  []SessionResult `mapstructure:"sessions" json:"sessions,omitempty"`
 }
 
 func ToUserResult(user *models.User, sessions []SessionResult) UserResult {
+	var deletedAt string
 	if user != nil {
+		if user.DeletedAt.Valid {
+			deletedAt = nokocore.ToTimeUtcStringISO8601(user.DeletedAt.Time)
+		}
 		return UserResult{
 			UUID:      user.UUID,
 			FullName:  user.FullName.String,
@@ -62,6 +67,7 @@ func ToUserResult(user *models.User, sessions []SessionResult) UserResult {
 			Level:     user.Level,
 			CreatedAt: nokocore.ToTimeUtcStringISO8601(user.CreatedAt),
 			UpdatedAt: nokocore.ToTimeUtcStringISO8601(user.UpdatedAt),
+			DeletedAt: deletedAt,
 			Sessions:  sessions,
 		}
 	}

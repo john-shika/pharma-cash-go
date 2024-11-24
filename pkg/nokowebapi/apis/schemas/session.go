@@ -38,11 +38,16 @@ type SessionResult struct {
 	Expires        string     `mapstructure:"expires" json:"expires"`
 	CreatedAt      string     `mapstructure:"created_at" json:"createdAt"`
 	UpdatedAt      string     `mapstructure:"updated_at" json:"updatedAt"`
+	DeletedAt      string     `mapstructure:"deleted_at" json:"deletedAt,omitempty"`
 	User           UserResult `mapstructure:"user" json:"user,omitempty"`
 }
 
 func ToSessionResult(session *models.Session, user UserResult) SessionResult {
+	var deletedAt string
 	if session != nil {
+		if session.DeletedAt.Valid {
+			deletedAt = nokocore.ToTimeUtcStringISO8601(session.DeletedAt.Time)
+		}
 		return SessionResult{
 			UserID:         session.User.UUID,
 			TokenId:        session.TokenId,
@@ -52,6 +57,7 @@ func ToSessionResult(session *models.Session, user UserResult) SessionResult {
 			Expires:        nokocore.ToTimeUtcStringISO8601(session.Expires),
 			CreatedAt:      nokocore.ToTimeUtcStringISO8601(session.CreatedAt),
 			UpdatedAt:      nokocore.ToTimeUtcStringISO8601(session.UpdatedAt),
+			DeletedAt:      deletedAt,
 			User:           user,
 		}
 	}

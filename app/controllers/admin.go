@@ -153,7 +153,7 @@ func CreateUserHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
-func GetManyUserHandler(DB *gorm.DB) echo.HandlerFunc {
+func GetAllUsersHandler(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	userRepository := repositories.NewUserRepository(DB)
@@ -163,37 +163,82 @@ func GetManyUserHandler(DB *gorm.DB) echo.HandlerFunc {
 		var users []models.User
 		nokocore.KeepVoid(err, users)
 
-		if users, err = userRepository.SafeMany(0, -1, "1=1"); err != nil {
-			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get users.", nil)
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+
+		if utils.RoleIsAdmin(jwtAuthInfo) {
+			pagination := extras.NewURLQueryPaginationFromEchoContext(ctx)
+			if users, err = userRepository.SafeMany(pagination.Offset, pagination.Limit, "1=1"); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyInternalServerError(ctx, "Unable to get users.", nil)
+			}
+
+			var userResults []schemas.UserResult
+			for i, user := range users {
+				nokocore.KeepVoid(i)
+
+				userResults = append(userResults, schemas.ToUserResult(&user, nil))
+			}
+
+			return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
+				"users": userResults,
+			})
 		}
 
-		var userResults []schemas.UserResult
-		for i, user := range users {
-			nokocore.KeepVoid(i)
-
-			userResults = append(userResults, schemas.ToUserResult(&user, nil))
-		}
-
-		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
-			"users": userResults,
-		})
+		return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
 	}
 }
 
-func RemoveUserHandler(DB *gorm.DB) echo.HandlerFunc {
+func DeleteUserHandler(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
+	userRepository := repositories.NewUserRepository(DB)
+
 	return func(ctx echo.Context) error {
-		return nil
+		var err error
+		var user *models.User
+		nokocore.KeepVoid(err, user)
+
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+
+		if utils.RoleIsAdmin(jwtAuthInfo) {
+			if userId := extras.ParseQueryToString(ctx, "user_id"); userId != "" {
+				if user, err = userRepository.First("uuid = ?", userId); err != nil {
+					console.Error(fmt.Sprintf("panic: %s", err.Error()))
+					return extras.NewMessageBodyInternalServerError(ctx, "Unable to get user.", nil)
+				}
+
+				if user != nil {
+					data := &nokocore.MapAny{
+						"user": schemas.ToUserResult(user, nil),
+					}
+
+					if !user.DeletedAt.Valid {
+						if err = userRepository.SafeDelete(user, "uuid = ?", userId); err != nil {
+							console.Error(fmt.Sprintf("panic: %s", err.Error()))
+							return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete user.", nil)
+						}
+
+						return extras.NewMessageBodyOk(ctx, "Successfully deleted.", data)
+					}
+
+					return extras.NewMessageBodyOk(ctx, "User already deleted.", data)
+				}
+
+				return extras.NewMessageBodyNotFound(ctx, "User not found.", nil)
+			}
+
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Required parameter 'user_id' is missing.", nil)
+		}
+
+		return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
 	}
 }
 
 func AdminController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
 	group.POST("/user", CreateUserHandler(DB))
-	group.GET("/users", GetManyUserHandler(DB))
-	group.DELETE("/user", RemoveUserHandler(DB))
+	group.GET("/users", GetAllUsersHandler(DB))
+	group.DELETE("/user", DeleteUserHandler(DB))
 
 	return group
 }

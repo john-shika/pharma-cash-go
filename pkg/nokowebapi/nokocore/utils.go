@@ -133,12 +133,17 @@ func GetNameType(obj any) string {
 }
 
 func ParseEnvToBool(value string) bool {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "1", "y", "yes", "true":
-		return true
-	default:
-		return false
+	if value = strings.TrimSpace(value); value != "" {
+		switch strings.ToLower(value) {
+		case "1", "y", "yes", "true":
+			return true
+
+		default:
+			return false
+		}
 	}
+
+	return false
 }
 
 func ParseEnvToInt(value string) int64 {

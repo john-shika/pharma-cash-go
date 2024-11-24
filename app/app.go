@@ -14,7 +14,7 @@ func Controllers(group *echo.Group, DB *gorm.DB) []*echo.Group {
 	auth.Use(middlewares.JWTAuth(DB))
 
 	return []*echo.Group{
-		controllers.AnonymousController(group, DB),
+		controllers.GuestController(group, DB),
 		controllers.UserController(auth, DB),
 		controllers.AdminController(auth, DB),
 	}

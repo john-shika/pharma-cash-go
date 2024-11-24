@@ -4,6 +4,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"nokowebapi/apis/models"
 	"nokowebapi/nokocore"
+	"strings"
 )
 
 type JwtAuthInfo struct {
@@ -13,6 +14,26 @@ type JwtAuthInfo struct {
 	JwtClaimsDataAccess nokocore.JwtClaimsDataAccessImpl `mapstructure:"jwt_claims_data_access" json:"jwtClaimsDataAccess" yaml:"jwt_claims_data_access"`
 	Session             *models.Session                  `mapstructure:"session" json:"session" yaml:"session"`
 	User                *models.User                     `mapstructure:"user" json:"user" yaml:"user"`
+}
+
+func GetJwtTokenFromEchoContext(ctx echo.Context) (string, error) {
+	var ok bool
+	var token string
+	nokocore.KeepVoid(ok, token)
+
+	req := ctx.Request()
+	authorization := req.Header.Get("Authorization")
+	if token = strings.Trim(authorization, " "); token == "" {
+		return "", nokocore.ErrJwtTokenInvalid
+	}
+
+	if token, ok = strings.CutPrefix(token, "Bearer "); !ok {
+		return "", nokocore.ErrJwtTokenInvalid
+	}
+	if token = strings.Trim(token, " "); token == "" {
+		return "", nokocore.ErrJwtTokenInvalid
+	}
+	return token, nil
 }
 
 func GetJwtAuthInfoFromEchoContext(ctx echo.Context) *JwtAuthInfo {

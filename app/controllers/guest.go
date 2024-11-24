@@ -120,7 +120,7 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
-func AnonymousController(group *echo.Group, DB *gorm.DB) *echo.Group {
+func GuestController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
 	group.GET("/message", MessageHandler(DB))
 	group.POST("/login", LoginHandler(DB))

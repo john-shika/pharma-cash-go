@@ -24,13 +24,15 @@ func ProfileHandler(DB *gorm.DB) echo.HandlerFunc {
 
 	return func(ctx echo.Context) error {
 		var err error
+		var user *models.User
 		var employee *models2.Employee
 		nokocore.KeepVoid(err, employee)
 
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+		user = jwtAuthInfo.User
 
 		preloads := []string{"Shift"}
-		if employee, err = employeeRepository.SafePreFirst(preloads, "user_id = ?", jwtAuthInfo.User.ID); err != nil {
+		if employee, err = employeeRepository.SafePreFirst(preloads, "user_id = ?", user.ID); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get employee.", nil)
 		}
@@ -40,7 +42,7 @@ func ProfileHandler(DB *gorm.DB) echo.HandlerFunc {
 			shift = schemas2.ToShiftResult(&employee.Shift)
 		}
 
-		userResult := schemas.ToUserResult(&jwtAuthInfo.Session.User, nil)
+		userResult := schemas.ToUserResult(user, nil)
 		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
 			"user":  userResult,
 			"shift": shift,
@@ -55,19 +57,23 @@ func SessionHandler(DB *gorm.DB) echo.HandlerFunc {
 
 	return func(ctx echo.Context) error {
 		var err error
+		var user *models.User
+		var session *models.Session
 		var employee *models2.Employee
 		nokocore.KeepVoid(err, employee)
 
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+		user = jwtAuthInfo.User
+		session = jwtAuthInfo.Session
 
 		preloads := []string{"Shift"}
-		if employee, err = employeeRepository.SafePreFirst(preloads, "user_id = ?", jwtAuthInfo.User.ID); err != nil {
+		if employee, err = employeeRepository.SafePreFirst(preloads, "user_id = ?", user.ID); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get employee.", nil)
 		}
 
-		userResult := schemas.ToUserResult(jwtAuthInfo.User, nil)
-		sessionResult := schemas.ToSessionResult(jwtAuthInfo.Session, userResult)
+		userResult := schemas.ToUserResult(user, nil)
+		sessionResult := schemas.ToSessionResult(session, userResult)
 		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
 			"session": sessionResult,
 		})
@@ -80,10 +86,15 @@ func LogoutHandler(DB *gorm.DB) echo.HandlerFunc {
 	sessionRepository := repositories.NewSessionRepository(DB)
 
 	return func(ctx echo.Context) error {
-		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+		var err error
+		var session *models.Session
+		nokocore.KeepVoid(err, session)
 
-		sessionId := jwtAuthInfo.Session.UUID
-		if err := sessionRepository.SafeDelete(jwtAuthInfo.Session, "uuid = ?", sessionId); err != nil {
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+		session = jwtAuthInfo.Session
+
+		sessionId := session.UUID
+		if err := sessionRepository.SafeDelete(session, "uuid = ?", sessionId); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to log out.", nil)
 		}
@@ -148,12 +159,37 @@ func RefreshTokenHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
+func DeleteOwnUserHandler(DB *gorm.DB) echo.HandlerFunc {
+	nokocore.KeepVoid(DB)
+
+	userRepository := repositories.NewUserRepository(DB)
+
+	return func(ctx echo.Context) error {
+		var err error
+		var user *models.User
+		nokocore.KeepVoid(err, user)
+
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+
+		user = jwtAuthInfo.User
+		if err = userRepository.SafeDelete(user, "uuid = ?", user.UUID); err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete user.", nil)
+		}
+
+		return extras.NewMessageBodyOk(ctx, "Successfully deleted.", &nokocore.MapAny{
+			"user": schemas.ToUserResult(user, nil),
+		})
+	}
+}
+
 func UserController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
 	group.GET("/profile", ProfileHandler(DB))
 	group.GET("/session", SessionHandler(DB))
 	group.POST("/logout", LogoutHandler(DB))
 	group.GET("/refresh-token", RefreshTokenHandler(DB))
+	group.DELETE("/me", DeleteOwnUserHandler(DB))
 
 	return group
 }

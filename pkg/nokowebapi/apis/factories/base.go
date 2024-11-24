@@ -27,7 +27,7 @@ func BaseFactory[T any](DB *gorm.DB, dummies []T, query string, cb func(dummy T)
 			}
 
 			if check != nil {
-				console.Warn(fmt.Sprintf("dummy '%s' already exists", tableNameType))
+				console.Warn(fmt.Sprintf("dummy '%s' already exists. (index=%d)", tableNameType, i))
 				continue
 			}
 
@@ -36,11 +36,12 @@ func BaseFactory[T any](DB *gorm.DB, dummies []T, query string, cb func(dummy T)
 				continue
 			}
 
-			console.Warn(fmt.Sprintf("dummy '%s' has been created", tableNameType))
+			console.Warn(fmt.Sprintf("dummy '%s' has been created. (index=%d)", tableNameType, i))
 			dummies[i] = dummy
+			continue
 		}
 
-		console.Warn(fmt.Sprintf("dummy '%s' has been skipped", tableNameType))
+		console.Warn(fmt.Sprintf("dummy '%s' has been skipped. (index=%d)", tableNameType, i))
 	}
 
 	return dummies

@@ -40,8 +40,9 @@ func ProfileHandler(DB *gorm.DB) echo.HandlerFunc {
 			shift = schemas2.ToShiftResult(&employee.Shift)
 		}
 
+		userResult := schemas.ToUserResult(&jwtAuthInfo.Session.User, nil)
 		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
-			"user":  schemas.ToUserResult(&jwtAuthInfo.Session.User, nil),
+			"user":  userResult,
 			"shift": shift,
 		})
 	}
@@ -66,8 +67,9 @@ func SessionHandler(DB *gorm.DB) echo.HandlerFunc {
 		}
 
 		userResult := schemas.ToUserResult(jwtAuthInfo.User, nil)
+		sessionResult := schemas.ToSessionResult(jwtAuthInfo.Session, userResult)
 		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
-			"session": schemas.ToSessionResult(jwtAuthInfo.Session, userResult),
+			"session": sessionResult,
 		})
 	}
 }

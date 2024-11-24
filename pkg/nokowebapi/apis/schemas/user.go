@@ -1,6 +1,7 @@
 package schemas
 
 import (
+	"github.com/google/uuid"
 	"nokowebapi/apis/models"
 	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
@@ -35,6 +36,7 @@ func ToUserModel(user *UserBody) *models.User {
 }
 
 type UserResult struct {
+	UUID      uuid.UUID       `mapstructure:"uuid" json:"uuid"`
 	FullName  string          `mapstructure:"full_name" json:"fullName"`
 	Username  string          `mapstructure:"username" json:"username"`
 	Email     string          `mapstructure:"email" json:"email"`
@@ -50,6 +52,7 @@ type UserResult struct {
 func ToUserResult(user *models.User, sessions []SessionResult) UserResult {
 	if user != nil {
 		return UserResult{
+			UUID:      user.UUID,
 			FullName:  user.FullName.String,
 			Username:  user.Username,
 			Email:     user.Email.String,

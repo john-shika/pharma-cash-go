@@ -2,7 +2,6 @@ package utils
 
 import (
 	"nokowebapi/nokocore"
-	"strings"
 )
 
 type RoleTypedOrStringImpl interface {
@@ -18,23 +17,8 @@ func GetRoleString[T RoleTypedOrStringImpl](role T) string {
 }
 
 func RoleIs[T UserOrJwtAuthInfoImpl, V nokocore.RoleTypedOrStringImpl](userOrJwtAuthInfo T, roles ...V) bool {
-	user := GetUser(userOrJwtAuthInfo)
-	if user != nil && len(roles) > 0 {
-		rolesUnpack := nokocore.RolesUnpack(user.Roles)
-		for i, roleExpected := range roles {
-			nokocore.KeepVoid(i)
-
-			for j, roleUnpack := range rolesUnpack {
-				nokocore.KeepVoid(j)
-
-				value := nokocore.ToRoleString(roleExpected)
-				if !strings.EqualFold(roleUnpack, value) {
-					return false
-				}
-			}
-		}
-
-		return true
+	if user := GetUser(userOrJwtAuthInfo); user != nil {
+		return nokocore.RolesIs(user.Roles, roles...)
 	}
 
 	return false

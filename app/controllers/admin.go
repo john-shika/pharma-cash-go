@@ -153,9 +153,47 @@ func CreateUserHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
+func GetManyUserHandler(DB *gorm.DB) echo.HandlerFunc {
+	nokocore.KeepVoid(DB)
+
+	userRepository := repositories.NewUserRepository(DB)
+
+	return func(ctx echo.Context) error {
+		var err error
+		var users []models.User
+		nokocore.KeepVoid(err, users)
+
+		if users, err = userRepository.SafeMany(0, -1, "1=1"); err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get users.", nil)
+		}
+
+		var userResults []schemas.UserResult
+		for i, user := range users {
+			nokocore.KeepVoid(i)
+
+			userResults = append(userResults, schemas.ToUserResult(&user, nil))
+		}
+
+		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
+			"users": userResults,
+		})
+	}
+}
+
+func RemoveUserHandler(DB *gorm.DB) echo.HandlerFunc {
+	nokocore.KeepVoid(DB)
+
+	return func(ctx echo.Context) error {
+		return nil
+	}
+}
+
 func AdminController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
 	group.POST("/user", CreateUserHandler(DB))
+	group.GET("/users", GetManyUserHandler(DB))
+	group.DELETE("/user", RemoveUserHandler(DB))
 
 	return group
 }

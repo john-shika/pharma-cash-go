@@ -56,7 +56,9 @@ func Main(args []string) nokocore.ExitCode {
 		},
 		Headers: []string{
 			"Accept",
+			"Accept-Encoding",
 			"Accept-Language",
+			"Authorization",
 			"Content-Language",
 			"Content-Length",
 			"Content-Type",

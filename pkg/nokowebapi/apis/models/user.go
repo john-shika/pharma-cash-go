@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"gorm.io/gorm"
 	"nokowebapi/nokocore"
-	"strings"
 )
 
 type User struct {
@@ -33,22 +32,9 @@ func (u *User) BeforeCreate(db *gorm.DB) (err error) {
 	}
 
 	if u.Admin {
-		roles := nokocore.RolesUnpack(u.Roles)
-		found := false
-		for i, role := range roles {
-			nokocore.KeepVoid(i)
-
-			if strings.EqualFold(role, string(nokocore.RoleAdmin)) {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			roles = append(roles, string(nokocore.RoleAdmin))
-			u.Roles = nokocore.RolesPack(roles)
-		}
+		u.Roles = nokocore.RolesApply(u.Roles, nokocore.RoleAdmin)
 	}
 
+	u.Roles = nokocore.RolesApply(u.Roles, nokocore.RoleUser)
 	return nil
 }

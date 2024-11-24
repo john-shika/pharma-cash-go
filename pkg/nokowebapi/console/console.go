@@ -226,41 +226,41 @@ func GetLogger(name string) LoggerImpl {
 }
 
 func Debug(msg string, fields ...zap.Field) {
-	logger := GetLogger("NokoWebApi.Console")
+	logger := GetLogger("Console")
 	logger.Debug(msg, fields...)
 }
 
 func Info(msg string, fields ...zap.Field) {
-	logger := GetLogger("NokoWebApi.Console")
+	logger := GetLogger("Console")
 	logger.Info(msg, fields...)
 }
 
 func Dir(obj any, fields ...zap.Field) {
-	logger := GetLogger("NokoWebApi.Console")
+	logger := GetLogger("Console")
 	logger.Dir(obj, fields...)
 }
 
 func Log(level zapcore.Level, msg string, fields ...zap.Field) {
-	logger := GetLogger("NokoWebApi.Console")
+	logger := GetLogger("Console")
 	logger.Log(level, msg, fields...)
 }
 
 func Warn(msg string, fields ...zap.Field) {
-	logger := GetLogger("NokoWebApi.Console")
+	logger := GetLogger("Console")
 	logger.Warn(msg, fields...)
 }
 
 func Error(msg string, fields ...zap.Field) {
-	logger := GetLogger("NokoWebApi.Console")
+	logger := GetLogger("Console")
 	logger.Error(msg, fields...)
 }
 
 func Panic(msg string, fields ...zap.Field) {
-	logger := GetLogger("NokoWebApi.Console")
+	logger := GetLogger("Console")
 	logger.Panic(msg, fields...)
 }
 
 func Fatal(msg string, fields ...zap.Field) {
-	logger := GetLogger("NokoWebApi.Console")
+	logger := GetLogger("Console")
 	logger.Fatal(msg, fields...)
 }

@@ -101,8 +101,7 @@ func ValidateStruct(value any) error {
 	switch val.Kind() {
 	case reflect.Struct:
 		options := NewForEachStructFieldsOptions()
-		errorStack := make([]error, 0)
-
+		var errorStack []error
 		err = ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExImpl) error {
 			err = func() error {
 				vField := sFieldX.GetValue()
@@ -300,7 +299,7 @@ func ValidateStruct(value any) error {
 		}
 
 		if len(errorStack) > 0 {
-			fields := make([]string, 0)
+			var fields []string
 			for i, err := range errorStack {
 				KeepVoid(i)
 
@@ -497,7 +496,7 @@ func ValidatePassword(value any) error {
 		//if err = CheckPassword(val.String()); err != nil {
 		//	var validateErr *ValidateError
 		//	if errors.As(err, &validateErr) {
-		//		fields := make([]string, 0)
+		//		var fields []string
 		//		for i, field := range validateErr.Fields() {
 		//			nokocore.KeepVoid(i)
 		//

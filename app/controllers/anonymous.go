@@ -111,9 +111,10 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 		}
 
 		roles = nokocore.RolesUnpack(user.Roles)
+		userResult := schemas.ToUserResult(user, nil)
 		return extras.NewMessageBodyOk(ctx, "Successfully logged in.", &nokocore.MapAny{
 			"accessToken": jwtToken,
-			"user":        schemas.ToUserResult(user, nil),
+			"user":        userResult,
 			"shift":       shift,
 		})
 	}

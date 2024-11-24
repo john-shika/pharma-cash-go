@@ -29,7 +29,8 @@ func NoErr(err error) {
 }
 
 func Copy[T any](values []T) []T {
-	temp := make([]T, len(values))
+	size := len(values)
+	temp := make([]T, size)
 	copy(temp, values)
 	return temp
 }
@@ -345,11 +346,11 @@ func IsNoneOrEmptyWhiteSpace(value any) bool {
 	}
 	temp := strings.TrimSpace(ToString(value))
 	if temp != "" {
-		for i, c := range temp {
+		for i, character := range temp {
 			KeepVoid(i)
 
 			// maybe some character is not white space
-			if !strings.Contains(WhiteSpace, string(c)) {
+			if !strings.Contains(WhiteSpace, string(character)) {
 				return false
 			}
 		}
@@ -482,20 +483,26 @@ func (m Map[T]) Len() int {
 }
 
 func (m Map[T]) Keys() []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
+	size := len(m)
+	keys := make([]string, 0, size)
+	for k, v := range m {
+		KeepVoid(k, v)
+
 		keys = append(keys, k)
 	}
+
 	return keys
 }
 
 func (m Map[T]) Values() []T {
-	values := make([]T, 0, len(m))
-	for i, v := range m {
-		KeepVoid(i, v)
+	size := len(m)
+	values := make([]T, 0, size)
+	for k, v := range m {
+		KeepVoid(k, v)
 
 		values = append(values, v)
 	}
+
 	return values
 }
 

@@ -18,7 +18,7 @@ func UserFactory(DB *gorm.DB) []models.User {
 			Password: "Admin@1234",
 			FullName: sqlx.NewString("John, Doe"),
 			Email:    sqlx.NewString("admin@example.com"),
-			Phone:    sqlx.NewString("+62 812-3456-7890"),
+			Phone:    sqlx.NewString("0 000-0000-0000-0000"),
 			Admin:    true,
 			Level:    1,
 		},
@@ -27,9 +27,9 @@ func UserFactory(DB *gorm.DB) []models.User {
 			Password: "User@1234",
 			FullName: sqlx.NewString("Angeline, Rose"),
 			Email:    sqlx.NewString("user@example.com"),
-			Phone:    sqlx.NewString("+62 823-4567-8901"),
+			Phone:    sqlx.NewString("0 000-0000-0000-0001"),
 			Admin:    false,
-			Level:    1,
+			Level:    0,
 		},
 	}
 

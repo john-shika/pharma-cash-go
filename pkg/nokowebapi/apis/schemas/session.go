@@ -8,11 +8,11 @@ import (
 )
 
 type SessionBody struct {
-	UserID    uuid.UUID `json:"userId" yaml:"user_id" form:"user_id" validate:"uuid"`
-	TokenId   string    `json:"tokenId" yaml:"token_id" form:"token_id" validate:"uuid"`
-	IPAddress string    `json:"ipAddr" yaml:"ip_addr" form:"ip_addr" validate:"ipaddr"`
-	UserAgent string    `json:"userAgent" yaml:"user_agent" form:"user_agent" validate:"ascii"`
-	Expires   string    `json:"expires" yaml:"expires" form:"expires" validate:"datetime"`
+	UserID    uuid.UUID `mapstructure:"user_id" json:"userId" form:"user_id" validate:"uuid"`
+	TokenId   string    `mapstructure:"token_id" json:"tokenId" form:"token_id" validate:"uuid"`
+	IPAddress string    `mapstructure:"ip_addr" json:"ipAddr" form:"ip_addr" validate:"ipaddr"`
+	UserAgent string    `mapstructure:"user_agent" json:"userAgent" form:"user_agent" validate:"ascii"`
+	Expires   string    `mapstructure:"expires" json:"expires" form:"expires" validate:"datetime"`
 }
 
 func ToSessionModel(session *SessionBody, userId int, expires time.Time) *models.Session {
@@ -26,15 +26,15 @@ func ToSessionModel(session *SessionBody, userId int, expires time.Time) *models
 }
 
 type SessionResult struct {
-	UserID         uuid.UUID  `json:"userId" yaml:"user_id"`
-	TokenId        string     `json:"tokenId" yaml:"token_id"`
-	RefreshTokenId string     `json:"refreshTokenId" yaml:"refresh_token_id"`
-	IPAddress      string     `json:"ipAddr" yaml:"ip_addr"`
-	UserAgent      string     `json:"userAgent" yaml:"user_agent"`
-	Expires        string     `json:"expires" yaml:"expires"`
-	CreatedAt      string     `json:"createdAt" yaml:"created_at"`
-	UpdatedAt      string     `json:"updatedAt" yaml:"updated_at"`
-	User           UserResult `json:"user" yaml:"user"`
+	UserID         uuid.UUID  `mapstructure:"user_id" json:"userId"`
+	TokenId        string     `mapstructure:"token_id" json:"tokenId"`
+	RefreshTokenId string     `mapstructure:"refresh_token_id" json:"refreshTokenId"`
+	IPAddress      string     `mapstructure:"ip_addr" json:"ipAddr"`
+	UserAgent      string     `mapstructure:"user_agent" json:"userAgent"`
+	Expires        string     `mapstructure:"expires" json:"expires"`
+	CreatedAt      string     `mapstructure:"created_at" json:"createdAt"`
+	UpdatedAt      string     `mapstructure:"updated_at" json:"updatedAt"`
+	User           UserResult `mapstructure:"user" json:"user"`
 }
 
 func ToSessionResult(session *models.Session, user UserResult) SessionResult {

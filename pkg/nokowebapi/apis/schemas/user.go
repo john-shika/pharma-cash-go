@@ -7,14 +7,14 @@ import (
 )
 
 type UserBody struct {
-	FullName string   `json:"fullName" yaml:"full_name" form:"full_name" validate:"ascii,omitempty"`
-	Username string   `json:"username" yaml:"username" form:"username" validate:"ascii"`
-	Password string   `json:"password" yaml:"password" form:"password" validate:"password"`
-	Email    string   `json:"email" yaml:"email" form:"email" validate:"email,omitempty"`
-	Phone    string   `json:"phone" yaml:"phone" form:"phone" validate:"phone,omitempty"`
-	Admin    bool     `json:"admin" yaml:"admin" form:"admin" validate:"boolean,omitempty"`
-	Roles    []string `json:"roles" yaml:"roles" form:"roles" validate:"omitempty"`
-	Level    int      `json:"level" yaml:"level" form:"level" validate:"number,min=0,max=99,omitempty"` // FUTURE: can handle min=N,max=N
+	FullName string   `mapstructure:"full_name" json:"fullName" form:"full_name" validate:"ascii,omitempty"`
+	Username string   `mapstructure:"username" json:"username" form:"username" validate:"ascii"`
+	Password string   `mapstructure:"password" json:"password" form:"password" validate:"password"`
+	Email    string   `mapstructure:"email" json:"email" form:"email" validate:"email,omitempty"`
+	Phone    string   `mapstructure:"phone" json:"phone" form:"phone" validate:"phone,omitempty"`
+	Admin    bool     `mapstructure:"admin" json:"admin" form:"admin" validate:"boolean,omitempty"`
+	Roles    []string `mapstructure:"roles" json:"roles" form:"roles" validate:"omitempty"`
+	Level    int      `mapstructure:"level" json:"level" form:"level" validate:"number,min=0,max=99,omitempty"` // FUTURE: can handle min=N,max=N
 }
 
 func ToUserModel(user *UserBody) *models.User {
@@ -31,16 +31,16 @@ func ToUserModel(user *UserBody) *models.User {
 }
 
 type UserResult struct {
-	FullName  string          `json:"fullName" yaml:"full_name"`
-	Username  string          `json:"username" yaml:"username"`
-	Email     string          `json:"email" yaml:"email"`
-	Phone     string          `json:"phone" yaml:"phone"`
-	Admin     bool            `json:"admin" yaml:"admin"`
-	Roles     []string        `json:"roles" yaml:"roles"`
-	Level     int             `json:"level" yaml:"level"`
-	CreatedAt string          `json:"createdAt" yaml:"created_at"`
-	UpdatedAt string          `json:"updatedAt" yaml:"updated_at"`
-	Sessions  []SessionResult `json:"sessions" yaml:"sessions"`
+	FullName  string          `mapstructure:"full_name" json:"fullName"`
+	Username  string          `mapstructure:"username" json:"username"`
+	Email     string          `mapstructure:"email" json:"email"`
+	Phone     string          `mapstructure:"phone" json:"phone"`
+	Admin     bool            `mapstructure:"admin" json:"admin"`
+	Roles     []string        `mapstructure:"roles" json:"roles"`
+	Level     int             `mapstructure:"level" json:"level"`
+	CreatedAt string          `mapstructure:"created_at" json:"createdAt"`
+	UpdatedAt string          `mapstructure:"updated_at" json:"updatedAt"`
+	Sessions  []SessionResult `mapstructure:"sessions" json:"sessions"`
 }
 
 func ToUserResult(user *models.User, sessions []SessionResult) UserResult {

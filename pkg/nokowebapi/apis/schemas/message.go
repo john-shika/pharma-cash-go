@@ -5,11 +5,11 @@ import (
 )
 
 type MessageBody struct {
-	StatusOk   bool   `mapstructure:"status_ok" json:"statusOk,required" yaml:"status_ok"`
-	StatusCode int    `mapstructure:"status_code" json:"statusCode,required" yaml:"status_code"`
-	Status     string `mapstructure:"status" json:"status,required" yaml:"status"`
-	Message    string `mapstructure:"message" json:"message,required" yaml:"message"`
-	Data       any    `mapstructure:"data" json:"data,required" yaml:"data"`
+	StatusOk   bool   `mapstructure:"status_ok" json:"statusOk,required"`
+	StatusCode int    `mapstructure:"status_code" json:"statusCode,required"`
+	Status     string `mapstructure:"status" json:"status,required"`
+	Message    string `mapstructure:"message" json:"message,required"`
+	Data       any    `mapstructure:"data" json:"data,required"`
 }
 
 func NewMessageBody(statusOk bool, statusCode int, status string, message string, data any) *MessageBody {

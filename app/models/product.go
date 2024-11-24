@@ -22,6 +22,6 @@ type Product struct {
 	UnitResidu       float32 `db:"unitResidu" gorm:"unique;not null;index;" mapstructure:"unitResidu" json:"unitResidu" yaml:"unitResidu"`
 }
 
-func (Product) TableName() string {
+func (p *Product) TableName() string {
 	return "products"
 }

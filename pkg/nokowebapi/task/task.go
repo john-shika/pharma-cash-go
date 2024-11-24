@@ -20,8 +20,8 @@ type DependsOnConfigParamsImpl interface {
 }
 
 type DependsOnConfigParams struct {
-	Iterations int           `mapstructure:"iterations" json:"iterations" yaml:"iterations"`
-	Duration   time.Duration `mapstructure:"duration" json:"duration" yaml:"duration"`
+	Iterations int           `mapstructure:"iterations" json:"iterations"`
+	Duration   time.Duration `mapstructure:"duration" json:"duration"`
 }
 
 func NewDependsOnConfigParams(iterations int, duration time.Duration) *DependsOnConfigParams {
@@ -48,9 +48,9 @@ type DependsOnTaskConfigImpl[T any] interface {
 // DependsOnTaskConfig struct, T any can be string or *Config itself.
 // Keep in mind, parsing by viper config file, declare T must be string.
 type DependsOnTaskConfig[T any] struct {
-	Target T                      `mapstructure:"target" json:"target" yaml:"target"`
-	Waiter string                 `mapstructure:"waiter" json:"waiter" yaml:"waiter"`
-	Params *DependsOnConfigParams `mapstructure:"params" json:"params" yaml:"params"`
+	Target T                      `mapstructure:"target" json:"target"`
+	Waiter string                 `mapstructure:"waiter" json:"waiter"`
+	Params *DependsOnConfigParams `mapstructure:"params" json:"params"`
 }
 
 func NewDependsOnTaskConfig[T any](target T, waiter string, params DependsOnConfigParamsImpl) DependsOnTaskConfigImpl[T] {
@@ -109,16 +109,16 @@ type ConfigImpl interface {
 }
 
 type Config struct {
-	Name      string                         `mapstructure:"name" json:"name" yaml:"name"`
-	Exec      string                         `mapstructure:"exec" json:"exec" yaml:"exec"`
-	Args      []string                       `mapstructure:"args" json:"args" yaml:"args"`
-	Workdir   string                         `mapstructure:"workdir" json:"workdir" yaml:"workdir"`
-	Environ   []string                       `mapstructure:"environ" json:"environ" yaml:"environ"`
-	Stdin     string                         `mapstructure:"stdin" json:"stdin" yaml:"stdin"`
-	Stdout    string                         `mapstructure:"stdout" json:"stdout" yaml:"stdout"`
-	Stderr    string                         `mapstructure:"stderr" json:"stderr" yaml:"stderr"`
-	Network   *nokocore.NetworkConfig        `mapstructure:"network" json:"network" yaml:"network"`
-	DependsOn []*DependsOnTaskConfig[string] `mapstructure:"depends_on" json:"dependsOn" yaml:"depends_on"`
+	Name      string                         `mapstructure:"name" json:"name"`
+	Exec      string                         `mapstructure:"exec" json:"exec"`
+	Args      []string                       `mapstructure:"args" json:"args"`
+	Workdir   string                         `mapstructure:"workdir" json:"workdir"`
+	Environ   []string                       `mapstructure:"environ" json:"environ"`
+	Stdin     string                         `mapstructure:"stdin" json:"stdin"`
+	Stdout    string                         `mapstructure:"stdout" json:"stdout"`
+	Stderr    string                         `mapstructure:"stderr" json:"stderr"`
+	Network   *nokocore.NetworkConfig        `mapstructure:"network" json:"network"`
+	DependsOn []*DependsOnTaskConfig[string] `mapstructure:"depends_on" json:"dependsOn"`
 }
 
 func NewConfig(name string, exec string, args []string, workdir string, environ []string, stdin string, stdout string, stderr string, network *nokocore.NetworkConfig, dependsOn []*DependsOnTaskConfig[string]) ConfigImpl {

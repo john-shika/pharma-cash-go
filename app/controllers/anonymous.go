@@ -18,9 +18,7 @@ func MessageHandler(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	return func(ctx echo.Context) error {
-		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
-			"message": "Hay!",
-		})
+		return extras.NewMessageBodyOk(ctx, "Hai\x21", nil)
 	}
 }
 
@@ -101,16 +99,8 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 
 		roles = nokocore.RolesUnpack(user.Roles)
 		return extras.NewMessageBodyOk(ctx, "Successfully logged in.", &nokocore.MapAny{
-			"token": jwtToken,
-			"user": nokocore.MapAny{
-				"fullname": user.FullName.String,
-				"username": user.Username,
-				"email":    user.Email.String,
-				"phone":    user.Phone.String,
-				"admin":    user.Admin,
-				"roles":    roles,
-				"level":    user.Level,
-			},
+			"accessToken": jwtToken,
+			"user":        schemas.ToUserResult(user, nil),
 		})
 	}
 }

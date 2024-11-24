@@ -3,15 +3,11 @@ package factories
 import (
 	"gorm.io/gorm"
 	"nokowebapi/apis/factories"
-	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
 	"pharma-cash-go/app/models"
 )
 
 func ShiftFactory(DB *gorm.DB) []models.Shift {
-	var err error
-	nokocore.KeepVoid(err)
-
 	shifts := []models.Shift{
 		{
 			Name:      "Day Shift",

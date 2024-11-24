@@ -84,6 +84,9 @@ func Main(args []string) nokocore.ExitCode {
 	// http error handling
 	e.HTTPErrorHandler = extras.EchoHTTPErrorHandler()
 
+	// create group rest api
+	group := e.Group("/api/v1")
+
 	/// Echo Configs End
 
 	config := &gorm.Config{
@@ -96,21 +99,17 @@ func Main(args []string) nokocore.ExitCode {
 		return nokocore.ExitCodeFailure
 	}
 
-	// START TABLES
+	// START DATABASE Auto Migrations
 
-	tables := Tables()
+	DBAutoMigrations(DB)
 
-	// END TABLES
-
-	apis.DBAutoMigrations(DB, tables)
+	// END DATABASE Auto Migrations
 
 	/// START FACTORIES
 
 	Factories(DB)
 
 	/// END FACTORIES
-
-	group := e.Group("/api/v1")
 
 	// START CONTROLLERS
 

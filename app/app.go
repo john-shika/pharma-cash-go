@@ -3,6 +3,7 @@ package app
 import (
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
+	"nokowebapi/apis"
 	"nokowebapi/apis/middlewares"
 	"pharma-cash-go/app/controllers"
 	"pharma-cash-go/app/factories"
@@ -27,10 +28,12 @@ func Factories(DB *gorm.DB) []any {
 	}
 }
 
-func Tables() []any {
-	return []any{
+func DBAutoMigrations(DB *gorm.DB) {
+	tables := []any{
 		&models.Product{},
 		&models.Employee{},
 		&models.Shift{},
 	}
+
+	apis.DBAutoMigrations(DB, tables)
 }

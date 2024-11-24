@@ -4,14 +4,10 @@ import (
 	"gorm.io/gorm"
 	"nokowebapi/apis/factories"
 	"nokowebapi/apis/models"
-	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
 )
 
 func UserFactory(DB *gorm.DB) []models.User {
-	var err error
-	nokocore.KeepVoid(err)
-
 	users := []models.User{
 		{
 			Username: "admin",

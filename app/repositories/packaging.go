@@ -20,7 +20,7 @@ func CreatePackaging(DB *gorm.DB) echo.HandlerFunc {
 			return extras.NewMessageBodyBadRequest(ctx, "Invalid request body.", err)
 		}
 
-		if err = DB.Save(&packaging).Error; err != nil {
+		if err = DB.Create(&packaging).Error; err != nil {
 			fmt.Println(err)
 
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to create packaging.", nil)

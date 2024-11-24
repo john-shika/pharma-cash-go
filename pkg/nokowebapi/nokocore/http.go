@@ -286,6 +286,14 @@ func GetValueFromHttpStatusCode(code HttpStatusCode) HttpStatusCodeValue {
 	}
 }
 
+func (statusCode HttpStatusCode) ToInt() int {
+	return int(statusCode)
+}
+
+func (statusCode HttpStatusCode) ToString() string {
+	return string(GetValueFromHttpStatusCode(statusCode))
+}
+
 func ParseHttpStatusCode(value string) HttpStatusCode {
 	switch HttpStatusCodeValue(ToSnakeCaseUpper(value)) {
 	case HttpStatusCodeValueContinue:

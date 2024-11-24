@@ -1,6 +1,7 @@
 package schemas
 
 import (
+	"github.com/google/uuid"
 	"nokowebapi/apis/models"
 	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
@@ -18,19 +19,24 @@ type UserBody struct {
 }
 
 func ToUserModel(user *UserBody) *models.User {
-	return &models.User{
-		FullName: sqlx.NewString(user.FullName),
-		Username: user.Username,
-		Password: user.Password,
-		Email:    sqlx.NewString(user.Email),
-		Phone:    sqlx.NewString(user.Phone),
-		Admin:    user.Admin,
-		Roles:    nokocore.RolesPack(user.Roles),
-		Level:    user.Level,
+	if user != nil {
+		return &models.User{
+			FullName: sqlx.NewString(user.FullName),
+			Username: user.Username,
+			Password: user.Password,
+			Email:    sqlx.NewString(user.Email),
+			Phone:    sqlx.NewString(user.Phone),
+			Admin:    user.Admin,
+			Roles:    nokocore.RolesPack(user.Roles),
+			Level:    user.Level,
+		}
 	}
+
+	return nil
 }
 
 type UserResult struct {
+	UUID      uuid.UUID       `mapstructure:"uuid" json:"uuid"`
 	FullName  string          `mapstructure:"full_name" json:"fullName"`
 	Username  string          `mapstructure:"username" json:"username"`
 	Email     string          `mapstructure:"email" json:"email"`
@@ -40,20 +46,31 @@ type UserResult struct {
 	Level     int             `mapstructure:"level" json:"level"`
 	CreatedAt string          `mapstructure:"created_at" json:"createdAt"`
 	UpdatedAt string          `mapstructure:"updated_at" json:"updatedAt"`
-	Sessions  []SessionResult `mapstructure:"sessions" json:"sessions"`
+	DeletedAt string          `mapstructure:"deleted_at" json:"deletedAt,omitempty"`
+	Sessions  []SessionResult `mapstructure:"sessions" json:"sessions,omitempty"`
 }
 
 func ToUserResult(user *models.User, sessions []SessionResult) UserResult {
-	return UserResult{
-		FullName:  user.FullName.String,
-		Username:  user.Username,
-		Email:     user.Email.String,
-		Phone:     user.Phone.String,
-		Admin:     user.Admin,
-		Roles:     nokocore.RolesUnpack(user.Roles),
-		Level:     user.Level,
-		CreatedAt: nokocore.ToTimeUtcStringISO8601(user.CreatedAt),
-		UpdatedAt: nokocore.ToTimeUtcStringISO8601(user.UpdatedAt),
-		Sessions:  sessions,
+	var deletedAt string
+	if user != nil {
+		if user.DeletedAt.Valid {
+			deletedAt = nokocore.ToTimeUtcStringISO8601(user.DeletedAt.Time)
+		}
+		return UserResult{
+			UUID:      user.UUID,
+			FullName:  user.FullName.String,
+			Username:  user.Username,
+			Email:     user.Email.String,
+			Phone:     user.Phone.String,
+			Admin:     user.Admin,
+			Roles:     nokocore.RolesUnpack(user.Roles),
+			Level:     user.Level,
+			CreatedAt: nokocore.ToTimeUtcStringISO8601(user.CreatedAt),
+			UpdatedAt: nokocore.ToTimeUtcStringISO8601(user.UpdatedAt),
+			DeletedAt: deletedAt,
+			Sessions:  sessions,
+		}
 	}
+
+	return UserResult{}
 }

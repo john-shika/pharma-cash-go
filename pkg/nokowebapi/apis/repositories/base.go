@@ -8,7 +8,6 @@ import (
 	"gorm.io/gorm"
 	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
-	"time"
 )
 
 type BaseRepositoryImpl[T any] interface {
@@ -333,7 +332,7 @@ func (b *BaseRepository[T]) SafeCreate(schema *T) error {
 			return nil
 		}
 
-		return fmt.Errorf("no rows affected in '%s' table", tableNameType)
+		return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
 	}
 
 	return errors.New("invalid value")
@@ -363,7 +362,7 @@ func (b *BaseRepository[T]) Create(schema *T) error {
 			return nil
 		}
 
-		return fmt.Errorf("no rows affected in '%s' table", tableNameType)
+		return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
 	}
 
 	return errors.New("invalid value")
@@ -378,6 +377,18 @@ func (b *BaseRepository[T]) SafeUpdate(schema *T, query string, args ...any) err
 
 	if schema != nil {
 		tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(schema))
+		timeUtcNow := nokocore.GetTimeUtcNow()
+
+		// using mapstructure to inject any values
+		err = mapstructure.Decode(nokocore.MapAny{
+			"BaseModel": nokocore.MapAny{
+				"updated_at": timeUtcNow,
+			},
+		}, schema)
+
+		if err != nil {
+			return errors.New(fmt.Sprintf("failed to inject values into '%s' table", tableNameType))
+		}
 
 		id = nokocore.GetValueWithSuperKey(schema, "BaseModel.id").(int)
 		identity = nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
@@ -400,29 +411,6 @@ func (b *BaseRepository[T]) SafeUpdate(schema *T, query string, args ...any) err
 		}
 
 		if check != nil {
-			id = nokocore.GetValueWithSuperKey(check, "BaseModel.id").(int)
-			identity = nokocore.GetValueWithSuperKey(check, "BaseModel.uuid").(uuid.UUID)
-
-			// keep it
-			createdAt := nokocore.GetValueWithSuperKey(check, "BaseModel.created_at").(time.Time)
-			deletedAt := gorm.DeletedAt{}
-
-			// using mapstructure to inject any values
-			timeUtcNow := nokocore.GetTimeUtcNow()
-			err = mapstructure.Decode(nokocore.MapAny{
-				"BaseModel": nokocore.MapAny{
-					"id":         id,
-					"uuid":       identity,
-					"created_at": createdAt,
-					"updated_at": timeUtcNow,
-					"deleted_at": deletedAt,
-				},
-			}, schema)
-
-			if err != nil {
-				return errors.New(fmt.Sprintf("failed to inject values into '%s' table", tableNameType))
-			}
-
 			tx := b.DB.Save(schema)
 			if err = tx.Error; err != nil {
 				return errors.New(fmt.Sprintf("failed to update '%s' table", tableNameType))
@@ -443,17 +431,30 @@ func (b *BaseRepository[T]) SafeUpdate(schema *T, query string, args ...any) err
 
 func (b *BaseRepository[T]) Update(schema *T, query string, args ...any) error {
 	var err error
-	var identity uuid.UUID
 	var id int
+	var identity uuid.UUID
 	var check *T
 	nokocore.KeepVoid(err, id, identity, check)
 
 	if schema != nil {
 		tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(schema))
+		timeUtcNow := nokocore.GetTimeUtcNow()
 
+		// using mapstructure to inject any values
+		err = mapstructure.Decode(nokocore.MapAny{
+			"BaseModel": nokocore.MapAny{
+				"updated_at": timeUtcNow,
+			},
+		}, schema)
+
+		if err != nil {
+			return errors.New(fmt.Sprintf("failed to inject values into '%s' table", tableNameType))
+		}
+
+		id = nokocore.GetValueWithSuperKey(schema, "BaseModel.id").(int)
 		identity = nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
 
-		if identity != uuid.Nil {
+		if id != 0 && identity != uuid.Nil {
 			tx := b.DB.Unscoped().Save(schema)
 			if err = tx.Error; err != nil {
 				return errors.New(fmt.Sprintf("failed to update '%s' table", tableNameType))
@@ -471,29 +472,6 @@ func (b *BaseRepository[T]) Update(schema *T, query string, args ...any) error {
 		}
 
 		if check != nil {
-			id = nokocore.GetValueWithSuperKey(check, "BaseModel.id").(int)
-			identity = nokocore.GetValueWithSuperKey(check, "BaseModel.uuid").(uuid.UUID)
-
-			// keep it
-			createdAt := nokocore.GetValueWithSuperKey(check, "BaseModel.created_at").(time.Time)
-			deletedAt := nokocore.GetValueWithSuperKey(check, "BaseModel.deleted_at").(gorm.DeletedAt)
-
-			// using mapstructure to inject any values
-			timeUtcNow := nokocore.GetTimeUtcNow()
-			err = mapstructure.Decode(nokocore.MapAny{
-				"BaseModel": nokocore.MapAny{
-					"id":         id,
-					"uuid":       identity,
-					"created_at": createdAt,
-					"updated_at": timeUtcNow,
-					"deleted_at": deletedAt,
-				},
-			}, schema)
-
-			if err != nil {
-				return errors.New(fmt.Sprintf("failed to inject values into '%s' table", tableNameType))
-			}
-
 			tx := b.DB.Unscoped().Save(schema)
 			if err = tx.Error; err != nil {
 				return errors.New(fmt.Sprintf("failed to update '%s' table", tableNameType))

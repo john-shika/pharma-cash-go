@@ -211,8 +211,8 @@ func GetConfigGlobals[T any]() *T {
 	case reflect.Struct:
 		options := nokocore.NewForEachStructFieldsOptions()
 
-		nokocore.KeepVoid(nokocore.ForEachStructFieldsReflect(config, options, func(name string, sFieldX nokocore.StructFieldExImpl) error {
-			if sFieldX.IsZero() {
+		nokocore.NoErr(nokocore.ForEachStructFieldsReflect(config, options, func(name string, sFieldX nokocore.StructFieldExImpl) error {
+			if sFieldX.IsZero() && sFieldX.Kind() != reflect.Bool {
 				val := nokocore.PassValueIndirectReflect(nokocore.GetMapValueReflect(locals, name))
 				//nokocore.SetValueReflect(sFieldX.GetValue(), val)
 				sFieldX.Set(val)

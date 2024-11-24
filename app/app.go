@@ -1,0 +1,45 @@
+package app
+
+import (
+	"github.com/labstack/echo/v4"
+	"gorm.io/gorm"
+	"nokowebapi/apis"
+	"nokowebapi/apis/middlewares"
+	"pharma-cash-go/app/controllers"
+	"pharma-cash-go/app/factories"
+	"pharma-cash-go/app/models"
+)
+
+func Controllers(group *echo.Group, DB *gorm.DB) []*echo.Group {
+	auth := group.Group("/auth")
+	auth.Use(middlewares.JWTAuth(DB))
+
+	return []*echo.Group{
+		controllers.GuestController(group, DB),
+		controllers.UserController(auth, DB),
+		controllers.AdminController(auth, DB),
+		controllers.ProductController(auth, DB),
+		controllers.UnitController(auth, DB),
+		controllers.PackagingController(auth, DB),
+	}
+}
+
+func Factories(DB *gorm.DB) []any {
+	return []any{
+		factories.UserFactory(DB),
+		factories.ShiftFactory(DB),
+	}
+}
+
+func DBAutoMigrations(DB *gorm.DB) {
+	tables := []any{
+		&models.Product{},
+		&models.Employee{},
+		&models.Shift{},
+		&models.Product{},
+		&models.Packaging{},
+		&models.Unit{},
+	}
+
+	apis.DBAutoMigrations(DB, tables)
+}

@@ -179,10 +179,9 @@ func (p *Process) SetEnv(key, value string) bool {
 
 func (p *Process) DelEnv(key string) bool {
 	var found bool
-	nokocore.KeepVoid(found)
-
-	temp := make([]string, 0)
-
+	var temp []string
+	nokocore.KeepVoid(found, temp)
+	
 	if p.HasEnv(key) {
 		for i, env := range p.environ {
 			nokocore.KeepVoid(i)

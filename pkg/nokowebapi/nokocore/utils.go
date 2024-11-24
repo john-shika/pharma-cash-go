@@ -87,7 +87,7 @@ func CreateEmptyFile(path string) error {
 	// Check if the directory exists, and create it if it doesn't
 	if fileInfo, err = os.Stat(dirPath); os.IsNotExist(err) {
 		if err = os.MkdirAll(dirPath, os.ModePerm); err != nil {
-			return fmt.Errorf("[OS] Failed to create directory: %s. %w", dirPath, err)
+			return fmt.Errorf("[OS] Failed to create directory: %s, %w", dirPath, err)
 		}
 
 		fmt.Printf("[OS] Directory %s created.\n", dirPath)
@@ -100,7 +100,7 @@ func CreateEmptyFile(path string) error {
 	// Check if the file exists, and create it if it doesn't
 	if fileInfo, err = os.Stat(path); os.IsNotExist(err) {
 		if file, err = os.Create(path); err != nil {
-			return fmt.Errorf("[OS] Failed to create file: %s. %w", filePath, err)
+			return fmt.Errorf("[OS] Failed to create file: %s, %w", filePath, err)
 		}
 
 		fmt.Printf("[OS] File %s has been created.\n", filePath)
@@ -133,12 +133,17 @@ func GetNameType(obj any) string {
 }
 
 func ParseEnvToBool(value string) bool {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "1", "y", "yes", "true":
-		return true
-	default:
-		return false
+	if value = strings.TrimSpace(value); value != "" {
+		switch strings.ToLower(value) {
+		case "1", "y", "yes", "true":
+			return true
+
+		default:
+			return false
+		}
 	}
+
+	return false
 }
 
 func ParseEnvToInt(value string) int64 {
@@ -219,4 +224,30 @@ func BytesToUtf16(b []byte) []uint16 {
 
 func Utf16ToBytes(b []uint16) []byte {
 	return []byte(Utf16ToString(b))
+}
+
+func ToFileSizeFormat(size int64) string {
+	const (
+		KB = 1 << 10
+		MB = 1 << 20
+		GB = 1 << 30
+		TB = 1 << 40
+	)
+
+	switch {
+	case size >= TB:
+		return fmt.Sprintf("%.2f TB", float64(size)/TB)
+
+	case size >= GB:
+		return fmt.Sprintf("%.2f GB", float64(size)/GB)
+
+	case size >= MB:
+		return fmt.Sprintf("%.2f MB", float64(size)/MB)
+
+	case size >= KB:
+		return fmt.Sprintf("%.2f KB", float64(size)/KB)
+
+	default:
+		return fmt.Sprintf("%d B", size)
+	}
 }

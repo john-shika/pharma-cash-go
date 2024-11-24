@@ -1,12 +1,15 @@
 package bigfloat
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"math/big"
+	"nokowebapi/nokocore"
 	"strconv"
 )
 
 type Impl interface {
+	Value() (driver.Value, error)
 	Scan(s fmt.ScanState, ch rune) error
 	MarshalBinary() (data []byte, err error)
 	UnmarshalBinary(data []byte) (err error)
@@ -15,6 +18,7 @@ type Impl interface {
 	MarshalJSON() (data []byte, err error)
 	UnmarshalJSON(data []byte) (err error)
 	String() string
+	ToString() string
 
 	SetPrec(prec uint) *big.Float
 	SetMode(mode big.RoundingMode) *big.Float
@@ -56,38 +60,44 @@ type Impl interface {
 }
 
 type BigFloat struct {
-	Value *big.Float
+	*big.Float
 }
 
 func New(value float64) Impl {
 	return &BigFloat{
-		Value: new(big.Float).SetFloat64(value),
+		Float: new(big.Float).SetFloat64(value),
 	}
 }
 
-func (b *BigFloat) Scan(s fmt.ScanState, ch rune) error {
-	return b.Value.Scan(s, ch)
+func (b BigFloat) Value() (driver.Value, error) {
+	return b.Float.MarshalText(), nil
 }
 
-func (b *BigFloat) MarshalBinary() (data []byte, err error) {
-	return b.Value.GobEncode()
+func (b *BigFloat) Scan(s fmt.ScanState, ch rune) error {
+	return b.Float.Scan(s, ch)
+}
+
+func (b BigFloat) MarshalBinary() (data []byte, err error) {
+	return b.Float.GobEncode()
 }
 
 func (b *BigFloat) UnmarshalBinary(data []byte) (err error) {
-	return b.Value.GobDecode(data)
+	return b.Float.GobDecode(data)
 }
 
-func (b *BigFloat) MarshalText() (text []byte, err error) {
-	return b.Value.MarshalText()
+func (b BigFloat) MarshalText() (text []byte, err error) {
+	return b.Float.MarshalText()
 }
 
 func (b *BigFloat) UnmarshalText(text []byte) (err error) {
-	return b.Value.UnmarshalText(text)
+	return b.Float.UnmarshalText(text)
 }
 
-func (b *BigFloat) MarshalJSON() (data []byte, err error) {
+func (b BigFloat) MarshalJSON() (data []byte, err error) {
 	var temp []byte
-	if temp, err = b.Value.MarshalText(); err != nil {
+	nokocore.KeepVoid(temp)
+
+	if temp, err = b.Float.MarshalText(); err != nil {
 		return nil, err
 	}
 	return []byte(strconv.Quote(string(temp))), nil
@@ -95,14 +105,20 @@ func (b *BigFloat) MarshalJSON() (data []byte, err error) {
 
 func (b *BigFloat) UnmarshalJSON(data []byte) (err error) {
 	var temp string
+	nokocore.KeepVoid(temp)
+
 	if temp, err = strconv.Unquote(string(data)); err != nil {
 		return err
 	}
-	return b.Value.UnmarshalText([]byte(temp))
+	return b.Float.UnmarshalText([]byte(temp))
 }
 
-func (b *BigFloat) String() string {
-	return b.Value.String()
+func (b BigFloat) String() string {
+	return b.Float.String()
+}
+
+func (b *BigFloat) ToString() string {
+	return b.Float.String()
 }
 
 func (b *BigFloat) SetPrec(prec uint) *big.Float {

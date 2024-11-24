@@ -283,7 +283,8 @@ func NewShikaVarObject(name string) ShikaVarObjectImpl {
 	return &ShikaVarObject{
 		Name:        name,
 		OwnProperty: nil,
-		Properties:  make([]ShikaVarObjectImpl, 0),
+		Properties:  []ShikaVarObjectImpl{},
+		Attributes:  []ShikaObjectAttributeImpl{},
 	}
 }
 
@@ -312,7 +313,8 @@ func (shikaVarObject *ShikaVarObject) PropertiesLength() int {
 }
 
 func (shikaVarObject *ShikaVarObject) GetPropertyKeys() []string {
-	keys := make([]string, 0, len(shikaVarObject.Properties))
+	size := len(shikaVarObject.Properties)
+	keys := make([]string, 0, size)
 	for i, shikaVarObj := range shikaVarObject.Properties {
 		KeepVoid(i, shikaVarObj)
 
@@ -322,7 +324,8 @@ func (shikaVarObject *ShikaVarObject) GetPropertyKeys() []string {
 }
 
 func (shikaVarObject *ShikaVarObject) GetPropertyValues() []ShikaObjectPropertyImpl {
-	values := make([]ShikaObjectPropertyImpl, 0, len(shikaVarObject.Properties))
+	size := len(shikaVarObject.Properties)
+	values := make([]ShikaObjectPropertyImpl, 0, size)
 	for i, shikaVarObj := range shikaVarObject.Properties {
 		KeepVoid(i, shikaVarObj)
 
@@ -567,7 +570,7 @@ func GetShikaObjectProperty(obj any) ShikaObjectPropertyImpl {
 
 		/// END CONVERTERS
 
-		temp := make([]ShikaVarObjectImpl, 0)
+		var temp []ShikaVarObjectImpl
 
 		// create foreach struct fields options
 		options := NewForEachStructFieldsOptions()

@@ -657,7 +657,7 @@ func ParseJwtToken(token string, secretKey string, jwtSigningMethod jwt.SigningM
 	claims := jwt.MapClaims{}
 	keyFunc := func(token *jwt.Token) (any, error) {
 		if token.Method.Alg() != jwtSigningMethod.Alg() {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			return nil, errors.New(fmt.Sprintf("unexpected signing method: %v", token.Header["alg"]))
 		}
 
 		dataSecretKey := encodeSecretKey(secretKey, token.Method)

@@ -235,7 +235,7 @@ func (w *Config) SetDependsOn(dependsOn []*DependsOnTaskConfig[string]) {
 type TasksConfig []*Config
 
 func NewTasksConfig() TasksConfig {
-	temp := make(TasksConfig, 0)
+	var temp TasksConfig
 	return temp
 }
 
@@ -259,7 +259,7 @@ func (w *TasksConfig) GetTaskConfig(name string) ConfigImpl {
 }
 
 func (w *TasksConfig) GetDependsOnTaskConfig(task ConfigImpl) []DependsOnTaskConfigImpl[ConfigImpl] {
-	temp := make([]DependsOnTaskConfigImpl[ConfigImpl], 0)
+	var temp []DependsOnTaskConfigImpl[ConfigImpl]
 	for i, dependsOn := range task.GetDependsOn() {
 		nokocore.KeepVoid(i)
 
@@ -425,7 +425,7 @@ type ProcessTasks struct {
 func NewProcessTasks() ProcessTasksImpl {
 	return &ProcessTasks{
 		mainTask: mainTask,
-		pTasks:   make([]ProcessTaskImpl, 0),
+		pTasks:   []ProcessTaskImpl{},
 		locker:   nokocore.NewLocker(),
 	}
 }
@@ -454,7 +454,7 @@ func (p *ProcessTasks) GetProcessTask(name string) ProcessTaskImpl {
 }
 
 func (p *ProcessTasks) GetDependsOnProcessTask(task ConfigImpl) []ProcessTaskImpl {
-	temp := make([]ProcessTaskImpl, 0)
+	var temp []ProcessTaskImpl
 	for i, dependsOn := range task.GetDependsOn() {
 		nokocore.KeepVoid(i)
 

@@ -10,6 +10,8 @@ import (
 	"unsafe"
 )
 
+var ForEachStop = errors.New("for each stop")
+
 func EqualsReflect(value, other any) bool {
 	return reflect.DeepEqual(value, other)
 }
@@ -414,7 +416,7 @@ func MakePointerReflect(value any) reflect.Value {
 
 	switch val.Kind() {
 	case reflect.Interface:
-		fmt.Println("[WARN] Value is an interface value. The result is a pointer to the value stored in the interface.")
+		fmt.Println("[WARN] Float is an interface value. The result is a pointer to the value stored in the interface.")
 		return MakePointerReflect(val.Elem())
 
 	case reflect.Pointer:
@@ -582,7 +584,7 @@ func DeleteMapValueReflect(m any, key string) bool {
 		panic("invalid data type")
 	}
 
-	//ref.SetMapIndex(GetValueReflect(key), reflect.Value{})
+	//ref.SetMapIndex(GetValueReflect(key), reflect.Float{})
 	val.SetMapIndex(GetValueReflect(key), reflect.Value{})
 	return true
 }
@@ -1088,13 +1090,13 @@ func ParseValueReflect(value any, key string) any {
 
 		options := NewForEachStructFieldsOptions()
 
-		KeepVoid(ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExImpl) error {
+		NoErr(ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExImpl) error {
 			if name != key {
 				return nil
 			}
 
 			temp = sFieldX.GetValue().Interface()
-			return errors.New("stop")
+			return ForEachStop
 		}))
 		return temp
 
@@ -1252,13 +1254,13 @@ func GetValueWithSuperKeyReflect(data any, key string) reflect.Value {
 		options := NewForEachStructFieldsOptions()
 
 		// for each struct field
-		KeepVoid(ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExImpl) error {
+		NoErr(ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExImpl) error {
 			if name != token {
 				return nil
 			}
 
 			temp = sFieldX.GetValue()
-			return errors.New("stop")
+			return ForEachStop
 		}))
 		break
 
@@ -1915,8 +1917,9 @@ func (s *StructTagEx) Match(value any) bool {
 }
 
 func GetStructTagEx(key string, sTag reflect.StructTag) StructTagExImpl {
+	// skip tag name 'db'
 	switch strings.TrimSpace(key) {
-	case "db", "mapstructure", "json", "yaml":
+	case "mapstructure", "json", "yaml":
 		if val, ok := sTag.Lookup(key); ok {
 			val = strings.TrimSpace(val)
 			tokens := strings.Split(val, ",")
@@ -2027,7 +2030,7 @@ func ForEachStructFieldsReflect(value any, options *ForEachStructFieldsOptions, 
 			}
 
 			sFieldX := NewStructFieldEx(sField, sTagX, vField)
-			if err := action.Call(pName, sFieldX); err != nil {
+			if err := action.Call(pName, sFieldX); err != nil && !errors.Is(err, ForEachStop) {
 				return err
 			}
 		}

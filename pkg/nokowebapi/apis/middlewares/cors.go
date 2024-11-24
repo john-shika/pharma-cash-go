@@ -10,12 +10,12 @@ import (
 )
 
 type CORSConfig struct {
-	Origins       []string `mapstructure:"origins" yaml:"origins" json:"origins"`
-	Methods       []string `mapstructure:"methods" yaml:"methods" json:"methods"`
-	Headers       []string `mapstructure:"headers" yaml:"headers" json:"headers"`
-	ExposeHeaders []string `mapstructure:"expose_headers" yaml:"expose_headers" json:"exposeHeaders"`
-	Credentials   bool     `mapstructure:"credentials" yaml:"credentials" json:"credentials"`
-	MaxAge        int      `mapstructure:"max_age" yaml:"max_age" json:"maxAge"`
+	Origins       []string `mapstructure:"origins" json:"origins" yaml:"origins"`
+	Methods       []string `mapstructure:"methods" json:"methods" yaml:"methods"`
+	Headers       []string `mapstructure:"headers" json:"headers" yaml:"headers"`
+	ExposeHeaders []string `mapstructure:"expose_headers" json:"exposeHeaders" yaml:"expose_headers"`
+	Credentials   bool     `mapstructure:"credentials" json:"credentials" yaml:"credentials"`
+	MaxAge        int      `mapstructure:"max_age" json:"maxAge" yaml:"max_age"`
 }
 
 var defaultCORSConfig = &CORSConfig{

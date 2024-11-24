@@ -3,6 +3,7 @@ package middlewares
 import (
 	"database/sql"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 	"nokowebapi/apis/extras"
@@ -70,17 +71,20 @@ func JWTAuth(DB *gorm.DB) echo.MiddlewareFunc {
 				}
 
 				// get user data
-				user := &session.User
+				if user := &session.User; user.UUID != uuid.Nil {
 
-				// set echo context
-				ctx.Set("token", token)
-				ctx.Set("jwt_token", jwtToken)
-				ctx.Set("jwt_claims", jwtClaims)
-				ctx.Set("jwt_claims_data_access", jwtClaimsDataAccess)
-				ctx.Set("session", session)
-				ctx.Set("user", user)
+					// set echo context
+					ctx.Set("token", token)
+					ctx.Set("jwt_token", jwtToken)
+					ctx.Set("jwt_claims", jwtClaims)
+					ctx.Set("jwt_claims_data_access", jwtClaimsDataAccess)
+					ctx.Set("session", session)
+					ctx.Set("user", user)
 
-				return next(ctx)
+					return next(ctx)
+				}
+
+				return extras.NewMessageBodyUnauthorized(ctx, "User not found.", nil)
 			}
 
 			console.Error("session not found")

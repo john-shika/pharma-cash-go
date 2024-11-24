@@ -4,19 +4,16 @@ import (
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/net/http2"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"net/http"
+	"nokowebapi/apis"
 	"nokowebapi/apis/extras"
 	"nokowebapi/apis/middlewares"
-	"nokowebapi/apis/models"
 	"nokowebapi/console"
+	"nokowebapi/console/echozap"
+	"nokowebapi/console/zapgorm"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
-	"nokowebapi/sqlx"
-	"pharma-cash-go/app/controllers"
-	m "pharma-cash-go/app/models"
-	"pharma-cash-go/app/repositories"
 	"time"
 )
 
@@ -27,6 +24,48 @@ func Main(args []string) nokocore.ExitCode {
 
 	e := echo.New()
 	e.Use(middlewares.Recovery())
+	e.Use(echozap.New(console.GetLogger("Echo")))
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+
+			header := c.Response().Header()
+
+			header.Set("Alt-Svc", "h3-25=\":443\"; ma=3600, h2=\":443\"; ma=3600")
+			header.Set("Access-Control-Expose-Headers", "Date, Vary")
+			header.Set("Date", time.Now().Format(time.RFC1123))
+			header.Set("Server", "Apache/2.4.62 (Ubuntu)")
+			header.Set("Vary", "Accept-Encoding")
+
+			return next(c)
+		}
+	})
+	e.Use(middlewares.CORSWithConfig(&middlewares.CORSConfig{
+		Origins: []string{
+			"*",
+		},
+		Methods: []string{
+			http.MethodGet,
+			http.MethodHead,
+			http.MethodPost,
+			http.MethodPut,
+			//http.MethodPatch,
+			http.MethodDelete,
+			//http.MethodConnect,
+			http.MethodOptions,
+			//http.MethodTrace,
+		},
+		Headers: []string{
+			"Accept",
+			"Accept-Encoding",
+			"Accept-Language",
+			"Authorization",
+			"Content-Language",
+			"Content-Length",
+			"Content-Type",
+		},
+		Credentials: true,
+		MaxAge:      86400,
+	}))
 
 	/// Echo Configs Start
 
@@ -45,141 +84,38 @@ func Main(args []string) nokocore.ExitCode {
 	// http error handling
 	e.HTTPErrorHandler = extras.EchoHTTPErrorHandler()
 
+	// create group rest api
+	group := e.Group("/api/v1")
+
 	/// Echo Configs End
 
 	config := &gorm.Config{
-		Logger: console.GetLogger("App").GORMLogger(),
+		Logger: zapgorm.New(console.GetLogger("GORM")),
 	}
 
 	sqliteFilePath := "migrations/dev.sqlite3"
-	nokocore.NoErr(nokocore.CreateEmptyFile(sqliteFilePath))
-	if DB, err = gorm.Open(sqlite.Open(sqliteFilePath), config); err != nil {
-		panic("failed to connect database")
+	if DB, err = apis.SqliteOpenFile(sqliteFilePath, config); err != nil {
+		console.Error(fmt.Sprintf("panic: %s", err.Error()))
+		return nokocore.ExitCodeFailure
 	}
 
-	tables := []any{
+	// START DATABASE Auto Migrations
 
-		// cores
-		&models.User{},
-		&models.Session{},
+	DBAutoMigrations(DB)
 
-		// app locals
-		&m.Product{},
-		// &m.Category{},
-		&m.Packaging{},
-		&m.Unit{},
-	}
+	// END DATABASE Auto Migrations
 
-	if err = DB.AutoMigrate(tables...); err != nil {
-		console.Fatal(fmt.Sprintf("failed to migrate database: %s\n", err.Error()))
-	}
+	/// START FACTORIES
 
-	/// dummy data
+	Factories(DB)
 
-	users := []models.User{
-		{
-			Username: "admin",
-			Password: "Admin@1234",
-			FullName: sqlx.NewString("John, Doe"),
-			Email:    sqlx.NewString("admin@example.com"),
-			Phone:    sqlx.NewString("+62 812-3456-7890"),
-			Admin:    true,
-			Level:    1,
-		},
-		{
-			Username: "user",
-			Password: "User@1234",
-			FullName: sqlx.NewString("Angeline, Rose"),
-			Email:    sqlx.NewString("user@example.com"),
-			Phone:    sqlx.NewString("+62 823-4567-8901"),
-			Admin:    false,
-			Level:    1,
-		},
-	}
+	/// END FACTORIES
 
-	userRepository := repositories.NewUserRepository(DB)
+	// START CONTROLLERS
 
-	var check *models.User
-	for i, user := range users {
-		nokocore.KeepVoid(i)
+	Controllers(group, DB)
 
-		if check, err = userRepository.First("username = ?", user.Username); err != nil {
-			console.Warn(err.Error())
-			continue
-		}
-
-		if check != nil {
-			console.Warn(fmt.Sprintf("user '%s' already exists", user.Username))
-			continue
-		}
-
-		if err = userRepository.Create(&user); err != nil {
-			console.Warn(err.Error())
-			continue
-		}
-
-		console.Warn(fmt.Sprintf("user '%s' has been created", user.Username))
-	}
-
-	/// dummy data
-
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-
-			header := c.Response().Header()
-
-			header.Set("Alt-Svc", "h3-25=\":443\"; ma=3600, h2=\":443\"; ma=3600")
-			header.Set("Access-Control-Expose-Headers", "Date, Vary")
-			header.Set("Date", time.Now().Format(time.RFC1123))
-			header.Set("Server", "Apache/2.4.62 (Ubuntu)")
-			header.Set("Vary", "Accept-Encoding")
-
-			return next(c)
-		}
-	})
-
-	e.Use(middlewares.CORSWithConfig(&middlewares.CORSConfig{
-		Origins: []string{
-			"*",
-		},
-		Methods: []string{
-			http.MethodGet,
-			http.MethodHead,
-			http.MethodPost,
-			http.MethodPut,
-			//http.MethodPatch,
-			http.MethodDelete,
-			//http.MethodConnect,
-			http.MethodOptions,
-			//http.MethodTrace,
-		},
-		Headers: []string{
-			"Accept",
-			"Accept-Language",
-			"Content-Language",
-			"Content-Length",
-			"Content-Type",
-		},
-		Credentials: true,
-		MaxAge:      86400,
-	}))
-
-	g := e.Group("/api/v1")
-
-	gAuth := g.Group("/auth")
-	gAuth.Use(middlewares.JWTAuth(DB))
-
-	/// Controllers Start
-
-	controllers.AnonymousController(g, DB)
-	controllers.UserController(gAuth, DB)
-	controllers.AdminController(gAuth, DB)
-	controllers.ProductController(gAuth, DB)
-	// controllers.CategoryController(gAuth, DB)
-	controllers.PackagingController(gAuth, DB)
-	controllers.UnitController(gAuth, DB)
-
-	/// Controllers End
+	// END CONTROLLERS
 
 	h2s := &http2.Server{
 		MaxConcurrentStreams: 100,

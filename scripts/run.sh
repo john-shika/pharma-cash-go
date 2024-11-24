@@ -33,6 +33,8 @@ if [ -f "$DSTEXE" ]; then
 
 fi
 
+sudo rm "/opt/pharma/migrations/dev.sqlite3"
+
 # install
 sudo cp "$APPEXE" "$DSTEXE"
 sudo systemctl restart "$SERVICE"

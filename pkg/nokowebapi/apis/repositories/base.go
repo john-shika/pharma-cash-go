@@ -332,7 +332,7 @@ func (b *BaseRepository[T]) SafeCreate(schema *T) error {
 			return nil
 		}
 
-		return fmt.Errorf("no rows affected in '%s' table", tableNameType)
+		return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
 	}
 
 	return errors.New("invalid value")
@@ -362,7 +362,7 @@ func (b *BaseRepository[T]) Create(schema *T) error {
 			return nil
 		}
 
-		return fmt.Errorf("no rows affected in '%s' table", tableNameType)
+		return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
 	}
 
 	return errors.New("invalid value")

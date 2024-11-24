@@ -2,6 +2,7 @@ package sqlx
 
 import (
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"nokowebapi/nokocore"
 	"strconv"
@@ -227,7 +228,7 @@ func (w *DateOnly) Scan(value any) error {
 			return nil
 
 		default:
-			return fmt.Errorf("cannot convert %v to DateOnly", value)
+			return errors.New(fmt.Sprintf("cannot convert %v to date only", value))
 		}
 	}
 

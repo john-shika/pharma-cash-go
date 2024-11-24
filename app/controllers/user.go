@@ -6,20 +6,21 @@ import (
 	"gorm.io/gorm"
 	"nokowebapi/apis/extras"
 	"nokowebapi/apis/models"
+	"nokowebapi/apis/repositories"
 	"nokowebapi/apis/schemas"
 	"nokowebapi/console"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
 	models2 "pharma-cash-go/app/models"
-	"pharma-cash-go/app/repositories"
+	repositories2 "pharma-cash-go/app/repositories"
 	schemas2 "pharma-cash-go/app/schemas"
 )
 
 func ProfileHandler(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
-	employeeRepository := repositories.NewEmployeeRepository(DB)
+	employeeRepository := repositories2.NewEmployeeRepository(DB)
 
 	return func(ctx echo.Context) error {
 		var err error
@@ -49,7 +50,7 @@ func ProfileHandler(DB *gorm.DB) echo.HandlerFunc {
 func SessionHandler(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
-	employeeRepository := repositories.NewEmployeeRepository(DB)
+	employeeRepository := repositories2.NewEmployeeRepository(DB)
 
 	return func(ctx echo.Context) error {
 		var err error
@@ -139,7 +140,7 @@ func RefreshTokenHandler(DB *gorm.DB) echo.HandlerFunc {
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to update session.", nil)
 		}
 
-		return extras.NewMessageBodyOk(ctx, "Successfully refreshed token.", &nokocore.MapAny{
+		return extras.NewMessageBodyOk(ctx, "Successfully refresh token.", &nokocore.MapAny{
 			"accessToken": jwtToken,
 		})
 	}
@@ -150,7 +151,7 @@ func UserController(group *echo.Group, DB *gorm.DB) *echo.Group {
 	group.GET("/profile", ProfileHandler(DB))
 	group.GET("/session", SessionHandler(DB))
 	group.POST("/logout", LogoutHandler(DB))
-	group.POST("/refresh-token", RefreshTokenHandler(DB))
+	group.GET("/refresh-token", RefreshTokenHandler(DB))
 
 	return group
 }

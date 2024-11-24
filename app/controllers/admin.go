@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
-	"nokowebapi/apis"
 	"nokowebapi/apis/extras"
 	"nokowebapi/apis/models"
+	"nokowebapi/apis/repositories"
 	"nokowebapi/apis/schemas"
+	"nokowebapi/apis/utils"
 	"nokowebapi/console"
 	"nokowebapi/nokocore"
 	models2 "pharma-cash-go/app/models"
-	"pharma-cash-go/app/repositories"
+	repositories2 "pharma-cash-go/app/repositories"
 	schemas2 "pharma-cash-go/app/schemas"
-	"pharma-cash-go/app/utils"
+	utils2 "pharma-cash-go/app/utils"
 	"strings"
 )
 
@@ -22,7 +23,7 @@ func CreateUserHandler(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	userRepository := repositories.NewUserRepository(DB)
-	employeeRepository := repositories.NewEmployeeRepository(DB)
+	employeeRepository := repositories2.NewEmployeeRepository(DB)
 
 	return func(ctx echo.Context) error {
 		var err error
@@ -32,7 +33,7 @@ func CreateUserHandler(DB *gorm.DB) echo.HandlerFunc {
 
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
 
-		if apis.RoleIsAdmin(jwtAuthInfo) {
+		if utils.RoleIsAdmin(jwtAuthInfo) {
 
 			employeeBody := new(schemas2.EmployeeBody)
 			if err = ctx.Bind(employeeBody); err != nil {
@@ -88,8 +89,8 @@ func CreateUserHandler(DB *gorm.DB) echo.HandlerFunc {
 
 				// create repositories with open transactions
 				userRepository := repositories.NewUserRepository(tx)
-				employeeRepository := repositories.NewEmployeeRepository(tx)
-				shiftRepository := repositories.NewShiftRepository(tx)
+				employeeRepository := repositories2.NewEmployeeRepository(tx)
+				shiftRepository := repositories2.NewShiftRepository(tx)
 
 				user = schemas.ToUserModel(schemas2.ToUserBody(employeeBody))
 				if err = userRepository.SafeCreate(user); err != nil {
@@ -98,7 +99,7 @@ func CreateUserHandler(DB *gorm.DB) echo.HandlerFunc {
 				}
 
 				// normalize shift name
-				shiftName := utils.ToShiftName(employeeBody.Shift)
+				shiftName := utils2.ToShiftName(employeeBody.Shift)
 
 				var shift *models2.Shift
 				if shift, err = shiftRepository.SafeFirst("name = ?", shiftName); err != nil {

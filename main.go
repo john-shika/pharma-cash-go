@@ -18,7 +18,7 @@ func main() {
 	viper.SetConfigFile("nokowebapi.yaml")
 
 	if err = viper.ReadInConfig(); err != nil {
-		panic(fmt.Errorf("fatal error config file: %w", err))
+		panic(fmt.Errorf("failed to read config, %w", err))
 	}
 
 	pTasksHandler := func(pTasks task.ProcessTasksImpl) {

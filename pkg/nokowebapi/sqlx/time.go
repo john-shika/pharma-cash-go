@@ -2,6 +2,7 @@ package sqlx
 
 import (
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"nokowebapi/nokocore"
 	"strconv"
@@ -233,7 +234,7 @@ func (w *TimeOnly) Scan(value any) error {
 			return nil
 
 		default:
-			return fmt.Errorf("cannot convert %v to TimeOnly", value)
+			return errors.New(fmt.Sprintf("cannot convert %v to time only", value))
 		}
 	}
 

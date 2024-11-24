@@ -1,13 +1,11 @@
 package factories
 
 import (
-	"fmt"
 	"gorm.io/gorm"
+	"nokowebapi/apis/factories"
 	"nokowebapi/apis/models"
-	"nokowebapi/console"
 	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
-	"pharma-cash-go/app/repositories"
 )
 
 func UserFactory(DB *gorm.DB) []models.User {
@@ -35,29 +33,9 @@ func UserFactory(DB *gorm.DB) []models.User {
 		},
 	}
 
-	userRepository := repositories.NewUserRepository(DB)
-
-	var check *models.User
-	for i, user := range users {
-		nokocore.KeepVoid(i)
-
-		if check, err = userRepository.First("username = ?", user.Username); err != nil {
-			console.Warn(err.Error())
-			continue
+	return factories.BaseFactory[models.User](DB, users, "username = ?", func(user models.User) []any {
+		return []any{
+			user.Username,
 		}
-
-		if check != nil {
-			console.Warn(fmt.Sprintf("user '%s' already exists", user.Username))
-			continue
-		}
-
-		if err = userRepository.Create(&user); err != nil {
-			console.Warn(err.Error())
-			continue
-		}
-
-		console.Warn(fmt.Sprintf("user '%s' has been created", user.Username))
-	}
-
-	return users
+	})
 }

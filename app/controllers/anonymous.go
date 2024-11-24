@@ -7,12 +7,13 @@ import (
 	"gorm.io/gorm"
 	"nokowebapi/apis/extras"
 	"nokowebapi/apis/models"
+	"nokowebapi/apis/repositories"
 	"nokowebapi/apis/schemas"
 	"nokowebapi/console"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
 	models2 "pharma-cash-go/app/models"
-	"pharma-cash-go/app/repositories"
+	repositories2 "pharma-cash-go/app/repositories"
 	schemas2 "pharma-cash-go/app/schemas"
 )
 
@@ -33,7 +34,7 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 
 	userRepository := repositories.NewUserRepository(DB)
 	sessionRepository := repositories.NewSessionRepository(DB)
-	employeeRepository := repositories.NewEmployeeRepository(DB)
+	employeeRepository := repositories2.NewEmployeeRepository(DB)
 
 	return func(ctx echo.Context) error {
 		var err error

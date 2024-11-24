@@ -4,18 +4,16 @@ import (
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/net/http2"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"net/http"
+	"nokowebapi/apis"
 	"nokowebapi/apis/extras"
 	"nokowebapi/apis/middlewares"
-	"nokowebapi/apis/models"
 	"nokowebapi/console"
 	"nokowebapi/console/echozap"
 	"nokowebapi/console/zapgorm"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
-	"pharma-cash-go/app/factories"
 	"time"
 )
 
@@ -27,53 +25,6 @@ func Main(args []string) nokocore.ExitCode {
 	e := echo.New()
 	e.Use(middlewares.Recovery())
 	e.Use(echozap.New(console.GetLogger("Echo")))
-
-	/// Echo Configs Start
-
-	e.Validator = nokocore.NewValidator()
-	//e.IPExtractor = echo.ExtractIPDirect()
-	//e.IPExtractor = echo.ExtractIPFromXFFHeader(
-	//	echo.TrustLoopback(false),
-	//	echo.TrustLinkLocal(false),
-	//	echo.TrustPrivateNet(false),
-	//	echo.TrustIPRange(lbIPRange),
-	//)
-
-	e.HideBanner = false
-	e.HidePort = false
-
-	// http error handling
-	e.HTTPErrorHandler = extras.EchoHTTPErrorHandler()
-
-	/// Echo Configs End
-
-	config := &gorm.Config{
-		Logger: zapgorm.New(console.GetLogger("GORM")),
-	}
-
-	sqliteFilePath := "migrations/dev.sqlite3"
-	nokocore.NoErr(nokocore.CreateEmptyFile(sqliteFilePath))
-	if DB, err = gorm.Open(sqlite.Open(sqliteFilePath), config); err != nil {
-		panic("failed to connect database")
-	}
-
-	tables := []any{
-		&models.User{},
-		&models.Session{},
-	}
-
-	tables = append(tables, Tables()...)
-	if err = DB.AutoMigrate(tables...); err != nil {
-		console.Fatal(fmt.Sprintf("failed to migrate database: %s\n", err.Error()))
-	}
-
-	/// dummy data
-
-	factories.UserFactory(DB)
-	factories.ShiftFactory(DB)
-
-	/// dummy data
-
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 
@@ -88,7 +39,6 @@ func Main(args []string) nokocore.ExitCode {
 			return next(c)
 		}
 	})
-
 	e.Use(middlewares.CORSWithConfig(&middlewares.CORSConfig{
 		Origins: []string{
 			"*",
@@ -115,8 +65,56 @@ func Main(args []string) nokocore.ExitCode {
 		MaxAge:      86400,
 	}))
 
+	/// Echo Configs Start
+
+	e.Validator = nokocore.NewValidator()
+	//e.IPExtractor = echo.ExtractIPDirect()
+	//e.IPExtractor = echo.ExtractIPFromXFFHeader(
+	//	echo.TrustLoopback(false),
+	//	echo.TrustLinkLocal(false),
+	//	echo.TrustPrivateNet(false),
+	//	echo.TrustIPRange(lbIPRange),
+	//)
+
+	e.HideBanner = false
+	e.HidePort = false
+
+	// http error handling
+	e.HTTPErrorHandler = extras.EchoHTTPErrorHandler()
+
+	/// Echo Configs End
+
+	config := &gorm.Config{
+		Logger: zapgorm.New(console.GetLogger("GORM")),
+	}
+
+	sqliteFilePath := "migrations/dev.sqlite3"
+	if DB, err = apis.SqliteOpenFile(sqliteFilePath, config); err != nil {
+		console.Error(fmt.Sprintf("panic: %s", err.Error()))
+		return nokocore.ExitCodeFailure
+	}
+
+	// START TABLES
+
+	tables := Tables()
+
+	// END TABLES
+
+	apis.DBAutoMigrations(DB, tables)
+
+	/// START FACTORIES
+
+	Factories(DB)
+
+	/// END FACTORIES
+
 	group := e.Group("/api/v1")
+
+	// START CONTROLLERS
+
 	Controllers(group, DB)
+
+	// END CONTROLLERS
 
 	h2s := &http2.Server{
 		MaxConcurrentStreams: 100,

@@ -65,6 +65,9 @@ func Main(args []string) nokocore.ExitCode {
 
 		// app locals
 		&m.Product{},
+		// &m.Category{},
+		&m.Packaging{},
+		&m.Unit{},
 	}
 
 	if err = DB.AutoMigrate(tables...); err != nil {
@@ -171,6 +174,10 @@ func Main(args []string) nokocore.ExitCode {
 	controllers.AnonymousController(g, DB)
 	controllers.UserController(gAuth, DB)
 	controllers.AdminController(gAuth, DB)
+	controllers.ProductController(gAuth, DB)
+	// controllers.CategoryController(gAuth, DB)
+	controllers.PackagingController(gAuth, DB)
+	controllers.UnitController(gAuth, DB)
 
 	/// Controllers End
 

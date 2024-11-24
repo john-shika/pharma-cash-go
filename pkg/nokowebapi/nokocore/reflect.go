@@ -10,6 +10,8 @@ import (
 	"unsafe"
 )
 
+var ForEachStop = errors.New("for each stop")
+
 func EqualsReflect(value, other any) bool {
 	return reflect.DeepEqual(value, other)
 }
@@ -1088,13 +1090,13 @@ func ParseValueReflect(value any, key string) any {
 
 		options := NewForEachStructFieldsOptions()
 
-		KeepVoid(ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExImpl) error {
+		NoErr(ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExImpl) error {
 			if name != key {
 				return nil
 			}
 
 			temp = sFieldX.GetValue().Interface()
-			return errors.New("stop")
+			return ForEachStop
 		}))
 		return temp
 
@@ -1252,13 +1254,13 @@ func GetValueWithSuperKeyReflect(data any, key string) reflect.Value {
 		options := NewForEachStructFieldsOptions()
 
 		// for each struct field
-		KeepVoid(ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExImpl) error {
+		NoErr(ForEachStructFieldsReflect(val, options, func(name string, sFieldX StructFieldExImpl) error {
 			if name != token {
 				return nil
 			}
 
 			temp = sFieldX.GetValue()
-			return errors.New("stop")
+			return ForEachStop
 		}))
 		break
 
@@ -2028,7 +2030,7 @@ func ForEachStructFieldsReflect(value any, options *ForEachStructFieldsOptions, 
 			}
 
 			sFieldX := NewStructFieldEx(sField, sTagX, vField)
-			if err := action.Call(pName, sFieldX); err != nil {
+			if err := action.Call(pName, sFieldX); err != nil && !errors.Is(err, ForEachStop) {
 				return err
 			}
 		}

@@ -12,7 +12,7 @@ type BaseModel struct {
 	UUID      uuid.UUID      `db:"uuid" gorm:"unique;index;not null;" mapstructure:"uuid" json:"uuid"`
 	CreatedAt time.Time      `db:"created_at" gorm:"not null;" mapstructure:"created_at" json:"createdAt"`
 	UpdatedAt time.Time      `db:"updated_at" gorm:"not null;" mapstructure:"updated_at" json:"updatedAt"`
-	DeletedAt gorm.DeletedAt `db:"deleted_at" gorm:"null;" mapstructure:"deleted_at" json:"deletedAt"`
+	DeletedAt gorm.DeletedAt `db:"deleted_at" gorm:"null;" mapstructure:"deleted_at" json:"deletedAt,omitempty"`
 }
 
 func (m *BaseModel) TableName() string {

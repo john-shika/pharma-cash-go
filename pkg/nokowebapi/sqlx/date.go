@@ -18,6 +18,8 @@ type DateOnlyImpl interface {
 	UnmarshalJSON(data []byte) (err error)
 	Value() (driver.Value, error)
 	Scan(value any) error
+	String() string
+	ToString() string
 }
 
 type NullDateOnly struct {
@@ -44,7 +46,7 @@ func (w *NullDateOnly) baseInit() {
 	}
 }
 
-func (w *NullDateOnly) MarshalText() (text []byte, err error) {
+func (w NullDateOnly) MarshalText() (text []byte, err error) {
 	if w.Valid {
 		w.baseInit()
 		return w.DateOnly.MarshalText()
@@ -63,7 +65,7 @@ func (w *NullDateOnly) UnmarshalText(text []byte) (err error) {
 	return nil
 }
 
-func (w *NullDateOnly) MarshalJSON() (data []byte, err error) {
+func (w NullDateOnly) MarshalJSON() (data []byte, err error) {
 	if w.Valid {
 		w.baseInit()
 		return w.DateOnly.MarshalJSON()
@@ -101,6 +103,16 @@ func (w *NullDateOnly) Scan(value any) error {
 	return nil
 }
 
+func (w NullDateOnly) String() string {
+	w.baseInit()
+	return w.DateOnly.String()
+}
+
+func (w *NullDateOnly) ToString() string {
+	w.baseInit()
+	return w.DateOnly.ToString()
+}
+
 // DateOnly custom type to store only time (hh:mm:ss)
 type DateOnly struct {
 	time.Time
@@ -133,7 +145,7 @@ func ParseDateOnly(value string) NullDateOnly {
 }
 
 // MarshalText for text marshaling
-func (w *DateOnly) MarshalText() (text []byte, err error) {
+func (w DateOnly) MarshalText() (text []byte, err error) {
 	return []byte(w.Format(DateOnlyFormat)), nil
 }
 
@@ -153,7 +165,7 @@ func (w *DateOnly) UnmarshalText(text []byte) (err error) {
 }
 
 // MarshalJSON for JSON marshaling
-func (w *DateOnly) MarshalJSON() (data []byte, err error) {
+func (w DateOnly) MarshalJSON() (data []byte, err error) {
 	return []byte(strconv.Quote(w.Format(DateOnlyFormat))), nil
 }
 
@@ -223,4 +235,12 @@ func (w *DateOnly) Scan(value any) error {
 		Time: time.Time{},
 	}
 	return nil
+}
+
+func (w DateOnly) String() string {
+	return w.Format(DateOnlyFormat)
+}
+
+func (w *DateOnly) ToString() string {
+	return w.String()
 }

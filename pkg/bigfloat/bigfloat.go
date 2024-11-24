@@ -18,6 +18,7 @@ type Impl interface {
 	MarshalJSON() (data []byte, err error)
 	UnmarshalJSON(data []byte) (err error)
 	String() string
+	ToString() string
 
 	SetPrec(prec uint) *big.Float
 	SetMode(mode big.RoundingMode) *big.Float
@@ -76,7 +77,7 @@ func (b *BigFloat) Scan(s fmt.ScanState, ch rune) error {
 	return b.Float.Scan(s, ch)
 }
 
-func (b *BigFloat) MarshalBinary() (data []byte, err error) {
+func (b BigFloat) MarshalBinary() (data []byte, err error) {
 	return b.Float.GobEncode()
 }
 
@@ -84,7 +85,7 @@ func (b *BigFloat) UnmarshalBinary(data []byte) (err error) {
 	return b.Float.GobDecode(data)
 }
 
-func (b *BigFloat) MarshalText() (text []byte, err error) {
+func (b BigFloat) MarshalText() (text []byte, err error) {
 	return b.Float.MarshalText()
 }
 
@@ -92,7 +93,7 @@ func (b *BigFloat) UnmarshalText(text []byte) (err error) {
 	return b.Float.UnmarshalText(text)
 }
 
-func (b *BigFloat) MarshalJSON() (data []byte, err error) {
+func (b BigFloat) MarshalJSON() (data []byte, err error) {
 	var temp []byte
 	nokocore.KeepVoid(temp)
 
@@ -112,7 +113,11 @@ func (b *BigFloat) UnmarshalJSON(data []byte) (err error) {
 	return b.Float.UnmarshalText([]byte(temp))
 }
 
-func (b *BigFloat) String() string {
+func (b BigFloat) String() string {
+	return b.Float.String()
+}
+
+func (b *BigFloat) ToString() string {
 	return b.Float.String()
 }
 

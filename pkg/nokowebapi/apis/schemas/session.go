@@ -32,13 +32,13 @@ func ToSessionModel(session *SessionBody, userId int, expires time.Time) *models
 type SessionResult struct {
 	UserID         uuid.UUID  `mapstructure:"user_id" json:"userId"`
 	TokenId        string     `mapstructure:"token_id" json:"tokenId"`
-	RefreshTokenId string     `mapstructure:"refresh_token_id" json:"refreshTokenId"`
+	RefreshTokenId string     `mapstructure:"refresh_token_id" json:"refreshTokenId,omitempty"`
 	IPAddress      string     `mapstructure:"ip_addr" json:"ipAddr"`
 	UserAgent      string     `mapstructure:"user_agent" json:"userAgent"`
 	Expires        string     `mapstructure:"expires" json:"expires"`
 	CreatedAt      string     `mapstructure:"created_at" json:"createdAt"`
 	UpdatedAt      string     `mapstructure:"updated_at" json:"updatedAt"`
-	User           UserResult `mapstructure:"user" json:"user"`
+	User           UserResult `mapstructure:"user" json:"user,omitempty"`
 }
 
 func ToSessionResult(session *models.Session, user UserResult) SessionResult {

@@ -15,11 +15,22 @@ type RoleTypedOrStringImpl interface {
 }
 
 func ToRoleTyped[T RoleTypedOrStringImpl](role T) RoleTyped {
-	return RoleTyped(role)
+	var temp string
+	value := ToPascalCase(strings.TrimSpace(string(role)))
+	for i, c := range value {
+		KeepVoid(i)
+
+		w := string(c)
+		if strings.Contains(AlphaNum, w) {
+			temp += w
+		}
+	}
+
+	return RoleTyped(temp)
 }
 
 func ToRoleString[T RoleTypedOrStringImpl](role T) string {
-	return string(role)
+	return string(ToRoleTyped(role))
 }
 
 func RolesPack[T RoleTypedOrStringImpl](roles []T) string {

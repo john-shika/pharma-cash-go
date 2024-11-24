@@ -5,10 +5,13 @@ import (
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 	"nokowebapi/apis/extras"
+	"nokowebapi/apis/models"
 	"nokowebapi/apis/schemas"
 	"nokowebapi/console"
+	"nokowebapi/globals"
 	"nokowebapi/nokocore"
-	"pharma-cash-go/app/models"
+	"nokowebapi/sqlx"
+	models2 "pharma-cash-go/app/models"
 	"pharma-cash-go/app/repositories"
 	schemas2 "pharma-cash-go/app/schemas"
 )
@@ -20,32 +23,7 @@ func ProfileHandler(DB *gorm.DB) echo.HandlerFunc {
 
 	return func(ctx echo.Context) error {
 		var err error
-		var employee *models.Employee
-		nokocore.KeepVoid(err, employee)
-
-		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
-
-		preloads := []string{"Shift"}
-		if employee, err = employeeRepository.SafePreFirst(preloads, "user_id = ?", jwtAuthInfo.User.ID); err != nil {
-			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get employee.", nil)
-		}
-
-		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
-			"user":  schemas.ToUserResult(&jwtAuthInfo.Session.User, nil),
-			"shift": schemas2.ToShiftResult(&employee.Shift),
-		})
-	}
-}
-
-func SessionHandler(DB *gorm.DB) echo.HandlerFunc {
-	nokocore.KeepVoid(DB)
-
-	employeeRepository := repositories.NewEmployeeRepository(DB)
-
-	return func(ctx echo.Context) error {
-		var err error
-		var employee *models.Employee
+		var employee *models2.Employee
 		nokocore.KeepVoid(err, employee)
 
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
@@ -61,10 +39,34 @@ func SessionHandler(DB *gorm.DB) echo.HandlerFunc {
 			shift = schemas2.ToShiftResult(&employee.Shift)
 		}
 
+		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
+			"user":  schemas.ToUserResult(&jwtAuthInfo.Session.User, nil),
+			"shift": shift,
+		})
+	}
+}
+
+func SessionHandler(DB *gorm.DB) echo.HandlerFunc {
+	nokocore.KeepVoid(DB)
+
+	employeeRepository := repositories.NewEmployeeRepository(DB)
+
+	return func(ctx echo.Context) error {
+		var err error
+		var employee *models2.Employee
+		nokocore.KeepVoid(err, employee)
+
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+
+		preloads := []string{"Shift"}
+		if employee, err = employeeRepository.SafePreFirst(preloads, "user_id = ?", jwtAuthInfo.User.ID); err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get employee.", nil)
+		}
+
 		userResult := schemas.ToUserResult(jwtAuthInfo.User, nil)
 		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
 			"session": schemas.ToSessionResult(jwtAuthInfo.Session, userResult),
-			"shift":   shift,
 		})
 	}
 }
@@ -87,11 +89,68 @@ func LogoutHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
+func RefreshTokenHandler(DB *gorm.DB) echo.HandlerFunc {
+	nokocore.KeepVoid(DB)
+
+	jwtConfig := globals.GetJwtConfig()
+	signingMethod := jwtConfig.GetSigningMethod()
+	expiresIn := jwtConfig.GetExpiresIn()
+
+	sessionRepository := repositories.NewSessionRepository(DB)
+
+	return func(ctx echo.Context) error {
+		var err error
+		nokocore.KeepVoid(err)
+
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+
+		user := jwtAuthInfo.User
+		session := jwtAuthInfo.Session
+
+		// get user roles
+		roles := nokocore.RolesUnpack(user.Roles)
+
+		sessionId := session.UUID
+		timeUtcNow := nokocore.GetTimeUtcNow()
+		expires := timeUtcNow.Add(expiresIn)
+
+		jwtClaimsDataAccess := nokocore.NewEmptyJwtClaimsDataAccess()
+		jwtClaimsDataAccess.SetSubject("NokoWebApiToken")
+		jwtClaimsDataAccess.SetIssuer(jwtConfig.Issuer)
+		jwtClaimsDataAccess.SetAudience(jwtConfig.Audience)
+		jwtClaimsDataAccess.SetIssuedAt(timeUtcNow)
+		jwtClaimsDataAccess.SetExpiresAt(expires)
+		jwtClaimsDataAccess.SetUser(user.Username)
+		jwtClaimsDataAccess.SetSessionId(sessionId.String())
+		jwtClaimsDataAccess.SetRoles(roles)
+		jwtClaimsDataAccess.SetAdmin(user.Admin)
+		jwtClaimsDataAccess.SetLevel(user.Level)
+
+		jwtClaims := nokocore.ToJwtClaims(jwtClaimsDataAccess, signingMethod)
+		jwtToken := nokocore.GenerateJwtToken(jwtClaims, jwtConfig.SecretKey)
+
+		// don't let gorm update the user
+		session.User = models.User{}
+
+		// update the session
+		session.RefreshTokenId = sqlx.NewString(jwtClaimsDataAccess.GetIdentity())
+		if err = sessionRepository.SafeUpdate(session, "uuid = ?", session.UUID); err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to update session.", nil)
+		}
+
+		return extras.NewMessageBodyOk(ctx, "Successfully refreshed token.", &nokocore.MapAny{
+			"accessToken": jwtToken,
+		})
+	}
+}
+
 func UserController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
 	group.GET("/profile", ProfileHandler(DB))
 	group.GET("/session", SessionHandler(DB))
 	group.POST("/logout", LogoutHandler(DB))
+	group.POST("/refresh-token", RefreshTokenHandler(DB))
 
 	return group
 }

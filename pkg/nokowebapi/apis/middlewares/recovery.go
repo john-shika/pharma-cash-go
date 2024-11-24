@@ -18,7 +18,7 @@ func Recovery() echo.MiddlewareFunc {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 
 				// send internal server error
-				nokocore.NoErr(extras.NewMessageBodyInternalServerError(ctx, "Internal server error.", nil))
+				nokocore.KeepVoid(extras.NewMessageBodyInternalServerError(ctx, "Internal server error.", nil))
 			})
 
 			return next(ctx)

@@ -6,7 +6,6 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"io"
-	"nokowebapi/console/zapgorm"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
 	"nokowebapi/xterm"
@@ -15,7 +14,6 @@ import (
 type LoggerImpl interface {
 	GetZapStdout() *zap.Logger
 	GetZapStderr() *zap.Logger
-	GORMLogger() zapgorm.LoggerImpl
 	Sugar() *zap.SugaredLogger
 	Named(s string) *zap.Logger
 	WithOptions(opts ...zap.Option) *zap.Logger
@@ -54,10 +52,6 @@ func (w *Logger) GetZapStdout() *zap.Logger {
 
 func (w *Logger) GetZapStderr() *zap.Logger {
 	return w.stderr
-}
-
-func (w *Logger) GORMLogger() zapgorm.LoggerImpl {
-	return zapgorm.New(w)
 }
 
 func (w *Logger) Sugar() *zap.SugaredLogger {

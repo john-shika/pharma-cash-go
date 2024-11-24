@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
@@ -8,9 +9,8 @@ import (
 
 func main() {
 
-	timeOnlyPtr := nokocore.Unwrap(sqlx.SafeParseTimeOnly("07:00:00")).(*sqlx.TimeOnly)
-	timeOnly := *timeOnlyPtr
-	
-	fmt.Println(string(nokocore.Unwrap(timeOnly.MarshalJSON())))
-	fmt.Println(timeOnlyPtr)
+	timeOnly := sqlx.ParseTimeOnly("07:00:00")
+
+	fmt.Println(string(nokocore.Unwrap(json.Marshal(timeOnly))))
+	fmt.Println(timeOnly)
 }

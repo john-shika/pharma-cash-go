@@ -17,7 +17,7 @@ type User struct {
 	Admin    bool           `db:"admin" gorm:"not null;" mapstructure:"admin" json:"admin"`
 	Roles    string         `db:"roles" gorm:"not null;" mapstructure:"roles" json:"roles"`
 	Level    int            `db:"level" gorm:"not null;" mapstructure:"level" json:"level"`
-	Sessions []Session      `db:"-" mapstructure:"sessions" json:"sessions"`
+	Sessions []Session      `db:"-" mapstructure:"sessions" json:"sessions,omitempty"`
 }
 
 func (u *User) TableName() string {

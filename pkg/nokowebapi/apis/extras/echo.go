@@ -64,7 +64,8 @@ func EchoHTTPErrorHandler() echo.HTTPErrorHandler {
 		var httpError *echo.HTTPError
 		if errors.As(err, &httpError) {
 			message := nokocore.ToStringReflect(httpError.Message)
-			httpStatusCodeValue := nokocore.GetValueFromHttpStatusCode(nokocore.HttpStatusCode(httpError.Code))
+			httpStatusCode := nokocore.HttpStatusCode(httpError.Code)
+			httpStatusCodeValue := httpStatusCode.ToString()
 			messageBody := schemas.NewMessageBody(false, httpError.Code, string(httpStatusCodeValue), message, nil)
 			err = ctx.JSON(httpError.Code, messageBody)
 			return
@@ -85,257 +86,257 @@ func EchoHTTPErrorHandler() echo.HTTPErrorHandler {
 }
 
 func NewMessageBodyContinue(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeContinue), schemas.NewMessageBodyContinue(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeContinue.ToInt(), schemas.NewMessageBodyContinue(message, data))
 }
 
 func NewMessageBodySwitchingProtocols(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeSwitchingProtocols), schemas.NewMessageBodySwitchingProtocols(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeSwitchingProtocols.ToInt(), schemas.NewMessageBodySwitchingProtocols(message, data))
 }
 
 func NewMessageBodyProcessing(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeProcessing), schemas.NewMessageBodyProcessing(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeProcessing.ToInt(), schemas.NewMessageBodyProcessing(message, data))
 }
 
 func NewMessageBodyEarlyHints(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeEarlyHints), schemas.NewMessageBodyEarlyHints(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeEarlyHints.ToInt(), schemas.NewMessageBodyEarlyHints(message, data))
 }
 
 func NewMessageBodyOk(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeOk), schemas.NewMessageBodyOk(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeOk.ToInt(), schemas.NewMessageBodyOk(message, data))
 }
 
 func NewMessageBodyCreated(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeCreated), schemas.NewMessageBodyCreated(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeCreated.ToInt(), schemas.NewMessageBodyCreated(message, data))
 }
 
 func NewMessageBodyAccepted(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeAccepted), schemas.NewMessageBodyAccepted(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeAccepted.ToInt(), schemas.NewMessageBodyAccepted(message, data))
 }
 
 func NewMessageBodyNonAuthoritativeInformation(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeNonAuthoritativeInformation), schemas.NewMessageBodyNonAuthoritativeInformation(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeNonAuthoritativeInformation.ToInt(), schemas.NewMessageBodyNonAuthoritativeInformation(message, data))
 }
 
 func NewMessageBodyNoContent(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeNoContent), schemas.NewMessageBodyNoContent(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeNoContent.ToInt(), schemas.NewMessageBodyNoContent(message, data))
 }
 
 func NewMessageBodyResetContent(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeResetContent), schemas.NewMessageBodyResetContent(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeResetContent.ToInt(), schemas.NewMessageBodyResetContent(message, data))
 }
 
 func NewMessageBodyPartialContent(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodePartialContent), schemas.NewMessageBodyPartialContent(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodePartialContent.ToInt(), schemas.NewMessageBodyPartialContent(message, data))
 }
 
 func NewMessageBodyMultiStatus(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeMultiStatus), schemas.NewMessageBodyMultiStatus(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeMultiStatus.ToInt(), schemas.NewMessageBodyMultiStatus(message, data))
 }
 
 func NewMessageBodyAlreadyReported(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeAlreadyReported), schemas.NewMessageBodyAlreadyReported(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeAlreadyReported.ToInt(), schemas.NewMessageBodyAlreadyReported(message, data))
 }
 
 func NewMessageBodyImUsed(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeImUsed), schemas.NewMessageBodyImUsed(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeImUsed.ToInt(), schemas.NewMessageBodyImUsed(message, data))
 }
 
 func NewMessageBodyMultipleChoices(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeMultipleChoices), schemas.NewMessageBodyMultipleChoices(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeMultipleChoices.ToInt(), schemas.NewMessageBodyMultipleChoices(message, data))
 }
 
 func NewMessageBodyMovedPermanently(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeMovedPermanently), schemas.NewMessageBodyMovedPermanently(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeMovedPermanently.ToInt(), schemas.NewMessageBodyMovedPermanently(message, data))
 }
 
 func NewMessageBodyFound(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeFound), schemas.NewMessageBodyFound(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeFound.ToInt(), schemas.NewMessageBodyFound(message, data))
 }
 
 func NewMessageBodySeeOther(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeSeeOther), schemas.NewMessageBodySeeOther(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeSeeOther.ToInt(), schemas.NewMessageBodySeeOther(message, data))
 }
 
 func NewMessageBodyNotModified(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeNotModified), schemas.NewMessageBodyNotModified(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeNotModified.ToInt(), schemas.NewMessageBodyNotModified(message, data))
 }
 
 func NewMessageBodyUseProxy(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeUseProxy), schemas.NewMessageBodyUseProxy(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeUseProxy.ToInt(), schemas.NewMessageBodyUseProxy(message, data))
 }
 
 func NewMessageBodyUnused(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeUnused), schemas.NewMessageBodyUnused(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeUnused.ToInt(), schemas.NewMessageBodyUnused(message, data))
 }
 
 func NewMessageBodyTemporaryRedirect(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeTemporaryRedirect), schemas.NewMessageBodyTemporaryRedirect(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeTemporaryRedirect.ToInt(), schemas.NewMessageBodyTemporaryRedirect(message, data))
 }
 
 func NewMessageBodyPermanentRedirect(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodePermanentRedirect), schemas.NewMessageBodyPermanentRedirect(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodePermanentRedirect.ToInt(), schemas.NewMessageBodyPermanentRedirect(message, data))
 }
 
 func NewMessageBodyBadRequest(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeBadRequest), schemas.NewMessageBodyBadRequest(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeBadRequest.ToInt(), schemas.NewMessageBodyBadRequest(message, data))
 }
 
 func NewMessageBodyUnauthorized(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeUnauthorized), schemas.NewMessageBodyUnauthorized(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeUnauthorized.ToInt(), schemas.NewMessageBodyUnauthorized(message, data))
 }
 
 func NewMessageBodyPaymentRequired(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodePaymentRequired), schemas.NewMessageBodyPaymentRequired(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodePaymentRequired.ToInt(), schemas.NewMessageBodyPaymentRequired(message, data))
 }
 
 func NewMessageBodyForbidden(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeForbidden), schemas.NewMessageBodyForbidden(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeForbidden.ToInt(), schemas.NewMessageBodyForbidden(message, data))
 }
 
 func NewMessageBodyNotFound(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeNotFound), schemas.NewMessageBodyNotFound(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeNotFound.ToInt(), schemas.NewMessageBodyNotFound(message, data))
 }
 
 func NewMessageBodyMethodNotAllowed(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeMethodNotAllowed), schemas.NewMessageBodyMethodNotAllowed(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeMethodNotAllowed.ToInt(), schemas.NewMessageBodyMethodNotAllowed(message, data))
 }
 
 func NewMessageBodyNotAcceptable(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeNotAcceptable), schemas.NewMessageBodyNotAcceptable(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeNotAcceptable.ToInt(), schemas.NewMessageBodyNotAcceptable(message, data))
 }
 
 func NewMessageBodyProxyAuthenticationRequired(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeProxyAuthenticationRequired), schemas.NewMessageBodyProxyAuthenticationRequired(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeProxyAuthenticationRequired.ToInt(), schemas.NewMessageBodyProxyAuthenticationRequired(message, data))
 }
 
 func NewMessageBodyRequestTimeout(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeRequestTimeout), schemas.NewMessageBodyRequestTimeout(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeRequestTimeout.ToInt(), schemas.NewMessageBodyRequestTimeout(message, data))
 }
 
 func NewMessageBodyConflict(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeConflict), schemas.NewMessageBodyConflict(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeConflict.ToInt(), schemas.NewMessageBodyConflict(message, data))
 }
 
 func NewMessageBodyGone(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeGone), schemas.NewMessageBodyGone(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeGone.ToInt(), schemas.NewMessageBodyGone(message, data))
 }
 
 func NewMessageBodyLengthRequired(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeLengthRequired), schemas.NewMessageBodyLengthRequired(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeLengthRequired.ToInt(), schemas.NewMessageBodyLengthRequired(message, data))
 }
 
 func NewMessageBodyPreconditionFailed(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodePreconditionFailed), schemas.NewMessageBodyPreconditionFailed(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodePreconditionFailed.ToInt(), schemas.NewMessageBodyPreconditionFailed(message, data))
 }
 
 func NewMessageBodyPayloadTooLarge(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodePayloadTooLarge), schemas.NewMessageBodyPayloadTooLarge(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodePayloadTooLarge.ToInt(), schemas.NewMessageBodyPayloadTooLarge(message, data))
 }
 
 func NewMessageBodyRequestUriTooLong(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeRequestUriTooLong), schemas.NewMessageBodyRequestUriTooLong(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeRequestUriTooLong.ToInt(), schemas.NewMessageBodyRequestUriTooLong(message, data))
 }
 
 func NewMessageBodyUnsupportedMediaType(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeUnsupportedMediaType), schemas.NewMessageBodyUnsupportedMediaType(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeUnsupportedMediaType.ToInt(), schemas.NewMessageBodyUnsupportedMediaType(message, data))
 }
 
 func NewMessageBodyRequestedRangeNotSatisfiable(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeRequestedRangeNotSatisfiable), schemas.NewMessageBodyRequestedRangeNotSatisfiable(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeRequestedRangeNotSatisfiable.ToInt(), schemas.NewMessageBodyRequestedRangeNotSatisfiable(message, data))
 }
 
 func NewMessageBodyExpectationFailed(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeExpectationFailed), schemas.NewMessageBodyExpectationFailed(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeExpectationFailed.ToInt(), schemas.NewMessageBodyExpectationFailed(message, data))
 }
 
 func NewMessageBodyImATeapot(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeImATeapot), schemas.NewMessageBodyImATeapot(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeImATeapot.ToInt(), schemas.NewMessageBodyImATeapot(message, data))
 }
 
 func NewMessageBodyInsufficientSpaceOnResource(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeInsufficientSpaceOnResource), schemas.NewMessageBodyInsufficientSpaceOnResource(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeInsufficientSpaceOnResource.ToInt(), schemas.NewMessageBodyInsufficientSpaceOnResource(message, data))
 }
 
 func NewMessageBodyMethodFailure(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeMethodFailure), schemas.NewMessageBodyMethodFailure(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeMethodFailure.ToInt(), schemas.NewMessageBodyMethodFailure(message, data))
 }
 
 func NewMessageBodyMisdirectedRequest(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeMisdirectedRequest), schemas.NewMessageBodyMisdirectedRequest(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeMisdirectedRequest.ToInt(), schemas.NewMessageBodyMisdirectedRequest(message, data))
 }
 
 func NewMessageBodyUnprocessableEntity(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeUnprocessableEntity), schemas.NewMessageBodyUnprocessableEntity(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeUnprocessableEntity.ToInt(), schemas.NewMessageBodyUnprocessableEntity(message, data))
 }
 
 func NewMessageBodyLocked(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeLocked), schemas.NewMessageBodyLocked(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeLocked.ToInt(), schemas.NewMessageBodyLocked(message, data))
 }
 
 func NewMessageBodyFailedDependency(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeFailedDependency), schemas.NewMessageBodyFailedDependency(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeFailedDependency.ToInt(), schemas.NewMessageBodyFailedDependency(message, data))
 }
 
 func NewMessageBodyUpgradeRequired(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeUpgradeRequired), schemas.NewMessageBodyUpgradeRequired(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeUpgradeRequired.ToInt(), schemas.NewMessageBodyUpgradeRequired(message, data))
 }
 
 func NewMessageBodyPreconditionRequired(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodePreconditionRequired), schemas.NewMessageBodyPreconditionRequired(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodePreconditionRequired.ToInt(), schemas.NewMessageBodyPreconditionRequired(message, data))
 }
 
 func NewMessageBodyTooManyRequests(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeTooManyRequests), schemas.NewMessageBodyTooManyRequests(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeTooManyRequests.ToInt(), schemas.NewMessageBodyTooManyRequests(message, data))
 }
 
 func NewMessageBodyRequestHeaderFieldsTooLarge(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeRequestHeaderFieldsTooLarge), schemas.NewMessageBodyRequestHeaderFieldsTooLarge(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeRequestHeaderFieldsTooLarge.ToInt(), schemas.NewMessageBodyRequestHeaderFieldsTooLarge(message, data))
 }
 
 func NewMessageBodyUnavailableForLegalReasons(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeUnavailableForLegalReasons), schemas.NewMessageBodyUnavailableForLegalReasons(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeUnavailableForLegalReasons.ToInt(), schemas.NewMessageBodyUnavailableForLegalReasons(message, data))
 }
 
 func NewMessageBodyInternalServerError(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeInternalServerError), schemas.NewMessageBodyInternalServerError(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeInternalServerError.ToInt(), schemas.NewMessageBodyInternalServerError(message, data))
 }
 
 func NewMessageBodyNotImplemented(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeNotImplemented), schemas.NewMessageBodyNotImplemented(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeNotImplemented.ToInt(), schemas.NewMessageBodyNotImplemented(message, data))
 }
 
 func NewMessageBodyBadGateway(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeBadGateway), schemas.NewMessageBodyBadGateway(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeBadGateway.ToInt(), schemas.NewMessageBodyBadGateway(message, data))
 }
 
 func NewMessageBodyServiceUnavailable(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeServiceUnavailable), schemas.NewMessageBodyServiceUnavailable(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeServiceUnavailable.ToInt(), schemas.NewMessageBodyServiceUnavailable(message, data))
 }
 
 func NewMessageBodyGatewayTimeout(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeGatewayTimeout), schemas.NewMessageBodyGatewayTimeout(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeGatewayTimeout.ToInt(), schemas.NewMessageBodyGatewayTimeout(message, data))
 }
 
 func NewMessageBodyHttpVersionNotSupported(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeHttpVersionNotSupported), schemas.NewMessageBodyHttpVersionNotSupported(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeHttpVersionNotSupported.ToInt(), schemas.NewMessageBodyHttpVersionNotSupported(message, data))
 }
 
 func NewMessageBodyVariantAlsoNegotiates(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeVariantAlsoNegotiates), schemas.NewMessageBodyVariantAlsoNegotiates(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeVariantAlsoNegotiates.ToInt(), schemas.NewMessageBodyVariantAlsoNegotiates(message, data))
 }
 
 func NewMessageBodyInsufficientStorage(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeInsufficientStorage), schemas.NewMessageBodyInsufficientStorage(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeInsufficientStorage.ToInt(), schemas.NewMessageBodyInsufficientStorage(message, data))
 }
 
 func NewMessageBodyLoopDetected(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeLoopDetected), schemas.NewMessageBodyLoopDetected(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeLoopDetected.ToInt(), schemas.NewMessageBodyLoopDetected(message, data))
 }
 
 func NewMessageBodyNotExtended(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeNotExtended), schemas.NewMessageBodyNotExtended(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeNotExtended.ToInt(), schemas.NewMessageBodyNotExtended(message, data))
 }
 
 func NewMessageBodyNetworkAuthenticationRequired(ctx echo.Context, message string, data any) error {
-	return ctx.JSON(int(nokocore.HttpStatusCodeNetworkAuthenticationRequired), schemas.NewMessageBodyNetworkAuthenticationRequired(message, data))
+	return ctx.JSON(nokocore.HttpStatusCodeNetworkAuthenticationRequired.ToInt(), schemas.NewMessageBodyNetworkAuthenticationRequired(message, data))
 }

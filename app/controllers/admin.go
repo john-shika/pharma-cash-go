@@ -14,6 +14,7 @@ import (
 	models2 "pharma-cash-go/app/models"
 	"pharma-cash-go/app/repositories"
 	schemas2 "pharma-cash-go/app/schemas"
+	"pharma-cash-go/app/utils"
 	"strings"
 )
 
@@ -96,8 +97,11 @@ func CreateUserHandler(DB *gorm.DB) echo.HandlerFunc {
 					return errors.New("failed to create a new user")
 				}
 
+				// normalize shift name
+				shiftName := utils.ToShiftName(employeeBody.Shift)
+
 				var shift *models2.Shift
-				if shift, err = shiftRepository.SafeFirst("name = ?", employeeBody.Shift); err != nil {
+				if shift, err = shiftRepository.SafeFirst("name = ?", shiftName); err != nil {
 					console.Error(fmt.Sprintf("panic: %s", err.Error()))
 					return errors.New("shift not found")
 				}

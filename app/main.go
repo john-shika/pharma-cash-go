@@ -11,6 +11,8 @@ import (
 	"nokowebapi/apis/middlewares"
 	"nokowebapi/apis/models"
 	"nokowebapi/console"
+	"nokowebapi/console/echozap"
+	"nokowebapi/console/zapgorm"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
 	"pharma-cash-go/app/factories"
@@ -24,6 +26,7 @@ func Main(args []string) nokocore.ExitCode {
 
 	e := echo.New()
 	e.Use(middlewares.Recovery())
+	e.Use(echozap.New(console.GetLogger("Echo")))
 
 	/// Echo Configs Start
 
@@ -45,7 +48,7 @@ func Main(args []string) nokocore.ExitCode {
 	/// Echo Configs End
 
 	config := &gorm.Config{
-		Logger: console.GetLogger("App").GORMLogger(),
+		Logger: zapgorm.New(console.GetLogger("GORM")),
 	}
 
 	sqliteFilePath := "migrations/dev.sqlite3"

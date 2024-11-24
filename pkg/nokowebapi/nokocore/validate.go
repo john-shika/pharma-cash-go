@@ -61,12 +61,12 @@ func CheckPassword(password string) error {
 		temp = append(temp, message)
 	}
 
-	if !strings.ContainsAny(password, AsciiLower) {
+	if !strings.ContainsAny(password, AlphaLower) {
 		message := "password must contain at least one lowercase letter"
 		temp = append(temp, message)
 	}
 
-	if !strings.ContainsAny(password, AsciiUpper) {
+	if !strings.ContainsAny(password, AlphaUpper) {
 		message := "password must contain at least one uppercase letter"
 		temp = append(temp, message)
 	}

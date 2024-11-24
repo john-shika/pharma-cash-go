@@ -16,19 +16,14 @@ func ShiftFactory(DB *gorm.DB) []models.Shift {
 
 	shifts := []models.Shift{
 		{
-			Name:      "Morning Shift",
+			Name:      "Day Shift",
 			StartDate: sqlx.ParseTimeOnly("07:00:00"),
-			EndDate:   sqlx.ParseTimeOnly("12:00:00"),
-		},
-		{
-			Name:      "Afternoon Shift",
-			StartDate: sqlx.ParseTimeOnly("13:00:00"),
-			EndDate:   sqlx.ParseTimeOnly("18:00:00"),
+			EndDate:   sqlx.ParseTimeOnly("14:00:00"),
 		},
 		{
 			Name:      "Night Shift",
-			StartDate: sqlx.ParseTimeOnly("19:00:00"),
-			EndDate:   sqlx.ParseTimeOnly("23:00:00"),
+			StartDate: sqlx.ParseTimeOnly("14:00:00"),
+			EndDate:   sqlx.ParseTimeOnly("21:00:00"),
 		},
 	}
 

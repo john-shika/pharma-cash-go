@@ -44,7 +44,7 @@ type UserResult struct {
 	Level     int             `mapstructure:"level" json:"level"`
 	CreatedAt string          `mapstructure:"created_at" json:"createdAt"`
 	UpdatedAt string          `mapstructure:"updated_at" json:"updatedAt"`
-	Sessions  []SessionResult `mapstructure:"sessions" json:"sessions"`
+	Sessions  []SessionResult `mapstructure:"sessions" json:"sessions,omitempty"`
 }
 
 func ToUserResult(user *models.User, sessions []SessionResult) UserResult {

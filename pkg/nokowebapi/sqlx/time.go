@@ -18,7 +18,9 @@ type TimeOnlyImpl interface {
 	UnmarshalJSON(data []byte) (err error)
 	Value() (driver.Value, error)
 	Scan(value any) error
+	String() string
 	ToTimeDuration() time.Duration
+	ToString() string
 }
 
 type NullTimeOnly struct {
@@ -45,7 +47,7 @@ func (w *NullTimeOnly) baseInit() {
 	}
 }
 
-func (w *NullTimeOnly) MarshalText() (text []byte, err error) {
+func (w NullTimeOnly) MarshalText() (text []byte, err error) {
 	if w.Valid {
 		w.baseInit()
 		return w.TimeOnly.MarshalText()
@@ -64,7 +66,7 @@ func (w *NullTimeOnly) UnmarshalText(text []byte) (err error) {
 	return nil
 }
 
-func (w *NullTimeOnly) MarshalJSON() (data []byte, err error) {
+func (w NullTimeOnly) MarshalJSON() (data []byte, err error) {
 	if w.Valid {
 		w.baseInit()
 		return w.TimeOnly.MarshalJSON()
@@ -102,9 +104,19 @@ func (w *NullTimeOnly) Scan(value any) error {
 	return nil
 }
 
-func (w NullTimeOnly) ToTimeDuration() time.Duration {
+func (w NullTimeOnly) String() string {
+	w.baseInit()
+	return w.TimeOnly.String()
+}
+
+func (w *NullTimeOnly) ToTimeDuration() time.Duration {
 	w.baseInit()
 	return w.TimeOnly.ToTimeDuration()
+}
+
+func (w *NullTimeOnly) ToString() string {
+	w.baseInit()
+	return w.TimeOnly.ToString()
 }
 
 // TimeOnly custom type to store only time (hh:mm:ss)
@@ -139,7 +151,7 @@ func ParseTimeOnly(value string) NullTimeOnly {
 }
 
 // MarshalText for text marshaling
-func (w *TimeOnly) MarshalText() (text []byte, err error) {
+func (w TimeOnly) MarshalText() (text []byte, err error) {
 	return []byte(w.Format(TimeOnlyFormat)), nil
 }
 
@@ -159,7 +171,7 @@ func (w *TimeOnly) UnmarshalText(text []byte) (err error) {
 }
 
 // MarshalJSON for JSON marshaling
-func (w *TimeOnly) MarshalJSON() (data []byte, err error) {
+func (w TimeOnly) MarshalJSON() (data []byte, err error) {
 	return []byte(strconv.Quote(w.Format(TimeOnlyFormat))), nil
 }
 
@@ -231,9 +243,17 @@ func (w *TimeOnly) Scan(value any) error {
 	return nil
 }
 
+func (w TimeOnly) String() string {
+	return w.Format(TimeOnlyFormat)
+}
+
 func (w *TimeOnly) ToTimeDuration() time.Duration {
 	hours := time.Duration(w.Hour()) * time.Hour
 	minutes := time.Duration(w.Minute()) * time.Minute
 	seconds := time.Duration(w.Second()) * time.Second
 	return hours + minutes + seconds
+}
+
+func (w *TimeOnly) ToString() string {
+	return w.String()
 }

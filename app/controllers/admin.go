@@ -12,6 +12,7 @@ import (
 	"nokowebapi/apis/utils"
 	"nokowebapi/console"
 	"nokowebapi/nokocore"
+	"nokowebapi/sqlx"
 	models2 "pharma-cash-go/app/models"
 	repositories2 "pharma-cash-go/app/repositories"
 	schemas2 "pharma-cash-go/app/schemas"
@@ -92,7 +93,7 @@ func CreateUserHandler(DB *gorm.DB) echo.HandlerFunc {
 				employeeRepository := repositories2.NewEmployeeRepository(tx)
 				shiftRepository := repositories2.NewShiftRepository(tx)
 
-				user = schemas.ToUserModel(schemas2.ToUserBody(employeeBody))
+				user = schemas2.ToUserModel(employeeBody)
 				if err = userRepository.SafeCreate(user); err != nil {
 					console.Error(fmt.Sprintf("panic: %s", err.Error()))
 					return errors.New("failed to create a new user")
@@ -109,7 +110,7 @@ func CreateUserHandler(DB *gorm.DB) echo.HandlerFunc {
 
 				if shift != nil {
 					// immediately work
-					shiftDate := nokocore.GetTimeUtcNow()
+					shiftDate := sqlx.NewDateOnly(nokocore.GetTimeUtcNow())
 					employee := &models2.Employee{
 						UserID:    user.ID,
 						ShiftID:   shift.ID,
@@ -188,6 +189,41 @@ func GetAllUsersHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
+func GetAllEmployeesHandler(DB *gorm.DB) echo.HandlerFunc {
+	nokocore.KeepVoid(DB)
+
+	employeeRepository := repositories2.NewEmployeeRepository(DB)
+
+	return func(ctx echo.Context) error {
+		var err error
+		var employees []models2.Employee
+		nokocore.KeepVoid(err, employees)
+
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+
+		if utils.RoleIsAdmin(jwtAuthInfo) {
+			pagination := extras.NewURLQueryPaginationFromEchoContext(ctx)
+			if employees, err = employeeRepository.SafeMany(pagination.Offset, pagination.Limit, "1=1"); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyInternalServerError(ctx, "Unable to get employees.", nil)
+			}
+
+			var employeesResult []schemas2.EmployeeResult
+			for i, employee := range employees {
+				nokocore.KeepVoid(i)
+
+				employeesResult = append(employeesResult, schemas2.ToEmployeeResult(&employee))
+			}
+
+			return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
+				"employees": employeesResult,
+			})
+		}
+
+		return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
+	}
+}
+
 func DeleteUserHandler(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
@@ -238,6 +274,7 @@ func AdminController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
 	group.POST("/user", CreateUserHandler(DB))
 	group.GET("/users", GetAllUsersHandler(DB))
+	group.GET("/employees", GetAllEmployeesHandler(DB))
 	group.DELETE("/user", DeleteUserHandler(DB))
 
 	return group

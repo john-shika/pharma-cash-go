@@ -3,19 +3,19 @@ package repositories
 import (
 	"gorm.io/gorm"
 	"nokowebapi/apis/repositories"
-	"pharma-cash-go/app/models"
+	models2 "pharma-cash-go/app/models"
 )
 
 type ShiftRepositoryImpl interface {
-	repositories.BaseRepositoryImpl[models.Shift]
+	repositories.BaseRepositoryImpl[models2.Shift]
 }
 
 type ShiftRepository struct {
-	repositories.BaseRepository[models.Shift]
+	repositories.BaseRepository[models2.Shift]
 }
 
 func NewShiftRepository(DB *gorm.DB) ShiftRepositoryImpl {
 	return &ShiftRepository{
-		BaseRepository: repositories.NewBaseRepository[models.Shift](DB),
+		BaseRepository: repositories.NewBaseRepository[models2.Shift](DB),
 	}
 }

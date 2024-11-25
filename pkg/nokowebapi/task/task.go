@@ -315,7 +315,55 @@ func (p *ProcessTask) State() (StateImpl, error) {
 	return nil, errors.New("process not started")
 }
 
-func runTask(pTasks ProcessTasksImpl, task ConfigImpl) error {
+func EntryPoint(self nokocore.MainFunc, pTasksHandler nokocore.ActionSingleParam[ProcessTasksImpl]) {
+	ApplyMainSelf(self)
+	pTasks := NewProcessTasks()
+	pTasksHandler.Call(pTasks)
+}
+
+func ApplyMainSelf(self nokocore.MainFunc) {
+	var ok bool
+	var nokoWebApiAutoRunEnv string
+	nokocore.KeepVoid(ok, nokoWebApiAutoRunEnv)
+
+	if nokoWebApiAutoRunEnv, ok = os.LookupEnv(NokoWebApiAutoRunEnv); ok {
+		if nokocore.ParseEnvToBool(nokoWebApiAutoRunEnv) {
+
+			// will be exited
+			nokocore.ApplyMainFunc(self)
+			return
+		}
+	}
+
+	nokocore.NoErr(os.Setenv(NokoWebApiAutoRunEnv, "1"))
+}
+
+type ProcessTasksImpl interface {
+	mainTaskHelper(task ConfigImpl) error
+	applyTaskHelper(task ConfigImpl) error
+	GetProcessTask(name string) ProcessTaskImpl
+	GetDependsOnProcessTask(task ConfigImpl) []ProcessTaskImpl
+	StartProcessTask(pTask ProcessTaskImpl) error
+	ExecuteAsync(tasks *TasksConfig)
+	Execute(tasks *TasksConfig) error
+	Wait() error
+}
+
+type ProcessTasks struct {
+	//mainTaskHelper nokocore.ActionDoubleParamsReturn[ProcessTasksImpl, ConfigImpl, error]
+	pTasks []ProcessTaskImpl
+	locker nokocore.LockerImpl
+	regis  WaitTasksImpl
+}
+
+func NewProcessTasks() ProcessTasksImpl {
+	return &ProcessTasks{
+		pTasks: []ProcessTaskImpl{},
+		locker: nokocore.NewLocker(),
+	}
+}
+
+func (p *ProcessTasks) applyTaskHelper(task ConfigImpl) error {
 	var err error
 	var workDir nokocore.WorkingDirImpl
 	nokocore.KeepVoid(err, workDir)
@@ -341,7 +389,7 @@ func runTask(pTasks ProcessTasksImpl, task ConfigImpl) error {
 		process.SetEnviron(task.GetEnviron())
 
 		pTask := NewProcessTask(process, task)
-		return pTasks.StartProcessTask(pTask)
+		return p.StartProcessTask(pTask)
 	}
 
 	if workDir, err = nokocore.SetWorkingDir(workFunc); err != nil {
@@ -351,7 +399,7 @@ func runTask(pTasks ProcessTasksImpl, task ConfigImpl) error {
 	return nil
 }
 
-var mainTask = func(pTasks ProcessTasksImpl, task ConfigImpl) error {
+func (p *ProcessTasks) mainTaskHelper(task ConfigImpl) error {
 	var err error
 	var args []string
 	var exec string
@@ -369,7 +417,7 @@ var mainTask = func(pTasks ProcessTasksImpl, task ConfigImpl) error {
 	}
 
 	// get arguments
-	args = os.Args[1:]
+	args = os.Args
 
 	// binding values
 	task.SetExec(exec)
@@ -380,61 +428,14 @@ var mainTask = func(pTasks ProcessTasksImpl, task ConfigImpl) error {
 	environ := append(task.GetEnviron(), nokoWebApiAutoRunEnv)
 	task.SetEnviron(environ)
 
-	return runTask(pTasks, task)
-}
-
-func EntryPoint(self nokocore.MainFunc, pTasksHandler nokocore.ActionSingleParam[ProcessTasksImpl]) {
-	ApplyMainSelf(self)
-	pTasks := NewProcessTasks()
-	pTasksHandler.Call(pTasks)
-}
-
-func ApplyMainSelf(self nokocore.MainFunc) {
-	var ok bool
-	var nokoWebApiAutoRunEnv string
-	nokocore.KeepVoid(ok, nokoWebApiAutoRunEnv)
-
-	if nokoWebApiAutoRunEnv, ok = os.LookupEnv(NokoWebApiAutoRunEnv); ok {
-		if nokocore.ParseEnvToBool(nokoWebApiAutoRunEnv) {
-
-			// will be exited
-			nokocore.ApplyMainFunc(self)
-			return
-		}
-	}
-
-	nokocore.NoErr(os.Setenv(NokoWebApiAutoRunEnv, "1"))
-}
-
-type ProcessTasksImpl interface {
-	GetProcessTask(name string) ProcessTaskImpl
-	GetDependsOnProcessTask(task ConfigImpl) []ProcessTaskImpl
-	StartProcessTask(pTask ProcessTaskImpl) error
-	ExecuteAsync(tasks *TasksConfig)
-	Execute(tasks *TasksConfig) error
-	Wait() error
-}
-
-type ProcessTasks struct {
-	mainTask nokocore.ActionDoubleParamsReturn[ProcessTasksImpl, ConfigImpl, error]
-	pTasks   []ProcessTaskImpl
-	locker   nokocore.LockerImpl
-	regis    WaitTasksImpl
-}
-
-func NewProcessTasks() ProcessTasksImpl {
-	return &ProcessTasks{
-		mainTask: mainTask,
-		pTasks:   []ProcessTaskImpl{},
-		locker:   nokocore.NewLocker(),
-	}
+	return p.applyTaskHelper(task)
 }
 
 func (p *ProcessTasks) applyMainTask(task ConfigImpl) error {
 	var err error
 	nokocore.KeepVoid(err)
 
-	if err = p.mainTask.Call(p, task); err != nil {
+	if err = p.mainTaskHelper(task); err != nil {
 		return err
 	}
 
@@ -539,7 +540,7 @@ func makeProcessFromTask(pTasks ProcessTasksImpl, task ConfigImpl) error {
 		return nil
 	}
 
-	return runTask(pTasks, task)
+	return pTasks.applyTaskHelper(task)
 }
 
 func makeProcessFromTaskAsync(pTasks ProcessTasksImpl, task ConfigImpl, err chan<- error) {

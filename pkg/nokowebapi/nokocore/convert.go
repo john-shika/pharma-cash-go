@@ -9,7 +9,10 @@ import (
 	"time"
 )
 
-const TimeFormatISO8601 = "2006-01-02T15:04:05.000Z07:00"
+const TimeOnlyFormat = "15:04:05"
+const DateOnlyFormat = "2006-01-02"
+const DateTimeFormat = "2006-01-02 15:04:05"
+const DateTimeFormatISO8601 = "2006-01-02T15:04:05.000Z07:00"
 
 func GetTimeUtcNow() time.Time {
 	return time.Now().UTC()
@@ -24,13 +27,13 @@ func GetTimeUtcByTimestamp(timeStamp int64) time.Time {
 }
 
 func GetTimeUtcNowStringISO8601() string {
-	return GetTimeUtcNow().Format(TimeFormatISO8601)
+	return GetTimeUtcNow().Format(DateTimeFormatISO8601)
 }
 
 func ParseTimeUtcByStringISO8601(value string) (time.Time, error) {
 	var err error
 	var t time.Time
-	if t, err = time.Parse(TimeFormatISO8601, value); err != nil {
+	if t, err = time.Parse(DateTimeFormatISO8601, value); err != nil {
 		return Default[time.Time](), err
 	}
 	return t.UTC(), nil
@@ -95,9 +98,9 @@ func ToTimeUtcStringISO8601(value any) string {
 	KeepVoid(err, t)
 
 	if t, err = GetTimeUtcISO8601(value); err != nil {
-		return Default[time.Time]().Format(TimeFormatISO8601)
+		return Default[time.Time]().Format(DateTimeFormatISO8601)
 	}
-	return t.Format(TimeFormatISO8601)
+	return t.Format(DateTimeFormatISO8601)
 }
 
 func GetURL(value any) (url.URL, error) {

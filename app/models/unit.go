@@ -4,7 +4,8 @@ import "nokowebapi/apis/models"
 
 type Unit struct {
 	models.BaseModel
-	UnitType string  `db:"unitType" gorm:"unique;not null;index;" mapstructure:"unitType" json:"unitType" yaml:"unitType"`
+	UnitType string    `db:"unit_type" gorm:"unique;index;not null;" mapstructure:"unit_type" json:"unitType"`
+	Products []Product `db:"-" mapstructure:"products" json:"products"`
 }
 
 func (p *Unit) TableName() string {

@@ -1,30 +1,32 @@
 package models
 
 import (
+	"github.com/shopspring/decimal"
 	"nokowebapi/apis/models"
-	"time"
+	"nokowebapi/sqlx"
 )
 
 type Product struct {
 	models.BaseModel
-	Barcode          string    `db:"barcode" gorm:"unique;not null;index;" mapstructure:"barcode" json:"barcode" yaml:"barcode" validate:"required,alphanum"`
-	Merk             string    `db:"merk" gorm:"not null;index;" mapstructure:"merk" json:"merk" yaml:"merk" validate:"required"`
-	ProductName      string    `db:"productName" gorm:"not null;index;" mapstructure:"productName" json:"productName" yaml:"productName" validate:"required"`
-	Supplier         string    `db:"supplier" gorm:"not null;index;" mapstructure:"supplier" json:"supplier" yaml:"supplier" validate:"required"`
-	Description      string    `db:"description" gorm:"not null;index;" mapstructure:"description" json:"description" yaml:"description" validate:"required"`
-	Category         string    `db:"category" gorm:"not null;index;" mapstructure:"category" json:"category" yaml:"category" validate:"required"`
-	Expired          time.Time `db:"expired" gorm:"not null;index;" mapstructure:"expired" json:"expired" yaml:"expired" validate:"required"`
-	PurchasePrice    float32   `db:"purchasePrice" gorm:"not null;index;" mapstructure:"purchasePrice" json:"purchasePrice" yaml:"purchasePrice" validate:"required,gt=0"`
-	SupplierDiscount float32   `db:"supplierDiscount" gorm:"not null;index;" mapstructure:"supplierDiscount" json:"supplierDiscount" yaml:"supplierDiscount" validate:"required,gt=0"`
-	Ppn              float32   `db:"ppn" gorm:"not null;index;" mapstructure:"ppn" json:"ppn" yaml:"ppn" validate:"required,gt=0"`
-	ProfitMargin     float32   `db:"profitMargin" gorm:"not null;index;" mapstructure:"profitMargin" json:"profitMargin" yaml:"profitMargin" validate:"required,gt=0"`
-	PackagingID      int       `db:"packagingId" gorm:"index;not null;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;" mapstructure:"packagingId" json:"packagingId" validate:"required"`
-	TotalPackaging   float32   `db:"totalPackaging" gorm:"not null;index;" mapstructure:"totalPackaging" json:"totalPackaging" yaml:"totalPackaging" validate:"required,gt=0"`
-	UnitID           int       `db:"unitId" gorm:"index;not null;" mapstructure:"unitId" json:"unitId" validate:"required"`
-	UnitAmount       float32   `db:"unitAmount" gorm:"not null;index;" mapstructure:"unitAmount" json:"unitAmount" yaml:"unitAmount" validate:"required,gt=0"`
-	UnitResidu       float32   `db:"unitResidu" gorm:"not null;index;" mapstructure:"unitResidu" json:"unitResidu" yaml:"unitResidu"`
+	Barcode          string          `db:"barcode" gorm:"unique;index;not null;" mapstructure:"barcode" json:"barcode"`
+	Brand            string          `db:"brand" gorm:"index;not null;" mapstructure:"brand" json:"brand"`
+	ProductName      string          `db:"product_name" gorm:"index;not null;" mapstructure:"product_name" json:"productName"`
+	Supplier         string          `db:"supplier" gorm:"index;not null;" mapstructure:"supplier" json:"supplier"`
+	Description      string          `db:"description" gorm:"index;not null;" mapstructure:"description" json:"description"`
+	Category         string          `db:"category" gorm:"index;not null;" mapstructure:"category" json:"category"`
+	Expires          sqlx.DateOnly   `db:"expires" gorm:"index;not null;" mapstructure:"expires" json:"expires"`
+	PurchasePrice    decimal.Decimal `db:"purchase_price" gorm:"index;not null;" mapstructure:"purchase_price" json:"purchasePrice"`
+	SupplierDiscount float32         `db:"supplier_discount" gorm:"index;not null;" mapstructure:"supplier_discount" json:"supplierDiscount"`
+	VAT              float32         `db:"vat" gorm:"index;not null;" mapstructure:"vat" json:"vat"`
+	ProfitMargin     float32         `db:"profit_margin" gorm:"index;not null;" mapstructure:"profit_margin" json:"profitMargin"`
+	PackageID        int             `db:"package_id" gorm:"index;not null;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;" mapstructure:"package_id" json:"packageId"`
+	PackageTotal     float32         `db:"package_total" gorm:"index;not null;" mapstructure:"package_total" json:"packageTotal"`
+	UnitID           int             `db:"unit_id" gorm:"index;not null;" mapstructure:"unit_id" json:"unitId"`
+	UnitAmount       float32         `db:"unit_amount" gorm:"index;not null;" mapstructure:"unit_amount" json:"unitAmount"`
+	UnitExtra        float32         `db:"unit_extra" gorm:"index;not null;" mapstructure:"unit_extra" json:"unitExtra"`
 
-	Packaging Packaging `gorm:"foreignKey:PackagingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;" json:"-"`
+	Package Package `db:"-" gorm:"foreignKey:PackageID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;" mapstructure:"package" json:"package"`
+	Unit    Unit    `db:"-" gorm:"foreignKey:UnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;" mapstructure:"unit" json:"unit"`
 }
 
 func (p *Product) TableName() string {

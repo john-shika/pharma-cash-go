@@ -3,6 +3,7 @@ package nokocore
 import (
 	"errors"
 	"fmt"
+	"github.com/shopspring/decimal"
 	"iter"
 	"reflect"
 	"strconv"
@@ -247,6 +248,62 @@ func ToFloatReflect(value any) float64 {
 
 	default:
 		return 0
+	}
+}
+
+func ToDecimalReflect(value any) decimal.Decimal {
+	val := PassValueIndirectReflect(value)
+	if !val.IsValid() {
+		return decimal.NewFromInt(0)
+	}
+
+	method := val.MethodByName("ToDecimal")
+	if method.IsValid() {
+		results := method.Call(nil)
+		if len(results) != 1 || !results[0].IsValid() {
+			panic("invalid results")
+		}
+
+		return results[0].Interface().(decimal.Decimal)
+	}
+
+	switch val.Kind() {
+	case reflect.Bool:
+		if val.Bool() {
+			return decimal.NewFromInt(1)
+		}
+
+		return decimal.NewFromInt(0)
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return decimal.NewFromInt(val.Int())
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return decimal.NewFromUint64(val.Uint())
+
+	case reflect.Uintptr:
+		return decimal.NewFromUint64(val.Uint())
+
+	case reflect.Float32, reflect.Float64:
+		return decimal.NewFromFloat(val.Float())
+
+	case reflect.Complex64, reflect.Complex128:
+		return decimal.NewFromFloat(real(val.Complex()))
+
+	case reflect.String:
+		return Unwrap(decimal.NewFromString(val.String()))
+
+	case reflect.Array, reflect.Slice:
+		return decimal.NewFromInt(int64(val.Len()))
+
+	case reflect.Map:
+		return decimal.NewFromInt(int64(val.Len()))
+
+	case reflect.Struct:
+		return decimal.NewFromInt(0)
+
+	default:
+		return decimal.NewFromInt(0)
 	}
 }
 

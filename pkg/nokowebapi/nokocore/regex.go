@@ -7,23 +7,29 @@ import (
 )
 
 const (
-	booleanRegex = "(?i)^(0|1|n(o)?|y(es)?|false|true)$"
-	numberRegex  = "^([0-9]+)$"
-	numericRegex = "^[\\+\\-]?([0-9]+)(\\.([0-9]+))?$"
-	alphaRegex   = "^([a-zA-Z]+)$"
-	asciiRegex   = "^([ -~]+)$"
-	emailRegex   = "^([a-zA-Z0-9]+)(([\\_\\.\\-]([a-zA-Z0-9]+))+)?\\@([a-zA-Z0-9]+)(([\\_\\.\\-]([a-zA-Z0-9]+))+)?$"
-	phoneRegex   = "^(\\+[0-9]{1,2}|0)\\s?([0-9]{3,4}(-|\\s)?){2,3}[0-9]{3,4}$"
+	booleanRegex    = "(?i)^(0|1|n(o)?|y(es)?|false|true)$"
+	numberRegex     = "^([0-9]+)$"
+	numericRegex    = "^[\\+\\-]?([0-9]+)(\\.([0-9]+))?$"
+	alphaLowerRegex = "^([a-z]+)$"
+	alphaUpperRegex = "^([A-Z]+)$"
+	alphabetRegex   = "^([a-zA-Z]+)$"
+	alphaNumRegex   = "^([a-zA-Z0-9]+)$"
+	asciiRegex      = "^([ -~]+)$"
+	emailRegex      = "^([a-zA-Z0-9]+)(([\\_\\.\\-]([a-zA-Z0-9]+))+)?\\@([a-zA-Z0-9]+)(([\\_\\.\\-]([a-zA-Z0-9]+))+)?$"
+	phoneRegex      = "^(\\+[0-9]{1,2}|0)\\s?([0-9]{3,4}(-|\\s)?){2,3}[0-9]{3,4}$"
 )
 
 var (
-	BooleanRegex = LazyRegexCompile(booleanRegex)
-	NumberRegex  = LazyRegexCompile(numberRegex)
-	NumericRegex = LazyRegexCompile(numericRegex)
-	AlphaRegex   = LazyRegexCompile(alphaRegex)
-	AsciiRegex   = LazyRegexCompile(asciiRegex)
-	EmailRegex   = LazyRegexCompile(emailRegex)
-	PhoneRegex   = LazyRegexCompile(phoneRegex)
+	BooleanRegex    = LazyRegexCompile(booleanRegex)
+	NumberRegex     = LazyRegexCompile(numberRegex)
+	NumericRegex    = LazyRegexCompile(numericRegex)
+	AlphaLowerRegex = LazyRegexCompile(alphaLowerRegex)
+	AlphaUpperRegex = LazyRegexCompile(alphaUpperRegex)
+	AlphabetRegex   = LazyRegexCompile(alphabetRegex)
+	AlphaNumRegex   = LazyRegexCompile(alphaNumRegex)
+	AsciiRegex      = LazyRegexCompile(asciiRegex)
+	EmailRegex      = LazyRegexCompile(emailRegex)
+	PhoneRegex      = LazyRegexCompile(phoneRegex)
 )
 
 type RegexpImpl interface {

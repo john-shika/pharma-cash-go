@@ -14,6 +14,7 @@ import (
 	"nokowebapi/console/zapgorm"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
+	"nokowebapi/sqlx"
 	"time"
 )
 
@@ -69,7 +70,7 @@ func Main(args []string) nokocore.ExitCode {
 
 	/// Echo Configs Start
 
-	e.Validator = nokocore.NewValidator()
+	e.Validator = sqlx.NewValidator()
 	//e.IPExtractor = echo.ExtractIPDirect()
 	//e.IPExtractor = echo.ExtractIPFromXFFHeader(
 	//	echo.TrustLoopback(false),

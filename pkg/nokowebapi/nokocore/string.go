@@ -6,8 +6,9 @@ const (
 	HexDigits   = "0123456789ABCDEF"
 	AlphaUpper  = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	AlphaLower  = "abcdefghijklmnopqrstuvwxyz"
+	Alphabet    = AlphaLower + AlphaUpper
 	AlphaNum    = AlphaLower + AlphaUpper + Digits
 	Punctuation = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 	WhiteSpace  = " \t\r\n\v\f\xc2\xa0"
-	Printable   = Digits + AlphaUpper + AlphaLower + Punctuation + WhiteSpace
+	Printable   = Digits + Alphabet + Punctuation + WhiteSpace
 )

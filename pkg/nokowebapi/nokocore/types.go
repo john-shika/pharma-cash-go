@@ -1,6 +1,7 @@
 package nokocore
 
 import (
+	"github.com/shopspring/decimal"
 	"math/big"
 	"math/rand"
 )
@@ -41,15 +42,23 @@ type EquatableImpl[T any] interface {
 	Equals(other T) bool
 }
 
-type NumerableImpl interface {
+type IntConvertible interface {
 	ToInt() int64
 }
 
-type FloatingImpl interface {
+type FloatConvertible interface {
 	ToFloat() float64
 }
 
-type StringableImpl interface {
+type ComplexConvertible interface {
+	ToComplex() complex128
+}
+
+type DecimalConvertible interface {
+	ToDecimal() decimal.Decimal
+}
+
+type StringConvertible interface {
 	ToString() string
 }
 

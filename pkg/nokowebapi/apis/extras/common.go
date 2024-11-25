@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"nokowebapi/apis/schemas"
 	"nokowebapi/nokocore"
+	"nokowebapi/sqlx"
 )
 
 type EchoGroupImpl interface {
@@ -50,7 +51,7 @@ func EchoHTTPErrorHandler() echo.HTTPErrorHandler {
 			return
 		}
 
-		var validationError *nokocore.ValidateError
+		var validationError *sqlx.ValidateError
 		if errors.As(err, &validationError) {
 			message := "Validation failed."
 			fields := validationError.Fields()

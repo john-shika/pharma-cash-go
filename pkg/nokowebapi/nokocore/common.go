@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"io"
 	"strconv"
 	"strings"
@@ -37,7 +38,7 @@ func Copy[T any](values []T) []T {
 
 func ToInt(value any) int64 {
 	if value != nil {
-		if val, ok := value.(NumerableImpl); ok {
+		if val, ok := value.(IntConvertible); ok {
 			return val.ToInt()
 		}
 
@@ -132,7 +133,7 @@ func ToInt(value any) int64 {
 
 func ToFloat(value any) float64 {
 	if value != nil {
-		if val, ok := value.(FloatingImpl); ok {
+		if val, ok := value.(FloatConvertible); ok {
 			return val.ToFloat()
 		}
 
@@ -225,9 +226,103 @@ func ToFloat(value any) float64 {
 	return 0
 }
 
+func ToDecimal(value any) decimal.Decimal {
+	if value != nil {
+		if val, ok := value.(DecimalConvertible); ok {
+			return val.ToDecimal()
+		}
+
+		switch value.(type) {
+		case bool:
+			if value.(bool) {
+				return decimal.NewFromInt(1)
+			}
+
+			return decimal.NewFromInt(0)
+
+		case int, int8, int16, int32, int64:
+			switch value.(type) {
+			case int:
+				return decimal.NewFromInt(int64(value.(int)))
+
+			case int8:
+				return decimal.NewFromInt(int64(value.(int8)))
+
+			case int16:
+				return decimal.NewFromInt(int64(value.(int16)))
+
+			case int32:
+				return decimal.NewFromInt(int64(value.(int32)))
+
+			case int64:
+				return decimal.NewFromInt(value.(int64))
+
+			default:
+				return decimal.NewFromInt(0)
+			}
+
+		case uint, uint8, uint16, uint32, uint64:
+			switch value.(type) {
+			case uint:
+				return decimal.NewFromUint64(uint64(value.(uint)))
+
+			case uint8:
+				return decimal.NewFromUint64(uint64(value.(uint8)))
+
+			case uint16:
+				return decimal.NewFromUint64(uint64(value.(uint16)))
+
+			case uint32:
+				return decimal.NewFromUint64(uint64(value.(uint32)))
+
+			case uint64:
+				return decimal.NewFromUint64(value.(uint64))
+
+			default:
+				return decimal.NewFromInt(0)
+			}
+
+		case uintptr:
+			return decimal.NewFromUint64(uint64(value.(uintptr)))
+
+		case float32, float64:
+			switch value.(type) {
+			case float32:
+				return decimal.NewFromFloat32(value.(float32))
+
+			case float64:
+				return decimal.NewFromFloat(value.(float64))
+
+			default:
+				return decimal.NewFromInt(0)
+			}
+
+		case complex64, complex128:
+			switch value.(type) {
+			case complex64:
+				return decimal.NewFromFloat32(real(value.(complex64)))
+
+			case complex128:
+				return decimal.NewFromFloat(real(value.(complex128)))
+
+			default:
+				return decimal.NewFromInt(0)
+			}
+
+		case string:
+			return Unwrap(decimal.NewFromString(value.(string)))
+
+		default:
+			return ToDecimalReflect(value)
+		}
+	}
+
+	return decimal.NewFromInt(0)
+}
+
 func ToString(value any) string {
 	if value != nil {
-		if val, ok := value.(StringableImpl); ok {
+		if val, ok := value.(StringConvertible); ok {
 			return val.ToString()
 		}
 
@@ -625,6 +720,16 @@ func (a Array[T]) Len() int {
 
 func Cast[T any](value any) (T, bool) {
 	temp, ok := value.(T)
+	return temp, ok
+}
+
+func CastArray[T any](value any) ([]T, bool) {
+	temp, ok := value.([]T)
+	return temp, ok
+}
+
+func CastMap[K comparable, V any](value any) (map[K]V, bool) {
+	temp, ok := value.(map[K]V)
 	return temp, ok
 }
 

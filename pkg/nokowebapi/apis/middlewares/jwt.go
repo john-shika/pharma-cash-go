@@ -52,7 +52,7 @@ func JWTAuth(DB *gorm.DB) echo.MiddlewareFunc {
 			session = new(models.Session)
 
 			// get current session
-			preloads := []string{"User"}
+			preloads := []string{"User.Roles"}
 			if session, err = sessionRepository.SafePreFirst(preloads, "uuid = ? AND (token_id = ? OR refresh_token_id = ?)", sessionId, identity, identity); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 
@@ -62,9 +62,9 @@ func JWTAuth(DB *gorm.DB) echo.MiddlewareFunc {
 			if session != nil {
 
 				// update refresh token id
-				if session.RefreshTokenId.String == identity {
-					session.TokenId = identity
-					session.RefreshTokenId = sql.NullString{}
+				if session.RefreshTokenID.String == identity {
+					session.TokenID = identity
+					session.RefreshTokenID = sql.NullString{}
 					if err = sessionRepository.SafeUpdate(session, "uuid = ?", sessionId); err != nil {
 						console.Error(fmt.Sprintf("panic: %s", err.Error()))
 					}
@@ -73,6 +73,9 @@ func JWTAuth(DB *gorm.DB) echo.MiddlewareFunc {
 				// get user data
 				if user := &session.User; user.UUID != uuid.Nil {
 
+					// getting user roles
+					roles := user.Roles
+
 					// set echo context
 					ctx.Set("token", token)
 					ctx.Set("jwt_token", jwtToken)
@@ -80,6 +83,7 @@ func JWTAuth(DB *gorm.DB) echo.MiddlewareFunc {
 					ctx.Set("jwt_claims_data_access", jwtClaimsDataAccess)
 					ctx.Set("session", session)
 					ctx.Set("user", user)
+					ctx.Set("roles", roles)
 
 					return next(ctx)
 				}

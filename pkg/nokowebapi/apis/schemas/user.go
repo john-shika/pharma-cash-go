@@ -8,27 +8,37 @@ import (
 )
 
 type UserBody struct {
-	FullName string   `mapstructure:"full_name" json:"fullName" form:"full_name" validate:"ascii,omitempty"`
-	Username string   `mapstructure:"username" json:"username" form:"username" validate:"ascii"`
-	Password string   `mapstructure:"password" json:"password" form:"password" validate:"password"`
-	Email    string   `mapstructure:"email" json:"email" form:"email" validate:"email,omitempty"`
-	Phone    string   `mapstructure:"phone" json:"phone" form:"phone" validate:"phone,omitempty"`
-	Admin    bool     `mapstructure:"admin" json:"admin" form:"admin" validate:"boolean,omitempty"`
-	Roles    []string `mapstructure:"roles" json:"roles" form:"roles" validate:"omitempty"`
-	Level    int      `mapstructure:"level" json:"level" form:"level" validate:"number,min=0,max=99,omitempty"` // FUTURE: can handle min=N,max=N
+	FullName   string   `mapstructure:"full_name" json:"fullName" form:"full_name" validate:"ascii,omitempty"`
+	Username   string   `mapstructure:"username" json:"username" form:"username" validate:"ascii"`
+	Password   string   `mapstructure:"password" json:"password" form:"password" validate:"password"`
+	Email      string   `mapstructure:"email" json:"email" form:"email" validate:"email,omitempty"`
+	Phone      string   `mapstructure:"phone" json:"phone" form:"phone" validate:"phone,omitempty"`
+	Admin      bool     `mapstructure:"admin" json:"admin" form:"admin" validate:"boolean,omitempty"`
+	SuperAdmin bool     `mapstructure:"super_admin" json:"superAdmin" form:"super_admin" validate:"boolean,omitempty"`
+	Roles      []string `mapstructure:"roles" json:"roles" form:"roles" validate:"omitempty"`
+	Level      int      `mapstructure:"level" json:"level" form:"level" validate:"number,min=0,max=99,omitempty"` // FUTURE: can handle min=N,max=N
 }
 
 func ToUserModel(user *UserBody) *models.User {
 	if user != nil {
+		var roles []models.Role
+		for i, role := range user.Roles {
+			nokocore.KeepVoid(i)
+
+			if role = nokocore.ToPascalCase(role); role != "" {
+				roles = append(roles, models.Role{RoleName: role})
+			}
+		}
 		return &models.User{
-			FullName: sqlx.NewString(user.FullName),
-			Username: user.Username,
-			Password: user.Password,
-			Email:    sqlx.NewString(user.Email),
-			Phone:    sqlx.NewString(user.Phone),
-			Admin:    user.Admin,
-			Roles:    nokocore.RolesPack(user.Roles),
-			Level:    user.Level,
+			FullName:   sqlx.NewString(user.FullName),
+			Username:   user.Username,
+			Password:   user.Password,
+			Email:      sqlx.NewString(user.Email),
+			Phone:      sqlx.NewString(user.Phone),
+			Admin:      user.Admin,
+			SuperAdmin: user.SuperAdmin,
+			Roles:      roles,
+			Level:      user.Level,
 		}
 	}
 
@@ -53,6 +63,12 @@ type UserResult struct {
 func ToUserResult(user *models.User, sessions []SessionResult) UserResult {
 	var deletedAt string
 	if user != nil {
+		var roles []string
+		for i, role := range user.Roles {
+			nokocore.KeepVoid(i)
+
+			roles = append(roles, role.RoleName)
+		}
 		if user.DeletedAt.Valid {
 			deletedAt = nokocore.ToTimeUtcStringISO8601(user.DeletedAt.Time)
 		}
@@ -63,7 +79,7 @@ func ToUserResult(user *models.User, sessions []SessionResult) UserResult {
 			Email:     user.Email.String,
 			Phone:     user.Phone.String,
 			Admin:     user.Admin,
-			Roles:     nokocore.RolesUnpack(user.Roles),
+			Roles:     roles,
 			Level:     user.Level,
 			CreatedAt: nokocore.ToTimeUtcStringISO8601(user.CreatedAt),
 			UpdatedAt: nokocore.ToTimeUtcStringISO8601(user.UpdatedAt),

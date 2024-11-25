@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-const TimeOnlyFormat = "15:04:05"
-
 type TimeOnlyImpl interface {
 	MarshalText() (text []byte, err error)
 	UnmarshalText(text []byte) (err error)
@@ -25,13 +23,13 @@ type TimeOnlyImpl interface {
 }
 
 type NullTimeOnly struct {
-	TimeOnly TimeOnlyImpl
+	TimeOnly TimeOnly
 	Valid    bool
 }
 
 func NewTimeOnly(value time.Time) NullTimeOnly {
 	return NullTimeOnly{
-		TimeOnly: &TimeOnly{
+		TimeOnly: TimeOnly{
 			Time: value,
 		},
 		Valid: true,
@@ -39,13 +37,12 @@ func NewTimeOnly(value time.Time) NullTimeOnly {
 }
 
 func (w *NullTimeOnly) baseInit() {
-	if w.TimeOnly != nil {
+	var timeOnly TimeOnly
+	if w.TimeOnly != timeOnly {
 		return
 	}
 
-	w.TimeOnly = &TimeOnly{
-		Time: time.Time{},
-	}
+	w.TimeOnly = timeOnly
 }
 
 func (w NullTimeOnly) MarshalText() (text []byte, err error) {
@@ -130,18 +127,16 @@ func SafeParseTimeOnly(value string) (NullTimeOnly, error) {
 	var temp time.Time
 	nokocore.KeepVoid(err, temp)
 
-	if temp, err = time.Parse(TimeOnlyFormat, value); err != nil {
+	if temp, err = time.Parse(nokocore.TimeOnlyFormat, value); err != nil {
 		return NullTimeOnly{
-			TimeOnly: &TimeOnly{
-				Time: time.Time{},
-			},
-			Valid: false,
+			TimeOnly: TimeOnly{},
+			Valid:    false,
 		}, err
 	}
 
 	return NullTimeOnly{
-		TimeOnly: &TimeOnly{
-			Time: temp,
+		TimeOnly: TimeOnly{
+			Time: temp.UTC(),
 		},
 		Valid: true,
 	}, nil
@@ -151,9 +146,29 @@ func ParseTimeOnly(value string) NullTimeOnly {
 	return nokocore.Unwrap(SafeParseTimeOnly(value))
 }
 
+func SafeParseTimeOnlyNotNull(value string) (TimeOnly, error) {
+	var err error
+	var timeOnlyNull NullTimeOnly
+	nokocore.KeepVoid(err, timeOnlyNull)
+
+	if timeOnlyNull, err = SafeParseTimeOnly(value); err != nil {
+		return TimeOnly{}, err
+	}
+
+	if !timeOnlyNull.Valid {
+		return TimeOnly{}, errors.New("invalid date")
+	}
+
+	return timeOnlyNull.TimeOnly, nil
+}
+
+func ParseTimeOnlyNotNull(value string) TimeOnly {
+	return nokocore.Unwrap(SafeParseTimeOnly(value)).TimeOnly
+}
+
 // MarshalText for text marshaling
 func (w TimeOnly) MarshalText() (text []byte, err error) {
-	return []byte(w.Format(TimeOnlyFormat)), nil
+	return []byte(w.Format(nokocore.TimeOnlyFormat)), nil
 }
 
 // UnmarshalText for text unmarshalling
@@ -163,17 +178,17 @@ func (w *TimeOnly) UnmarshalText(text []byte) (err error) {
 
 	value := string(text)
 
-	if temp, err = time.Parse(TimeOnlyFormat, value); err != nil {
+	if temp, err = time.Parse(nokocore.TimeOnlyFormat, value); err != nil {
 		return err
 	}
 
-	w.Time = temp
+	w.Time = temp.UTC()
 	return nil
 }
 
 // MarshalJSON for JSON marshaling
 func (w TimeOnly) MarshalJSON() (data []byte, err error) {
-	return []byte(strconv.Quote(w.Format(TimeOnlyFormat))), nil
+	return []byte(strconv.Quote(w.Format(nokocore.TimeOnlyFormat))), nil
 }
 
 // UnmarshalJSON for JSON unmarshalling
@@ -186,17 +201,17 @@ func (w *TimeOnly) UnmarshalJSON(data []byte) (err error) {
 		return err
 	}
 
-	if temp, err = time.Parse(TimeOnlyFormat, value); err != nil {
+	if temp, err = time.Parse(nokocore.TimeOnlyFormat, value); err != nil {
 		return err
 	}
 
-	w.Time = temp
+	w.Time = temp.UTC()
 	return nil
 }
 
 // Value implements the driver Valuer interface.
 func (w TimeOnly) Value() (driver.Value, error) {
-	return w.Format(TimeOnlyFormat), nil
+	return w.Format(nokocore.TimeOnlyFormat), nil
 }
 
 // Scan implements the Scanner interface.
@@ -214,22 +229,22 @@ func (w *TimeOnly) Scan(value any) error {
 			return nil
 
 		case []byte:
-			if temp, err = time.Parse(TimeOnlyFormat, string(val)); err != nil {
+			if temp, err = time.Parse(nokocore.TimeOnlyFormat, string(val)); err != nil {
 				return err
 			}
 
 			*w = TimeOnly{
-				Time: temp,
+				Time: temp.UTC(),
 			}
 			return nil
 
 		case string:
-			if temp, err = time.Parse(TimeOnlyFormat, val); err != nil {
+			if temp, err = time.Parse(nokocore.TimeOnlyFormat, val); err != nil {
 				return err
 			}
 
 			*w = TimeOnly{
-				Time: temp,
+				Time: temp.UTC(),
 			}
 			return nil
 
@@ -238,14 +253,12 @@ func (w *TimeOnly) Scan(value any) error {
 		}
 	}
 
-	*w = TimeOnly{
-		Time: time.Time{},
-	}
+	*w = TimeOnly{}
 	return nil
 }
 
 func (w TimeOnly) String() string {
-	return w.Format(TimeOnlyFormat)
+	return w.Format(nokocore.TimeOnlyFormat)
 }
 
 func (w *TimeOnly) ToTimeDuration() time.Duration {

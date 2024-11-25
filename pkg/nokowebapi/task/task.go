@@ -315,74 +315,6 @@ func (p *ProcessTask) State() (StateImpl, error) {
 	return nil, errors.New("process not started")
 }
 
-func runTask(pTasks ProcessTasksImpl, task ConfigImpl) error {
-	var err error
-	var workDir nokocore.WorkingDirImpl
-	nokocore.KeepVoid(err, workDir)
-
-	// try to dial url it-self
-	if network := task.GetNetwork(); network != nil {
-		if nokocore.TryFetchUrl(network.GetURL()) {
-			return nil
-		}
-	}
-
-	workFunc := func(workDir nokocore.WorkingDirImpl) error {
-		if err = os.Chdir(task.GetWorkdir()); err != nil {
-			return err
-		}
-
-		process := NewProcess(task.GetExec(), task.GetArgs()...)
-
-		// binding stdin, stdout, stderr
-		process.SetStdin(task.GetStdin())
-		process.SetStdout(task.GetStdout())
-		process.SetStderr(task.GetStderr())
-		process.SetEnviron(task.GetEnviron())
-
-		pTask := NewProcessTask(process, task)
-		return pTasks.StartProcessTask(pTask)
-	}
-
-	if workDir, err = nokocore.SetWorkingDir(workFunc); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-var mainTask = func(pTasks ProcessTasksImpl, task ConfigImpl) error {
-	var err error
-	var args []string
-	var exec string
-	nokocore.KeepVoid(err, args, exec)
-
-	// check if there are any command-line arguments provided.
-	// if none, return an error indicating the source root directory cannot be determined.
-	if len(os.Args) == 0 {
-		return errors.New("can't get source root dir")
-	}
-
-	// initial execute and arguments it-self
-	if exec, err = os.Executable(); err != nil {
-		return err
-	}
-
-	// get arguments
-	args = os.Args[1:]
-
-	// binding values
-	task.SetExec(exec)
-	task.SetArgs(args)
-
-	// set value for NOKOWEBAPI_SELF_RUNNING env
-	nokoWebApiAutoRunEnv := fmt.Sprintf("%s=%s", NokoWebApiAutoRunEnv, "1")
-	environ := append(task.GetEnviron(), nokoWebApiAutoRunEnv)
-	task.SetEnviron(environ)
-
-	return runTask(pTasks, task)
-}
-
 func EntryPoint(self nokocore.MainFunc, pTasksHandler nokocore.ActionSingleParam[ProcessTasksImpl]) {
 	ApplyMainSelf(self)
 	pTasks := NewProcessTasks()
@@ -407,6 +339,8 @@ func ApplyMainSelf(self nokocore.MainFunc) {
 }
 
 type ProcessTasksImpl interface {
+	mainTaskHelper(task ConfigImpl) error
+	startTaskHelper(task ConfigImpl) error
 	GetProcessTask(name string) ProcessTaskImpl
 	GetDependsOnProcessTask(task ConfigImpl) []ProcessTaskImpl
 	StartProcessTask(pTask ProcessTaskImpl) error
@@ -416,25 +350,93 @@ type ProcessTasksImpl interface {
 }
 
 type ProcessTasks struct {
-	mainTask nokocore.ActionDoubleParamsReturn[ProcessTasksImpl, ConfigImpl, error]
-	pTasks   []ProcessTaskImpl
-	locker   nokocore.LockerImpl
-	regis    WaitTasksImpl
+	//mainTaskHelper nokocore.ActionDoubleParamsReturn[ProcessTasksImpl, ConfigImpl, error]
+	pTasks []ProcessTaskImpl
+	locker nokocore.LockerImpl
+	regis  WaitTasksImpl
 }
 
 func NewProcessTasks() ProcessTasksImpl {
 	return &ProcessTasks{
-		mainTask: mainTask,
-		pTasks:   []ProcessTaskImpl{},
-		locker:   nokocore.NewLocker(),
+		pTasks: []ProcessTaskImpl{},
+		locker: nokocore.NewLocker(),
 	}
+}
+
+func (p *ProcessTasks) startTaskHelper(task ConfigImpl) error {
+	var err error
+	var workDir nokocore.WorkingDirImpl
+	nokocore.KeepVoid(err, workDir)
+
+	// try to dial url it-self
+	if network := task.GetNetwork(); network != nil {
+		if nokocore.TryFetchUrl(network.GetURL()) {
+			fmt.Printf("[FETCH] URL '%s' is alive.\n", network.GetURL().String())
+			return nil
+		}
+	}
+
+	workFunc := func(workDir nokocore.WorkingDirImpl) error {
+		if err = os.Chdir(task.GetWorkdir()); err != nil {
+			return err
+		}
+
+		process := NewProcess(task.GetExec(), task.GetArgs()...)
+
+		// binding stdin, stdout, stderr
+		process.SetStdin(task.GetStdin())
+		process.SetStdout(task.GetStdout())
+		process.SetStderr(task.GetStderr())
+		process.SetEnviron(task.GetEnviron())
+
+		pTask := NewProcessTask(process, task)
+		return p.StartProcessTask(pTask)
+	}
+
+	if workDir, err = nokocore.SetWorkingDir(workFunc); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *ProcessTasks) mainTaskHelper(task ConfigImpl) error {
+	var err error
+	var args []string
+	var exec string
+	nokocore.KeepVoid(err, args, exec)
+
+	// check if there are any command-line arguments provided.
+	// if none, return an error indicating the source root directory cannot be determined.
+	if len(os.Args) == 0 {
+		return errors.New("can't get source root dir")
+	}
+
+	// initial execute and arguments it-self
+	if exec, err = os.Executable(); err != nil {
+		return err
+	}
+
+	// get arguments
+	args = os.Args
+
+	// binding values
+	task.SetExec(exec)
+	task.SetArgs(args)
+
+	// set value for NOKOWEBAPI_SELF_RUNNING env
+	nokoWebApiAutoRunEnv := fmt.Sprintf("%s=%s", NokoWebApiAutoRunEnv, "1")
+	environ := append(task.GetEnviron(), nokoWebApiAutoRunEnv)
+	task.SetEnviron(environ)
+
+	return p.startTaskHelper(task)
 }
 
 func (p *ProcessTasks) applyMainTask(task ConfigImpl) error {
 	var err error
 	nokocore.KeepVoid(err)
 
-	if err = p.mainTask.Call(p, task); err != nil {
+	if err = p.mainTaskHelper(task); err != nil {
 		return err
 	}
 
@@ -482,12 +484,41 @@ func (p *ProcessTasks) StartProcessTask(pTask ProcessTaskImpl) error {
 	return err
 }
 
-func (p *ProcessTasks) ExecuteAsync(tasks *TasksConfig) {
-	p.regis = tasks.ApplyAsync(p)
+func (p *ProcessTasks) ExecuteAsync(tasksConfig *TasksConfig) {
+	var err error
+	nokocore.KeepVoid(err)
+
+	tasks := *tasksConfig
+	size := len(tasks)
+
+	waitTasks := NewWaitTasks()
+	waitTasks.Add(size)
+
+	for i, task := range tasks {
+		nokocore.KeepVoid(i)
+
+		// no need goroutine's for a wait run task, already run in goroutine.
+		waitTasks.Run(func() error {
+			return waitRunTask(tasksConfig, p, task)
+		})
+	}
+
+	p.regis = waitTasks
 }
 
-func (p *ProcessTasks) Execute(tasks *TasksConfig) error {
-	return tasks.Apply(p)
+func (p *ProcessTasks) Execute(tasksConfig *TasksConfig) error {
+	var err error
+	nokocore.KeepVoid(err)
+
+	tasks := *tasksConfig
+	for i, task := range tasks {
+		nokocore.KeepVoid(i)
+		if err = waitRun(tasksConfig, p, task); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (p *ProcessTasks) Wait() error {
@@ -539,7 +570,7 @@ func makeProcessFromTask(pTasks ProcessTasksImpl, task ConfigImpl) error {
 		return nil
 	}
 
-	return runTask(pTasks, task)
+	return pTasks.startTaskHelper(task)
 }
 
 func makeProcessFromTaskAsync(pTasks ProcessTasksImpl, task ConfigImpl, err chan<- error) {
@@ -649,21 +680,6 @@ func waitRunTask(tasks *TasksConfig, pTasks ProcessTasksImpl, task ConfigImpl) e
 	}
 }
 
-func (w *TasksConfig) Apply(pTasks ProcessTasksImpl) error {
-	var err error
-	nokocore.KeepVoid(err)
-
-	tasks := *w
-	for i, task := range tasks {
-		nokocore.KeepVoid(i)
-		if err = waitRun(w, pTasks, task); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 type WaitTasksImpl interface {
 	Wait() error
 	Add(delta int)
@@ -694,26 +710,4 @@ func (w *WaitTasks) Add(delta int) {
 func (w *WaitTasks) Run(action nokocore.ActionReturn[error]) {
 	defer w.WaitGroup.Done()
 	w.err = action.Call()
-}
-
-func (w *TasksConfig) ApplyAsync(pTasks ProcessTasksImpl) *WaitTasks {
-	var err error
-	nokocore.KeepVoid(err)
-
-	tasks := *w
-	size := len(tasks)
-
-	wt := NewWaitTasks()
-	wt.Add(size)
-
-	for i, task := range tasks {
-		nokocore.KeepVoid(i)
-
-		// no need goroutine's for a wait run task, already run in goroutine.
-		wt.Run(func() error {
-			return waitRunTask(w, pTasks, task)
-		})
-	}
-
-	return wt
 }

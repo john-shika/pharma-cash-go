@@ -35,11 +35,18 @@ func ToProductModel(productBody *ProductBody, packageModel *models2.Package, uni
 		Supplier:         productBody.Supplier,
 		Description:      productBody.Description,
 		Category:         productBody.Category,
-		Expires:          sqlx.DateOnly(productBody.Expires),
+		Expires:          sqlx.ParseDateOnlyNotNull(productBody.Expires),
 		PurchasePrice:    decimal.RequireFromString(productBody.PurchasePrice),
 		SupplierDiscount: productBody.SupplierDiscount,
 		VAT:              productBody.VAT,
 		ProfitMargin:     productBody.ProfitMargin,
+		PackageID:        packageModel.ID,
+		PackageTotal:     productBody.PackageTotal,
+		UnitID:           unitModel.ID,
+		UnitAmount:       productBody.UnitAmount,
+		UnitExtra:        productBody.UnitExtra,
+		Package:          *packageModel,
+		Unit:             *unitModel,
 	}
 }
 

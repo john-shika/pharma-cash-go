@@ -32,22 +32,25 @@ func (u *UserRepository) SafeLogin(username string, password string) (*models.Us
 	email := username
 	phone := username
 
+	// set preloads
+	preloads := []string{"Roles"}
+
 	// try to find the user
 	switch {
 	case nokocore.EmailRegex().MatchString(email):
-		if user, err = u.SafeFirst("email = ?", email); err != nil {
+		if user, err = u.SafePreFirst(preloads, "email = ?", email); err != nil {
 			return nil, err
 		}
 		break
 
 	case nokocore.PhoneRegex().MatchString(phone):
-		if user, err = u.SafeFirst("phone = ?", phone); err != nil {
+		if user, err = u.SafePreFirst(preloads, "phone = ?", phone); err != nil {
 			return nil, err
 		}
 		break
 
 	default:
-		if user, err = u.SafeFirst("username = ?", username); err != nil {
+		if user, err = u.SafePreFirst(preloads, "username = ?", username); err != nil {
 			return nil, err
 		}
 		break
@@ -74,22 +77,25 @@ func (u *UserRepository) Login(username string, password string) (*models.User, 
 	email := username
 	phone := username
 
+	// set preloads
+	preloads := []string{"Roles"}
+
 	// try to find the user
 	switch {
 	case nokocore.EmailRegex().MatchString(email):
-		if user, err = u.First("email = ?", email); err != nil {
+		if user, err = u.PreFirst(preloads, "email = ?", email); err != nil {
 			return nil, err
 		}
 		break
 
 	case nokocore.PhoneRegex().MatchString(phone):
-		if user, err = u.First("phone = ?", phone); err != nil {
+		if user, err = u.PreFirst(preloads, "phone = ?", phone); err != nil {
 			return nil, err
 		}
 		break
 
 	default:
-		if user, err = u.First("username = ?", username); err != nil {
+		if user, err = u.PreFirst(preloads, "username = ?", username); err != nil {
 			return nil, err
 		}
 		break

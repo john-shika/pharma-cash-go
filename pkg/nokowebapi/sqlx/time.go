@@ -23,13 +23,13 @@ type TimeOnlyImpl interface {
 }
 
 type NullTimeOnly struct {
-	TimeOnly TimeOnlyImpl
+	TimeOnly TimeOnly
 	Valid    bool
 }
 
 func NewTimeOnly(value time.Time) NullTimeOnly {
 	return NullTimeOnly{
-		TimeOnly: &TimeOnly{
+		TimeOnly: TimeOnly{
 			Time: value,
 		},
 		Valid: true,
@@ -37,13 +37,12 @@ func NewTimeOnly(value time.Time) NullTimeOnly {
 }
 
 func (w *NullTimeOnly) baseInit() {
-	if w.TimeOnly != nil {
+	var timeOnly TimeOnly
+	if w.TimeOnly != timeOnly {
 		return
 	}
 
-	w.TimeOnly = &TimeOnly{
-		Time: time.Time{},
-	}
+	w.TimeOnly = timeOnly
 }
 
 func (w NullTimeOnly) MarshalText() (text []byte, err error) {
@@ -130,15 +129,13 @@ func SafeParseTimeOnly(value string) (NullTimeOnly, error) {
 
 	if temp, err = time.Parse(nokocore.TimeOnlyFormat, value); err != nil {
 		return NullTimeOnly{
-			TimeOnly: &TimeOnly{
-				Time: time.Time{},
-			},
-			Valid: false,
+			TimeOnly: TimeOnly{},
+			Valid:    false,
 		}, err
 	}
 
 	return NullTimeOnly{
-		TimeOnly: &TimeOnly{
+		TimeOnly: TimeOnly{
 			Time: temp.UTC(),
 		},
 		Valid: true,
@@ -147,6 +144,26 @@ func SafeParseTimeOnly(value string) (NullTimeOnly, error) {
 
 func ParseTimeOnly(value string) NullTimeOnly {
 	return nokocore.Unwrap(SafeParseTimeOnly(value))
+}
+
+func SafeParseTimeOnlyNotNull(value string) (TimeOnly, error) {
+	var err error
+	var timeOnlyNull NullTimeOnly
+	nokocore.KeepVoid(err, timeOnlyNull)
+
+	if timeOnlyNull, err = SafeParseTimeOnly(value); err != nil {
+		return TimeOnly{}, err
+	}
+
+	if !timeOnlyNull.Valid {
+		return TimeOnly{}, errors.New("invalid date")
+	}
+
+	return timeOnlyNull.TimeOnly, nil
+}
+
+func ParseTimeOnlyNotNull(value string) TimeOnly {
+	return nokocore.Unwrap(SafeParseTimeOnly(value)).TimeOnly
 }
 
 // MarshalText for text marshaling
@@ -236,9 +253,7 @@ func (w *TimeOnly) Scan(value any) error {
 		}
 	}
 
-	*w = TimeOnly{
-		Time: time.Time{},
-	}
+	*w = TimeOnly{}
 	return nil
 }
 

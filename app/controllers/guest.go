@@ -63,7 +63,12 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 		}
 
 		// get user roles
-		roles := nokocore.RolesUnpack(user.Roles)
+		var roles []string
+		for i, role := range user.Roles {
+			nokocore.KeepVoid(i)
+
+			roles = append(roles, role.RoleName)
+		}
 
 		sessionId := nokocore.NewUUID()
 		timeUtcNow := nokocore.GetTimeUtcNow()
@@ -86,8 +91,8 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 
 		session := &models.Session{
 			UserID:         user.ID,
-			TokenId:        jwtClaimsDataAccess.GetIdentity(),
-			RefreshTokenId: sql.NullString{},
+			TokenID:        jwtClaimsDataAccess.GetIdentity(),
+			RefreshTokenID: sql.NullString{},
 			IPAddress:      ipAddr,
 			UserAgent:      userAgent,
 			Expires:        expires,
@@ -110,7 +115,6 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 			shift = schemas2.ToShiftResult(&employee.Shift)
 		}
 
-		roles = nokocore.RolesUnpack(user.Roles)
 		userResult := schemas.ToUserResult(user, nil)
 		return extras.NewMessageBodyOk(ctx, "Successfully logged in.", &nokocore.MapAny{
 			"accessToken": jwtToken,

@@ -14,7 +14,7 @@ type EmployeeBody struct {
 	Email     string   `mapstructure:"email" json:"email" form:"email" validate:"email,omitempty"`
 	Phone     string   `mapstructure:"phone" json:"phone" form:"phone" validate:"phone,omitempty"`
 	Admin     bool     `mapstructure:"admin" json:"admin" form:"admin" validate:"boolean,omitempty"`
-	Roles     []string `mapstructure:"roles" json:"roles" form:"roles" validate:"omitempty"`
+	Roles     []string `mapstructure:"roles" json:"roles" form:"roles" validate:"alphabet,omitempty"`
 	Level     int      `mapstructure:"level" json:"level" form:"level" validate:"number,min=0,max=99,omitempty"` // FUTURE: can handle min=N,max=N
 	Shift     string   `mapstructure:"shift" json:"shift" form:"shift" validate:"omitempty"`
 	ShiftDate string   `mapstructure:"shift_date" json:"shiftDate" form:"shift_date" validate:"dateOnly,omitempty"`
@@ -53,8 +53,8 @@ func ToUserModel(employee *EmployeeBody) *models.User {
 
 type EmployeeResult struct {
 	schemas.UserResult
-	Shift     string            `json:"shift"`
-	ShiftDate sqlx.DateOnlyImpl `json:"shiftDate,omitempty"`
+	Shift     string        `json:"shift"`
+	ShiftDate sqlx.DateOnly `json:"shiftDate,omitempty"`
 }
 
 func ToEmployeeResult(employee *models2.Employee) EmployeeResult {

@@ -70,15 +70,45 @@ func GetKindReflect(value any) reflect.Kind {
 	return PassValueIndirectReflect(value).Kind()
 }
 
+func IsNoneOrEmptyWhiteSpaceReflect(value any) bool {
+	return !IsValidReflect(value) || IsEmptyWhiteSpaceReflect(value)
+}
+
+func IsEmptyWhiteSpaceReflect(value any) bool {
+	val := PassValueIndirectReflect(value)
+	if !val.IsValid() {
+		return true
+	}
+
+	switch val.Kind() {
+	case reflect.String:
+		return strings.TrimSpace(val.String()) == ""
+
+	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice:
+		return val.Len() == 0
+
+	default:
+		return false
+	}
+}
+
 func IsValidReflect(value any) bool {
 	val := GetValueReflect(value)
+
 	// must be not zero value
 	if val.IsValid() {
+		if val.IsZero() && val.Kind() != reflect.Bool {
+			return false
+		}
+		
 		switch val.Kind() {
 		case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
 			// chan, func, interface, map, pointer, slice
 			// will be considered as nullable value
 			return !val.IsNil()
+
+		case reflect.String:
+			return val.Len() > 0
 
 		default:
 			// not chan, func, interface, map, pointer, slice
@@ -112,7 +142,7 @@ func IsCountableReflect[T any](value T) bool {
 		panic("invalid value")
 	}
 	switch val.Kind() {
-	case reflect.Array, reflect.Slice, reflect.String, reflect.Chan:
+	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
 		return true
 
 	default:
@@ -125,6 +155,7 @@ func GetSizeReflect(value any) int {
 	if !IsCountableReflect(val) {
 		panic("value is not countable")
 	}
+
 	return val.Len()
 }
 

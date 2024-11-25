@@ -41,30 +41,30 @@ func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get package.", nil)
 		}
 
-		if packageModel != nil {
-			if unit, err = unitRepository.SafeFirst("uuid = ?", productBody.UnitID); err != nil {
-				console.Error(fmt.Sprintf("panic: %s", err.Error()))
-				return extras.NewMessageBodyInternalServerError(ctx, "Failed to get unit.", nil)
-			}
+		if packageModel == nil {
+			return extras.NewMessageBodyNotFound(ctx, "Package not found.", nil)
+		}
 
-			if unit != nil {
-				product := schemas2.ToProductModel(productBody, packageModel, unit)
+		if unit, err = unitRepository.SafeFirst("uuid = ?", productBody.UnitID); err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get unit.", nil)
+		}
 
-				if err = productRepository.SafeCreate(product); err != nil {
-					console.Error(fmt.Sprintf("panic: %s", err.Error()))
-					return extras.NewMessageBodyInternalServerError(ctx, "Failed to create product.", nil)
-				}
-
-				productResult := schemas2.ToProductResult(product)
-				return extras.NewMessageBodyOk(ctx, "Successfully create product.", &nokocore.MapAny{
-					"product": productResult,
-				})
-			}
-
+		if unit == nil {
 			return extras.NewMessageBodyNotFound(ctx, "Unit not found.", nil)
 		}
 
-		return extras.NewMessageBodyNotFound(ctx, "Package not found.", nil)
+		product := schemas2.ToProductModel(productBody, packageModel, unit)
+
+		if err = productRepository.SafeCreate(product); err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to create product.", nil)
+		}
+
+		productResult := schemas2.ToProductResult(product)
+		return extras.NewMessageBodyOk(ctx, "Successfully create product.", &nokocore.MapAny{
+			"product": productResult,
+		})
 	}
 }
 

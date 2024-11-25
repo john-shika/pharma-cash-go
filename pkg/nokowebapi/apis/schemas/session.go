@@ -19,7 +19,7 @@ func ToSessionModel(session *SessionBody, userId int, expires time.Time) *models
 	if session != nil {
 		return &models.Session{
 			UserID:    userId,
-			TokenId:   session.TokenId,
+			TokenID:   session.TokenId,
 			IPAddress: session.IPAddress,
 			UserAgent: session.UserAgent,
 			Expires:   expires,
@@ -30,19 +30,19 @@ func ToSessionModel(session *SessionBody, userId int, expires time.Time) *models
 }
 
 type SessionResult struct {
-	UserID         uuid.UUID  `mapstructure:"user_id" json:"userId"`
-	TokenId        string     `mapstructure:"token_id" json:"tokenId"`
-	RefreshTokenId string     `mapstructure:"refresh_token_id" json:"refreshTokenId,omitempty"`
-	IPAddress      string     `mapstructure:"ip_addr" json:"ipAddr"`
-	UserAgent      string     `mapstructure:"user_agent" json:"userAgent"`
-	Expires        string     `mapstructure:"expires" json:"expires"`
-	CreatedAt      string     `mapstructure:"created_at" json:"createdAt"`
-	UpdatedAt      string     `mapstructure:"updated_at" json:"updatedAt"`
-	DeletedAt      string     `mapstructure:"deleted_at" json:"deletedAt,omitempty"`
-	User           UserResult `mapstructure:"user" json:"user,omitempty"`
+	UserID         uuid.UUID `mapstructure:"user_id" json:"userId"`
+	TokenId        string    `mapstructure:"token_id" json:"tokenId"`
+	RefreshTokenId string    `mapstructure:"refresh_token_id" json:"refreshTokenId,omitempty"`
+	IPAddress      string    `mapstructure:"ip_addr" json:"ipAddr"`
+	UserAgent      string    `mapstructure:"user_agent" json:"userAgent"`
+	Expires        string    `mapstructure:"expires" json:"expires"`
+	CreatedAt      string    `mapstructure:"created_at" json:"createdAt"`
+	UpdatedAt      string    `mapstructure:"updated_at" json:"updatedAt"`
+	DeletedAt      string    `mapstructure:"deleted_at" json:"deletedAt,omitempty"`
+	Used           bool      `mapstructure:"used" json:"used"`
 }
 
-func ToSessionResult(session *models.Session, user UserResult) SessionResult {
+func ToSessionResult(session *models.Session, used bool) SessionResult {
 	var deletedAt string
 	if session != nil {
 		if session.DeletedAt.Valid {
@@ -50,15 +50,15 @@ func ToSessionResult(session *models.Session, user UserResult) SessionResult {
 		}
 		return SessionResult{
 			UserID:         session.User.UUID,
-			TokenId:        session.TokenId,
-			RefreshTokenId: session.RefreshTokenId.String,
+			TokenId:        session.TokenID,
+			RefreshTokenId: session.RefreshTokenID.String,
 			IPAddress:      session.IPAddress,
 			UserAgent:      session.UserAgent,
 			Expires:        nokocore.ToTimeUtcStringISO8601(session.Expires),
 			CreatedAt:      nokocore.ToTimeUtcStringISO8601(session.CreatedAt),
 			UpdatedAt:      nokocore.ToTimeUtcStringISO8601(session.UpdatedAt),
 			DeletedAt:      deletedAt,
-			User:           user,
+			Used:           used,
 		}
 	}
 

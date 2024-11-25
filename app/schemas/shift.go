@@ -20,9 +20,9 @@ func ToShiftModel(shift *ShiftBody) *models2.Shift {
 }
 
 type ShiftResult struct {
-	Name      string            `mapstructure:"name" json:"name"`
-	StartDate sqlx.TimeOnlyImpl `mapstructure:"start_date" json:"startDate,omitempty"`
-	EndDate   sqlx.TimeOnlyImpl `mapstructure:"end_date" json:"endDate,omitempty"`
+	Name      string        `mapstructure:"name" json:"name"`
+	StartDate sqlx.TimeOnly `mapstructure:"start_date" json:"startDate,omitempty"`
+	EndDate   sqlx.TimeOnly `mapstructure:"end_date" json:"endDate,omitempty"`
 }
 
 func ToShiftResult(shift *models2.Shift) ShiftResult {

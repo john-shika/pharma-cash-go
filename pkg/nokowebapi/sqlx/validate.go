@@ -1,6 +1,7 @@
 package sqlx
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -252,7 +253,7 @@ func ValidateStruct(value any) error {
 					return nil
 				}
 
-				if nokocore.IsNoneOrEmptyWhiteSpace(vField) {
+				if nokocore.IsNoneOrEmptyWhiteSpaceReflect(vField) {
 					if !omitEmpty {
 						return errors.New(fmt.Sprintf("field '%s' is required", name))
 					}
@@ -469,6 +470,9 @@ func ValidateStruct(value any) error {
 }
 
 func ValidateBoolean(value any) error {
+	var err error
+	nokocore.KeepVoid(err)
+
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
@@ -485,12 +489,26 @@ func ValidateBoolean(value any) error {
 
 		return nil
 
+	case reflect.Array, reflect.Slice:
+		size := val.Len()
+		for i := 0; i < size; i++ {
+			temp := val.Index(i)
+			if err = ValidateBoolean(temp); err != nil {
+				return err
+			}
+		}
+
+		return nil
+
 	default:
 		return errors.New("invalid data type")
 	}
 }
 
 func ValidateNumber(value any) error {
+	var err error
+	nokocore.KeepVoid(err)
+
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
@@ -516,12 +534,26 @@ func ValidateNumber(value any) error {
 
 		return nil
 
+	case reflect.Array, reflect.Slice:
+		size := val.Len()
+		for i := 0; i < size; i++ {
+			temp := val.Index(i)
+			if err = ValidateNumber(temp); err != nil {
+				return err
+			}
+		}
+
+		return nil
+
 	default:
 		return errors.New("invalid data type")
 	}
 }
 
 func ValidateNumeric(value any) error {
+	var err error
+	nokocore.KeepVoid(err)
+
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
@@ -547,12 +579,26 @@ func ValidateNumeric(value any) error {
 
 		return nil
 
+	case reflect.Array, reflect.Slice:
+		size := val.Len()
+		for i := 0; i < size; i++ {
+			temp := val.Index(i)
+			if err = ValidateNumeric(temp); err != nil {
+				return err
+			}
+		}
+
+		return nil
+
 	default:
 		return errors.New("invalid data type")
 	}
 }
 
 func ValidateAlphaLower(value any) error {
+	var err error
+	nokocore.KeepVoid(err)
+
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
@@ -566,12 +612,26 @@ func ValidateAlphaLower(value any) error {
 
 		return nil
 
+	case reflect.Array, reflect.Slice:
+		size := val.Len()
+		for i := 0; i < size; i++ {
+			temp := val.Index(i)
+			if err = ValidateAlphaLower(temp); err != nil {
+				return err
+			}
+		}
+
+		return nil
+
 	default:
 		return errors.New("invalid data type")
 	}
 }
 
 func ValidateAlphaUpper(value any) error {
+	var err error
+	nokocore.KeepVoid(err)
+
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
@@ -585,12 +645,26 @@ func ValidateAlphaUpper(value any) error {
 
 		return nil
 
+	case reflect.Array, reflect.Slice:
+		size := val.Len()
+		for i := 0; i < size; i++ {
+			temp := val.Index(i)
+			if err = ValidateAlphaUpper(temp); err != nil {
+				return err
+			}
+		}
+
+		return nil
+
 	default:
 		return errors.New("invalid data type")
 	}
 }
 
 func ValidateAlphabet(value any) error {
+	var err error
+	nokocore.KeepVoid(err)
+
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
@@ -604,12 +678,26 @@ func ValidateAlphabet(value any) error {
 
 		return nil
 
+	case reflect.Array, reflect.Slice:
+		size := val.Len()
+		for i := 0; i < size; i++ {
+			temp := val.Index(i)
+			if err = ValidateAlphabet(temp); err != nil {
+				return err
+			}
+		}
+
+		return nil
+
 	default:
 		return errors.New("invalid data type")
 	}
 }
 
 func ValidateAlphaNum(value any) error {
+	var err error
+	nokocore.KeepVoid(err)
+
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
@@ -623,12 +711,26 @@ func ValidateAlphaNum(value any) error {
 
 		return nil
 
+	case reflect.Array, reflect.Slice:
+		size := val.Len()
+		for i := 0; i < size; i++ {
+			temp := val.Index(i)
+			if err = ValidateAlphaNum(temp); err != nil {
+				return err
+			}
+		}
+
+		return nil
+
 	default:
 		return errors.New("invalid data type")
 	}
 }
 
 func ValidateAscii(value any) error {
+	var err error
+	nokocore.KeepVoid(err)
+
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
@@ -642,12 +744,26 @@ func ValidateAscii(value any) error {
 
 		return nil
 
+	case reflect.Array, reflect.Slice:
+		size := val.Len()
+		for i := 0; i < size; i++ {
+			temp := val.Index(i)
+			if err = ValidateAscii(temp); err != nil {
+				return err
+			}
+		}
+
+		return nil
+
 	default:
 		return errors.New("invalid data type")
 	}
 }
 
 func ValidateEmail(value any) error {
+	var err error
+	nokocore.KeepVoid(err)
+
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
@@ -661,12 +777,26 @@ func ValidateEmail(value any) error {
 
 		return nil
 
+	case reflect.Array, reflect.Slice:
+		size := val.Len()
+		for i := 0; i < size; i++ {
+			temp := val.Index(i)
+			if err = ValidateEmail(temp); err != nil {
+				return err
+			}
+		}
+
+		return nil
+
 	default:
 		return errors.New("invalid data type")
 	}
 }
 
 func ValidatePhone(value any) error {
+	var err error
+	nokocore.KeepVoid(err)
+
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
 		return errors.New("invalid value")
@@ -676,6 +806,17 @@ func ValidatePhone(value any) error {
 	case reflect.String:
 		if !nokocore.PhoneRegex().MatchString(val.String()) {
 			return errors.New("invalid phone format")
+		}
+
+		return nil
+
+	case reflect.Array, reflect.Slice:
+		size := val.Len()
+		for i := 0; i < size; i++ {
+			temp := val.Index(i)
+			if err = ValidatePhone(temp); err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -698,6 +839,17 @@ func ValidatePassword(value any) error {
 	case reflect.String:
 		return CheckPassword(val.String())
 
+	case reflect.Array, reflect.Slice:
+		size := val.Len()
+		for i := 0; i < size; i++ {
+			temp := val.Index(i)
+			if err = ValidatePassword(temp); err != nil {
+				return err
+			}
+		}
+
+		return nil
+
 	default:
 		return errors.New("invalid data type")
 	}
@@ -706,8 +858,8 @@ func ValidatePassword(value any) error {
 func ValidateDateTime(value any) error {
 	var ok bool
 	var err error
-	var temp time.Time
-	nokocore.KeepVoid(ok, err, temp)
+	var check time.Time
+	nokocore.KeepVoid(ok, err, check)
 
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
@@ -720,7 +872,7 @@ func ValidateDateTime(value any) error {
 
 	case reflect.Struct:
 		switch val.Interface().(type) {
-		case time.Time, time.Duration:
+		case time.Time, time.Duration, sql.NullTime, sql.Null[time.Time], sql.Null[time.Duration]:
 			return nil
 
 		default:
@@ -728,8 +880,19 @@ func ValidateDateTime(value any) error {
 		}
 
 	case reflect.String:
-		if temp, err = time.Parse(nokocore.DateTimeFormat, val.String()); err != nil {
+		if check, err = time.Parse(nokocore.DateTimeFormat, val.String()); err != nil {
 			return errors.New("invalid datetime format, please using YYYY-MM-DD HH:mm:ss")
+		}
+
+		return nil
+
+	case reflect.Array, reflect.Slice:
+		size := val.Len()
+		for i := 0; i < size; i++ {
+			temp := val.Index(i)
+			if err = ValidateDateTime(temp); err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -742,8 +905,8 @@ func ValidateDateTime(value any) error {
 func ValidateDateTimeISO8601(value any) error {
 	var ok bool
 	var err error
-	var temp time.Time
-	nokocore.KeepVoid(ok, err, temp)
+	var check time.Time
+	nokocore.KeepVoid(ok, err, check)
 
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
@@ -756,7 +919,7 @@ func ValidateDateTimeISO8601(value any) error {
 
 	case reflect.Struct:
 		switch val.Interface().(type) {
-		case time.Time, time.Duration:
+		case time.Time, time.Duration, sql.NullTime, sql.Null[time.Time], sql.Null[time.Duration]:
 			return nil
 
 		default:
@@ -764,8 +927,19 @@ func ValidateDateTimeISO8601(value any) error {
 		}
 
 	case reflect.String:
-		if temp, err = time.Parse(nokocore.DateTimeFormatISO8601, val.String()); err != nil {
+		if check, err = time.Parse(nokocore.DateTimeFormatISO8601, val.String()); err != nil {
 			return errors.New("invalid datetime format, please using YYYY-MM-DDTHH:mm:ss.sssZ or YYYY-MM-DDTHH:mm:ss+/-HH:mm")
+		}
+
+		return nil
+
+	case reflect.Array, reflect.Slice:
+		size := val.Len()
+		for i := 0; i < size; i++ {
+			temp := val.Index(i)
+			if err = ValidateDateTimeISO8601(temp); err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -778,8 +952,8 @@ func ValidateDateTimeISO8601(value any) error {
 func ValidateDateOnly(value any) error {
 	var ok bool
 	var err error
-	var temp time.Time
-	nokocore.KeepVoid(ok, err, temp)
+	var check time.Time
+	nokocore.KeepVoid(ok, err, check)
 
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
@@ -792,7 +966,10 @@ func ValidateDateOnly(value any) error {
 
 	case reflect.Struct:
 		switch val.Interface().(type) {
-		case time.Time, time.Duration, NullDateOnly, DateOnlyImpl, DateOnly:
+		case time.Time, time.Duration, sql.NullTime, sql.Null[time.Time], sql.Null[time.Duration]:
+			return nil
+
+		case NullDateOnly, DateOnlyImpl, DateOnly:
 			return nil
 
 		default:
@@ -800,8 +977,19 @@ func ValidateDateOnly(value any) error {
 		}
 
 	case reflect.String:
-		if temp, err = time.Parse(nokocore.DateOnlyFormat, val.String()); err != nil {
+		if check, err = time.Parse(nokocore.DateOnlyFormat, val.String()); err != nil {
 			return errors.New("invalid date format, please using YYYY-MM-DD")
+		}
+
+		return nil
+
+	case reflect.Array, reflect.Slice:
+		size := val.Len()
+		for i := 0; i < size; i++ {
+			temp := val.Index(i)
+			if err = ValidateDateOnly(temp); err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -814,8 +1002,8 @@ func ValidateDateOnly(value any) error {
 func ValidateTimeOnly(value any) error {
 	var ok bool
 	var err error
-	var temp time.Time
-	nokocore.KeepVoid(ok, err, temp)
+	var check time.Time
+	nokocore.KeepVoid(ok, err, check)
 
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
@@ -828,7 +1016,10 @@ func ValidateTimeOnly(value any) error {
 
 	case reflect.Struct:
 		switch val.Interface().(type) {
-		case time.Time, time.Duration, NullTimeOnly, TimeOnlyImpl, TimeOnly:
+		case time.Time, time.Duration, sql.NullTime, sql.Null[time.Time], sql.Null[time.Duration]:
+			return nil
+
+		case NullTimeOnly, TimeOnlyImpl, TimeOnly:
 			return nil
 
 		default:
@@ -836,8 +1027,19 @@ func ValidateTimeOnly(value any) error {
 		}
 
 	case reflect.String:
-		if temp, err = time.Parse(nokocore.TimeOnlyFormat, val.String()); err != nil {
+		if check, err = time.Parse(nokocore.TimeOnlyFormat, val.String()); err != nil {
 			return errors.New("invalid time format, please using HH:mm:ss")
+		}
+
+		return nil
+
+	case reflect.Array, reflect.Slice:
+		size := val.Len()
+		for i := 0; i < size; i++ {
+			temp := val.Index(i)
+			if err = ValidateTimeOnly(temp); err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -850,8 +1052,8 @@ func ValidateTimeOnly(value any) error {
 func ValidateURL(value any) error {
 	var ok bool
 	var err error
-	var temp *url.URL
-	nokocore.KeepVoid(ok, err, temp)
+	var check *url.URL
+	nokocore.KeepVoid(ok, err, check)
 
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
@@ -870,8 +1072,19 @@ func ValidateURL(value any) error {
 		}
 
 	case reflect.String:
-		if temp, err = url.Parse(val.String()); err != nil {
+		if check, err = url.Parse(val.String()); err != nil {
 			return errors.New("invalid URL format, please using http://<domain>.<tld>/$request_uri or https://<domain>.<tld>/$request_uri")
+		}
+
+		return nil
+
+	case reflect.Array, reflect.Slice:
+		size := val.Len()
+		for i := 0; i < size; i++ {
+			temp := val.Index(i)
+			if err = ValidateURL(temp); err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -884,8 +1097,8 @@ func ValidateURL(value any) error {
 func ValidateUUID(value any) error {
 	var ok bool
 	var err error
-	var temp uuid.UUID
-	nokocore.KeepVoid(ok, err, temp)
+	var check uuid.UUID
+	nokocore.KeepVoid(ok, err, check)
 
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
@@ -904,8 +1117,19 @@ func ValidateUUID(value any) error {
 		}
 
 	case reflect.String:
-		if temp, err = uuid.Parse(val.String()); err != nil {
+		if check, err = uuid.Parse(val.String()); err != nil {
 			return errors.New("invalid UUID format, please using 00000000-0000-0000-0000-000000000000")
+		}
+
+		return nil
+
+	case reflect.Array, reflect.Slice:
+		size := val.Len()
+		for i := 0; i < size; i++ {
+			temp := val.Index(i)
+			if err = ValidateUUID(temp); err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -918,8 +1142,8 @@ func ValidateUUID(value any) error {
 func ValidateDecimal(value any) error {
 	var ok bool
 	var err error
-	var temp decimal.Decimal
-	nokocore.KeepVoid(ok, err, temp)
+	var check decimal.Decimal
+	nokocore.KeepVoid(ok, err, check)
 
 	val := nokocore.PassValueIndirectReflect(value)
 	if !val.IsValid() {
@@ -938,8 +1162,19 @@ func ValidateDecimal(value any) error {
 		}
 
 	case reflect.String:
-		if temp, err = decimal.NewFromString(val.String()); err != nil {
+		if check, err = decimal.NewFromString(val.String()); err != nil {
 			return errors.New("invalid decimal format, please using 0.00")
+		}
+
+		return nil
+
+	case reflect.Array, reflect.Slice:
+		size := val.Len()
+		for i := 0; i < size; i++ {
+			temp := val.Index(i)
+			if err = ValidateDecimal(temp); err != nil {
+				return err
+			}
 		}
 
 		return nil

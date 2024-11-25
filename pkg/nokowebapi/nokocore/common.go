@@ -723,6 +723,16 @@ func Cast[T any](value any) (T, bool) {
 	return temp, ok
 }
 
+func CastArray[T any](value any) ([]T, bool) {
+	temp, ok := value.([]T)
+	return temp, ok
+}
+
+func CastMap[K comparable, V any](value any) (map[K]V, bool) {
+	temp, ok := value.(map[K]V)
+	return temp, ok
+}
+
 func CastAny(value any) (any, bool) {
 	return value, true
 }

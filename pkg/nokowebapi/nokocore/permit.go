@@ -20,60 +20,35 @@ type RoleTypedOrStringImpl interface {
 }
 
 func ToRoleTyped[T RoleTypedOrStringImpl](role T) RoleTyped {
-	var temp string
-	value := strings.TrimSpace(string(role))
-	for i, character := range value {
-		KeepVoid(i)
-
-		w := string(character)
-		if !strings.Contains(AlphaNum, w) {
-			break
-		}
-
-		temp += w
-	}
-
-	temp = ToPascalCase(temp)
-	return RoleTyped(temp)
+	return RoleTyped(role)
 }
 
 func ToRoleString[T RoleTypedOrStringImpl](role T) string {
-	return string(ToRoleTyped(role))
+	return string(role)
 }
 
 func RolesPack[T RoleTypedOrStringImpl](roles []T) string {
-	var temp []string
-	KeepVoid(temp)
-
-	for i, role := range roles {
-		KeepVoid(i)
-
-		if value := ToRoleString(role); value != "" {
-			temp = append(temp, value)
-		}
-	}
-
+	temp := Unwrap(CastArray[string](roles))
 	return strings.Join(temp, ";")
 }
 
-func RolesUnpack(values string) []string {
+func RolesUnpack(roles string) []string {
 	var temp []string
-	if values = strings.TrimSpace(values); values != "" {
-		for i, role := range strings.Split(values, ";") {
-			KeepVoid(i)
+	tokens := strings.Split(strings.TrimSpace(roles), ";")
+	for i, role := range tokens {
+		KeepVoid(i)
 
-			if role = ToRoleString(role); role != "" {
-				temp = append(temp, role)
-			}
+		// trying to convert role value to PascalCase
+		if role = ToPascalCase(role); role != "" {
+			temp = append(temp, role)
 		}
 	}
-
 	return temp
 }
 
-func RolesIs[T RoleTypedOrStringImpl](value string, expected ...T) bool {
-	roles := RolesUnpack(value)
-	return RolesContains(roles, expected...)
+// RoleIs method, unpack roles value ex. User;Admin;SuperAdmin;Officer;
+func RoleIs[T RoleTypedOrStringImpl](roles string, expected ...T) bool {
+	return RolesContains(RolesUnpack(roles), expected...)
 }
 
 func RolesContains[T1, T2 RoleTypedOrStringImpl](roles []T1, expected ...T2) bool {
@@ -85,10 +60,7 @@ func RolesContains[T1, T2 RoleTypedOrStringImpl](roles []T1, expected ...T2) boo
 			for j, role1 := range roles {
 				KeepVoid(j)
 
-				value := ToRoleString(role2)
-
-				// maybe role1 has been normalized
-				if strings.EqualFold(string(role1), value) {
+				if strings.EqualFold(string(role1), string(role2)) {
 					found = true
 					break
 				}
@@ -105,26 +77,34 @@ func RolesContains[T1, T2 RoleTypedOrStringImpl](roles []T1, expected ...T2) boo
 	return false
 }
 
-func RolesApply[T RoleTypedOrStringImpl](value string, role T) string {
-	roles := RolesUnpack(value)
-	roles = RolesAppend(roles, role)
+func RoleApply[T RoleTypedOrStringImpl](value string, role T) string {
+	roles := RolesAdd(RolesUnpack(value), role)
 	return strings.Join(roles, ";")
 }
 
-func RolesAppend[T1, T2 RoleTypedOrStringImpl](roles []T1, role T2) []T1 {
-	var temp []T1
+func RolesAppend[T1, T2 RoleTypedOrStringImpl](roles []T1, values ...T2) []T1 {
+	temp := roles
+	for i, role := range values {
+		KeepVoid(i)
+
+		temp = RolesAdd(temp, role)
+	}
+
+	return temp
+}
+
+func RolesAdd[T1, T2 RoleTypedOrStringImpl](roles []T1, role T2) []T1 {
+	temp := roles
 	found := false
-	role2 := ToRoleString(role)
+	role2 := string(role)
 	for i, value := range roles {
 		KeepVoid(i)
 
-		// maybe value has been normalized
 		if role1 := string(value); role1 != "" {
-			if strings.EqualFold(role1, role2) {
+			if role2 != "" && strings.EqualFold(role1, role2) {
 				found = true
+				break
 			}
-
-			temp = append(temp, T1(role1))
 		}
 	}
 
@@ -137,13 +117,12 @@ func RolesAppend[T1, T2 RoleTypedOrStringImpl](roles []T1, role T2) []T1 {
 
 func RolesRemove[T1, T2 RoleTypedOrStringImpl](roles []T1, role T2) []T1 {
 	var temp []T1
-	role2 := ToRoleString(role)
+	role2 := string(role)
 	for i, value := range roles {
 		KeepVoid(i)
 
-		// maybe value has been normalized
 		if role1 := string(value); role1 != "" {
-			if strings.EqualFold(role1, role2) {
+			if role2 != "" && strings.EqualFold(role1, role2) {
 				continue
 			}
 

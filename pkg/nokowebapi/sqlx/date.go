@@ -22,13 +22,13 @@ type DateOnlyImpl interface {
 }
 
 type NullDateOnly struct {
-	DateOnly DateOnlyImpl
+	DateOnly DateOnly
 	Valid    bool
 }
 
 func NewDateOnly(value time.Time) NullDateOnly {
 	return NullDateOnly{
-		DateOnly: &DateOnly{
+		DateOnly: DateOnly{
 			Time: value,
 		},
 		Valid: true,
@@ -36,13 +36,12 @@ func NewDateOnly(value time.Time) NullDateOnly {
 }
 
 func (w *NullDateOnly) baseInit() {
-	if w.DateOnly != nil {
+	var dateOnly DateOnly
+	if w.DateOnly != dateOnly {
 		return
 	}
 
-	w.DateOnly = &DateOnly{
-		Time: time.Time{},
-	}
+	w.DateOnly = dateOnly
 }
 
 func (w NullDateOnly) MarshalText() (text []byte, err error) {
@@ -124,15 +123,13 @@ func SafeParseDateOnly(value string) (NullDateOnly, error) {
 
 	if temp, err = time.Parse(nokocore.DateOnlyFormat, value); err != nil {
 		return NullDateOnly{
-			DateOnly: &DateOnly{
-				Time: time.Time{},
-			},
-			Valid: false,
+			DateOnly: DateOnly{},
+			Valid:    false,
 		}, err
 	}
 
 	return NullDateOnly{
-		DateOnly: &DateOnly{
+		DateOnly: DateOnly{
 			Time: temp.UTC(),
 		},
 		Valid: true,
@@ -141,6 +138,26 @@ func SafeParseDateOnly(value string) (NullDateOnly, error) {
 
 func ParseDateOnly(value string) NullDateOnly {
 	return nokocore.Unwrap(SafeParseDateOnly(value))
+}
+
+func SafeParseDateOnlyNotNull(value string) (DateOnly, error) {
+	var err error
+	var dateOnlyNull NullDateOnly
+	nokocore.KeepVoid(err, dateOnlyNull)
+
+	if dateOnlyNull, err = SafeParseDateOnly(value); err != nil {
+		return DateOnly{}, err
+	}
+
+	if !dateOnlyNull.Valid {
+		return DateOnly{}, errors.New("invalid date")
+	}
+
+	return dateOnlyNull.DateOnly, nil
+}
+
+func ParseDateOnlyNotNull(value string) DateOnly {
+	return nokocore.Unwrap(SafeParseDateOnly(value)).DateOnly
 }
 
 // MarshalText for text marshaling
@@ -230,9 +247,7 @@ func (w *DateOnly) Scan(value any) error {
 		}
 	}
 
-	*w = DateOnly{
-		Time: time.Time{},
-	}
+	*w = DateOnly{}
 	return nil
 }
 

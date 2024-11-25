@@ -340,7 +340,7 @@ func ApplyMainSelf(self nokocore.MainFunc) {
 
 type ProcessTasksImpl interface {
 	mainTaskHelper(task ConfigImpl) error
-	applyTaskHelper(task ConfigImpl) error
+	startTaskHelper(task ConfigImpl) error
 	GetProcessTask(name string) ProcessTaskImpl
 	GetDependsOnProcessTask(task ConfigImpl) []ProcessTaskImpl
 	StartProcessTask(pTask ProcessTaskImpl) error
@@ -363,7 +363,7 @@ func NewProcessTasks() ProcessTasksImpl {
 	}
 }
 
-func (p *ProcessTasks) applyTaskHelper(task ConfigImpl) error {
+func (p *ProcessTasks) startTaskHelper(task ConfigImpl) error {
 	var err error
 	var workDir nokocore.WorkingDirImpl
 	nokocore.KeepVoid(err, workDir)
@@ -371,6 +371,7 @@ func (p *ProcessTasks) applyTaskHelper(task ConfigImpl) error {
 	// try to dial url it-self
 	if network := task.GetNetwork(); network != nil {
 		if nokocore.TryFetchUrl(network.GetURL()) {
+			fmt.Printf("[FETCH] URL '%s' is alive.\n", network.GetURL().String())
 			return nil
 		}
 	}
@@ -428,7 +429,7 @@ func (p *ProcessTasks) mainTaskHelper(task ConfigImpl) error {
 	environ := append(task.GetEnviron(), nokoWebApiAutoRunEnv)
 	task.SetEnviron(environ)
 
-	return p.applyTaskHelper(task)
+	return p.startTaskHelper(task)
 }
 
 func (p *ProcessTasks) applyMainTask(task ConfigImpl) error {
@@ -483,12 +484,41 @@ func (p *ProcessTasks) StartProcessTask(pTask ProcessTaskImpl) error {
 	return err
 }
 
-func (p *ProcessTasks) ExecuteAsync(tasks *TasksConfig) {
-	p.regis = tasks.ApplyAsync(p)
+func (p *ProcessTasks) ExecuteAsync(tasksConfig *TasksConfig) {
+	var err error
+	nokocore.KeepVoid(err)
+
+	tasks := *tasksConfig
+	size := len(tasks)
+
+	waitTasks := NewWaitTasks()
+	waitTasks.Add(size)
+
+	for i, task := range tasks {
+		nokocore.KeepVoid(i)
+
+		// no need goroutine's for a wait run task, already run in goroutine.
+		waitTasks.Run(func() error {
+			return waitRunTask(tasksConfig, p, task)
+		})
+	}
+
+	p.regis = waitTasks
 }
 
-func (p *ProcessTasks) Execute(tasks *TasksConfig) error {
-	return tasks.Apply(p)
+func (p *ProcessTasks) Execute(tasksConfig *TasksConfig) error {
+	var err error
+	nokocore.KeepVoid(err)
+
+	tasks := *tasksConfig
+	for i, task := range tasks {
+		nokocore.KeepVoid(i)
+		if err = waitRun(tasksConfig, p, task); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (p *ProcessTasks) Wait() error {
@@ -540,7 +570,7 @@ func makeProcessFromTask(pTasks ProcessTasksImpl, task ConfigImpl) error {
 		return nil
 	}
 
-	return pTasks.applyTaskHelper(task)
+	return pTasks.startTaskHelper(task)
 }
 
 func makeProcessFromTaskAsync(pTasks ProcessTasksImpl, task ConfigImpl, err chan<- error) {
@@ -650,21 +680,6 @@ func waitRunTask(tasks *TasksConfig, pTasks ProcessTasksImpl, task ConfigImpl) e
 	}
 }
 
-func (w *TasksConfig) Apply(pTasks ProcessTasksImpl) error {
-	var err error
-	nokocore.KeepVoid(err)
-
-	tasks := *w
-	for i, task := range tasks {
-		nokocore.KeepVoid(i)
-		if err = waitRun(w, pTasks, task); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 type WaitTasksImpl interface {
 	Wait() error
 	Add(delta int)
@@ -695,26 +710,4 @@ func (w *WaitTasks) Add(delta int) {
 func (w *WaitTasks) Run(action nokocore.ActionReturn[error]) {
 	defer w.WaitGroup.Done()
 	w.err = action.Call()
-}
-
-func (w *TasksConfig) ApplyAsync(pTasks ProcessTasksImpl) *WaitTasks {
-	var err error
-	nokocore.KeepVoid(err)
-
-	tasks := *w
-	size := len(tasks)
-
-	wt := NewWaitTasks()
-	wt.Add(size)
-
-	for i, task := range tasks {
-		nokocore.KeepVoid(i)
-
-		// no need goroutine's for a wait run task, already run in goroutine.
-		wt.Run(func() error {
-			return waitRunTask(w, pTasks, task)
-		})
-	}
-
-	return wt
 }

@@ -25,6 +25,7 @@ func main() {
 		tasks := globals.GetTasksConfig()
 		nokocore.NoErr(pTasks.Execute(tasks))
 		nokocore.NoErr(pTasks.Wait())
+		fmt.Println("Done")
 	}
 
 	task.EntryPoint(app.Main, pTasksHandler)

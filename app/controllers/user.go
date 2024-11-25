@@ -30,6 +30,7 @@ func ProfileHandler(DB *gorm.DB) echo.HandlerFunc {
 		nokocore.KeepVoid(err, employee)
 
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+		roles := jwtAuthInfo.GetRoles()
 		user = jwtAuthInfo.User
 
 		preloads := []string{"Shift"}
@@ -47,6 +48,7 @@ func ProfileHandler(DB *gorm.DB) echo.HandlerFunc {
 		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
 			"user":  userResult,
 			"shift": shift,
+			"roles": roles,
 		})
 	}
 }

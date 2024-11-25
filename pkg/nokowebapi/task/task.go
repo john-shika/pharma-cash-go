@@ -435,18 +435,15 @@ func (p *ProcessTasks) mainTaskHelper(task ConfigImpl) error {
 func (p *ProcessTasks) applyMainTask(task ConfigImpl) error {
 	var err error
 	nokocore.KeepVoid(err)
-
 	if err = p.mainTaskHelper(task); err != nil {
 		return err
 	}
-
 	return nil
 }
 
 func (p *ProcessTasks) GetProcessTask(name string) ProcessTaskImpl {
 	for i, pTask := range p.pTasks {
 		nokocore.KeepVoid(i)
-
 		task := pTask.GetTaskConfig()
 		if strings.EqualFold(task.GetName(), name) {
 			return pTask

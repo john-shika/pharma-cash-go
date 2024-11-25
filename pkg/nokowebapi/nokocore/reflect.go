@@ -97,11 +97,25 @@ func IsValidReflect(value any) bool {
 
 	// must be not zero value
 	if val.IsValid() {
-		if val.IsZero() && val.Kind() != reflect.Bool {
-			return false
-		}
-		
 		switch val.Kind() {
+		case reflect.Bool:
+			return true
+
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return true
+
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			return true
+
+		case reflect.Uintptr:
+			return val.Uint() != 0
+
+		case reflect.Float32, reflect.Float64:
+			return true
+
+		case reflect.Complex64, reflect.Complex128:
+			return true
+
 		case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
 			// chan, func, interface, map, pointer, slice
 			// will be considered as nullable value
@@ -113,7 +127,7 @@ func IsValidReflect(value any) bool {
 		default:
 			// not chan, func, interface, map, pointer, slice
 			// will be considered as notnull value
-			return true
+			return !val.IsZero()
 		}
 	}
 	// zero or null value

@@ -41,6 +41,7 @@ func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get package.", nil)
 		}
 
+		// can be automatic build
 		if packageModel == nil {
 			return extras.NewMessageBodyNotFound(ctx, "Package not found.", nil)
 		}
@@ -50,6 +51,7 @@ func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get unit.", nil)
 		}
 
+		// can be automatic build
 		if unit == nil {
 			return extras.NewMessageBodyNotFound(ctx, "Unit not found.", nil)
 		}

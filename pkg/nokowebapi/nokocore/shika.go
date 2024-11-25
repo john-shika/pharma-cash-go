@@ -510,7 +510,7 @@ func GetShikaObjectProperty(obj any) ShikaObjectPropertyImpl {
 		return NewShikaObjectProperty(nil, ShikaObjectDataTypeNull)
 	}
 
-	if val, ok := obj.(StringableImpl); ok {
+	if val, ok := obj.(StringConvertible); ok {
 		return NewShikaObjectProperty(val.ToString(), ShikaObjectDataTypeString)
 	}
 

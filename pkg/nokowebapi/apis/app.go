@@ -31,6 +31,8 @@ func DBAutoMigrations(DB *gorm.DB, tables []any) {
 
 	defaults := []any{
 		&models.User{},
+		&models.Role{},
+		&models.UserRoles{},
 		&models.Session{},
 	}
 

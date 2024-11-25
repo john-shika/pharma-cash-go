@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-const DateOnlyFormat = "2006-01-02"
-
 type DateOnlyImpl interface {
 	MarshalText() (text []byte, err error)
 	UnmarshalText(text []byte) (err error)
@@ -24,13 +22,13 @@ type DateOnlyImpl interface {
 }
 
 type NullDateOnly struct {
-	DateOnly DateOnlyImpl
+	DateOnly DateOnly
 	Valid    bool
 }
 
 func NewDateOnly(value time.Time) NullDateOnly {
 	return NullDateOnly{
-		DateOnly: &DateOnly{
+		DateOnly: DateOnly{
 			Time: value,
 		},
 		Valid: true,
@@ -38,13 +36,12 @@ func NewDateOnly(value time.Time) NullDateOnly {
 }
 
 func (w *NullDateOnly) baseInit() {
-	if w.DateOnly != nil {
+	var dateOnly DateOnly
+	if w.DateOnly != dateOnly {
 		return
 	}
 
-	w.DateOnly = &DateOnly{
-		Time: time.Time{},
-	}
+	w.DateOnly = dateOnly
 }
 
 func (w NullDateOnly) MarshalText() (text []byte, err error) {
@@ -124,18 +121,16 @@ func SafeParseDateOnly(value string) (NullDateOnly, error) {
 	var temp time.Time
 	nokocore.KeepVoid(err, temp)
 
-	if temp, err = time.Parse(DateOnlyFormat, value); err != nil {
+	if temp, err = time.Parse(nokocore.DateOnlyFormat, value); err != nil {
 		return NullDateOnly{
-			DateOnly: &DateOnly{
-				Time: time.Time{},
-			},
-			Valid: false,
+			DateOnly: DateOnly{},
+			Valid:    false,
 		}, err
 	}
 
 	return NullDateOnly{
-		DateOnly: &DateOnly{
-			Time: temp,
+		DateOnly: DateOnly{
+			Time: temp.UTC(),
 		},
 		Valid: true,
 	}, nil
@@ -145,9 +140,29 @@ func ParseDateOnly(value string) NullDateOnly {
 	return nokocore.Unwrap(SafeParseDateOnly(value))
 }
 
+func SafeParseDateOnlyNotNull(value string) (DateOnly, error) {
+	var err error
+	var dateOnlyNull NullDateOnly
+	nokocore.KeepVoid(err, dateOnlyNull)
+
+	if dateOnlyNull, err = SafeParseDateOnly(value); err != nil {
+		return DateOnly{}, err
+	}
+
+	if !dateOnlyNull.Valid {
+		return DateOnly{}, errors.New("invalid date")
+	}
+
+	return dateOnlyNull.DateOnly, nil
+}
+
+func ParseDateOnlyNotNull(value string) DateOnly {
+	return nokocore.Unwrap(SafeParseDateOnly(value)).DateOnly
+}
+
 // MarshalText for text marshaling
 func (w DateOnly) MarshalText() (text []byte, err error) {
-	return []byte(w.Format(DateOnlyFormat)), nil
+	return []byte(w.Format(nokocore.DateOnlyFormat)), nil
 }
 
 // UnmarshalText for text unmarshalling
@@ -157,17 +172,17 @@ func (w *DateOnly) UnmarshalText(text []byte) (err error) {
 
 	value := string(text)
 
-	if temp, err = time.Parse(DateOnlyFormat, value); err != nil {
+	if temp, err = time.Parse(nokocore.DateOnlyFormat, value); err != nil {
 		return err
 	}
 
-	w.Time = temp
+	w.Time = temp.UTC()
 	return nil
 }
 
 // MarshalJSON for JSON marshaling
 func (w DateOnly) MarshalJSON() (data []byte, err error) {
-	return []byte(strconv.Quote(w.Format(DateOnlyFormat))), nil
+	return []byte(strconv.Quote(w.Format(nokocore.DateOnlyFormat))), nil
 }
 
 // UnmarshalJSON for JSON unmarshalling
@@ -180,17 +195,17 @@ func (w *DateOnly) UnmarshalJSON(data []byte) (err error) {
 		return err
 	}
 
-	if temp, err = time.Parse(DateOnlyFormat, value); err != nil {
+	if temp, err = time.Parse(nokocore.DateOnlyFormat, value); err != nil {
 		return err
 	}
 
-	w.Time = temp
+	w.Time = temp.UTC()
 	return nil
 }
 
 // Value implements the driver Valuer interface.
 func (w DateOnly) Value() (driver.Value, error) {
-	return w.Format(DateOnlyFormat), nil
+	return w.Format(nokocore.DateOnlyFormat), nil
 }
 
 // Scan implements the Scanner interface.
@@ -208,22 +223,22 @@ func (w *DateOnly) Scan(value any) error {
 			return nil
 
 		case []byte:
-			if temp, err = time.Parse(DateOnlyFormat, string(val)); err != nil {
+			if temp, err = time.Parse(nokocore.DateOnlyFormat, string(val)); err != nil {
 				return err
 			}
 
 			*w = DateOnly{
-				Time: temp,
+				Time: temp.UTC(),
 			}
 			return nil
 
 		case string:
-			if temp, err = time.Parse(DateOnlyFormat, val); err != nil {
+			if temp, err = time.Parse(nokocore.DateOnlyFormat, val); err != nil {
 				return err
 			}
 
 			*w = DateOnly{
-				Time: temp,
+				Time: temp.UTC(),
 			}
 			return nil
 
@@ -232,14 +247,12 @@ func (w *DateOnly) Scan(value any) error {
 		}
 	}
 
-	*w = DateOnly{
-		Time: time.Time{},
-	}
+	*w = DateOnly{}
 	return nil
 }
 
 func (w DateOnly) String() string {
-	return w.Format(DateOnlyFormat)
+	return w.Format(nokocore.DateOnlyFormat)
 }
 
 func (w *DateOnly) ToString() string {

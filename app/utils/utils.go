@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-func ToShiftName(name string) string {
-	name = nokocore.ToTitleCase(strings.TrimSpace(name))
+func ToShiftNameNorm(name string) string {
+	name = nokocore.ToTitleCase(name)
 	if !strings.HasSuffix(name, "Shift") {
 		return fmt.Sprintf("%s Shift", name)
 	}

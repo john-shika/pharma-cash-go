@@ -3,6 +3,7 @@ package nokocore
 import (
 	"errors"
 	"fmt"
+	"github.com/shopspring/decimal"
 	"iter"
 	"reflect"
 	"strconv"
@@ -69,15 +70,45 @@ func GetKindReflect(value any) reflect.Kind {
 	return PassValueIndirectReflect(value).Kind()
 }
 
+func IsNoneOrEmptyWhiteSpaceReflect(value any) bool {
+	return !IsValidReflect(value) || IsEmptyWhiteSpaceReflect(value)
+}
+
+func IsEmptyWhiteSpaceReflect(value any) bool {
+	val := PassValueIndirectReflect(value)
+	if !val.IsValid() {
+		return true
+	}
+
+	switch val.Kind() {
+	case reflect.String:
+		return strings.TrimSpace(val.String()) == ""
+
+	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice:
+		return val.Len() == 0
+
+	default:
+		return false
+	}
+}
+
 func IsValidReflect(value any) bool {
 	val := GetValueReflect(value)
+
 	// must be not zero value
 	if val.IsValid() {
+		if val.IsZero() && val.Kind() != reflect.Bool {
+			return false
+		}
+		
 		switch val.Kind() {
 		case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
 			// chan, func, interface, map, pointer, slice
 			// will be considered as nullable value
 			return !val.IsNil()
+
+		case reflect.String:
+			return val.Len() > 0
 
 		default:
 			// not chan, func, interface, map, pointer, slice
@@ -111,7 +142,7 @@ func IsCountableReflect[T any](value T) bool {
 		panic("invalid value")
 	}
 	switch val.Kind() {
-	case reflect.Array, reflect.Slice, reflect.String, reflect.Chan:
+	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
 		return true
 
 	default:
@@ -124,6 +155,7 @@ func GetSizeReflect(value any) int {
 	if !IsCountableReflect(val) {
 		panic("value is not countable")
 	}
+
 	return val.Len()
 }
 
@@ -247,6 +279,62 @@ func ToFloatReflect(value any) float64 {
 
 	default:
 		return 0
+	}
+}
+
+func ToDecimalReflect(value any) decimal.Decimal {
+	val := PassValueIndirectReflect(value)
+	if !val.IsValid() {
+		return decimal.NewFromInt(0)
+	}
+
+	method := val.MethodByName("ToDecimal")
+	if method.IsValid() {
+		results := method.Call(nil)
+		if len(results) != 1 || !results[0].IsValid() {
+			panic("invalid results")
+		}
+
+		return results[0].Interface().(decimal.Decimal)
+	}
+
+	switch val.Kind() {
+	case reflect.Bool:
+		if val.Bool() {
+			return decimal.NewFromInt(1)
+		}
+
+		return decimal.NewFromInt(0)
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return decimal.NewFromInt(val.Int())
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return decimal.NewFromUint64(val.Uint())
+
+	case reflect.Uintptr:
+		return decimal.NewFromUint64(val.Uint())
+
+	case reflect.Float32, reflect.Float64:
+		return decimal.NewFromFloat(val.Float())
+
+	case reflect.Complex64, reflect.Complex128:
+		return decimal.NewFromFloat(real(val.Complex()))
+
+	case reflect.String:
+		return Unwrap(decimal.NewFromString(val.String()))
+
+	case reflect.Array, reflect.Slice:
+		return decimal.NewFromInt(int64(val.Len()))
+
+	case reflect.Map:
+		return decimal.NewFromInt(int64(val.Len()))
+
+	case reflect.Struct:
+		return decimal.NewFromInt(0)
+
+	default:
+		return decimal.NewFromInt(0)
 	}
 }
 

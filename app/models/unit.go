@@ -8,6 +8,6 @@ type Unit struct {
 	Products []Product `db:"-" mapstructure:"products" json:"products"`
 }
 
-func (p *Unit) TableName() string {
+func (Unit) TableName() string {
 	return "units"
 }

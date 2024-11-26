@@ -1,6 +1,7 @@
 package models
 
 import (
+	"gorm.io/gorm"
 	"nokowebapi/apis/models"
 	"nokowebapi/sqlx"
 )
@@ -13,6 +14,14 @@ type Shift struct {
 	Employees []Employee        `db:"-" mapstructure:"employees" json:"employees"`
 }
 
-func (s *Shift) TableName() string {
+func (Shift) TableName() string {
 	return "shifts"
+}
+
+func (s *Shift) BeforeCreate(tx *gorm.DB) (err error) {
+	return nil
+}
+
+func (s *Shift) BeforeSave(tx *gorm.DB) (err error) {
+	return nil
 }

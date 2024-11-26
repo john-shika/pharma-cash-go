@@ -44,7 +44,7 @@ func ProfileHandler(DB *gorm.DB) echo.HandlerFunc {
 			shift = schemas2.ToShiftResult(&employee.Shift)
 		}
 
-		userResult := schemas.ToUserResult(user, nil)
+		userResult := schemas.ToUserResult(user)
 		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
 			"user":  userResult,
 			"shift": shift,
@@ -79,8 +79,8 @@ func SessionsHandler(DB *gorm.DB) echo.HandlerFunc {
 			nokocore.KeepVoid(i)
 
 			session.User = *user
-			used := session.ID == sessionId
-			sessionResult := schemas.ToSessionResult(&session, used)
+			sessionResult := schemas.ToSessionResult(&session)
+			sessionResult.Used = session.ID == sessionId
 			sessionResults = append(sessionResults, sessionResult)
 		}
 
@@ -179,7 +179,7 @@ func DeleteOwnUserHandler(DB *gorm.DB) echo.HandlerFunc {
 		}
 
 		return extras.NewMessageBodyOk(ctx, "Successfully deleted.", &nokocore.MapAny{
-			"user": schemas.ToUserResult(user, nil),
+			"user": schemas.ToUserResult(user),
 		})
 	}
 }

@@ -117,7 +117,7 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 			shift = schemas2.ToShiftResult(&employee.Shift)
 		}
 
-		userResult := schemas.ToUserResult(user, nil)
+		userResult := schemas.ToUserResult(user)
 		return extras.NewMessageBodyOk(ctx, "Successfully logged in.", &nokocore.MapAny{
 			"accessToken": jwtToken,
 			"user":        userResult,

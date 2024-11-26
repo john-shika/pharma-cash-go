@@ -9,45 +9,60 @@ import (
 )
 
 type ProductBody struct {
-	Barcode          string  `mapstructure:"barcode" json:"barcode" validate:"ascii"`
-	Brand            string  `mapstructure:"brand" json:"brand"`
-	ProductName      string  `mapstructure:"product_name" json:"productName"`
-	Supplier         string  `mapstructure:"supplier" json:"supplier"`
-	Description      string  `mapstructure:"description" json:"description"`
-	Category         string  `mapstructure:"category" json:"category"`
-	Expires          string  `mapstructure:"expires" json:"expires" validate:"dateOnly"`
-	PurchasePrice    string  `mapstructure:"purchase_price" json:"purchasePrice" validate:"decimal,min=0"`
-	SupplierDiscount float32 `mapstructure:"supplier_discount" json:"supplierDiscount" validate:"numeric,min=0"`
-	VAT              float32 `mapstructure:"vat" json:"tax" validate:"numeric,min=0"` // input "tax"
-	ProfitMargin     float32 `mapstructure:"profit_margin" json:"profitMargin" validate:"numeric,min=0"`
-	PackageID        string  `mapstructure:"package_id" json:"packageId" validate:"uuid"`
-	PackageTotal     float32 `mapstructure:"package_total" json:"packageTotal" validate:"number,min=0"`
-	UnitID           string  `mapstructure:"unit_id" json:"unitId" validate:"uuid"`
-	UnitAmount       float32 `mapstructure:"unit_amount" json:"unitAmount" validate:"number,min=0"`
-	UnitExtra        float32 `mapstructure:"unit_extra" json:"unitExtra" validate:"omitempty"`
+	Barcode          string   `mapstructure:"barcode" json:"barcode" form:"barcode" validate:"ascii"`
+	Brand            string   `mapstructure:"brand" json:"brand" form:"brand"`
+	ProductName      string   `mapstructure:"product_name" json:"productName" form:"product_name"`
+	Supplier         string   `mapstructure:"supplier" json:"supplier" form:"supplier"`
+	Description      string   `mapstructure:"description" json:"description" form:"description"`
+	Expires          string   `mapstructure:"expires" json:"expires" form:"expires" validate:"dateOnly"`
+	PurchasePrice    string   `mapstructure:"purchase_price" json:"purchasePrice" form:"purchase_price" validate:"decimal,min=0"`
+	SupplierDiscount float32  `mapstructure:"supplier_discount" json:"supplierDiscount" form:"supplier_discount" validate:"numeric,min=0"`
+	VAT              float32  `mapstructure:"vat" json:"tax" form:"vat" validate:"numeric,min=0"` // input "tax"
+	ProfitMargin     float32  `mapstructure:"profit_margin" json:"profitMargin" form:"profit_margin" validate:"numeric,min=0"`
+	PackageID        string   `mapstructure:"package_id" json:"packageId" form:"package_id" validate:"uuid,omitempty"`
+	PackageType      string   `mapstructure:"package_type" json:"packageType" form:"package_type" validate:"omitempty"`
+	PackageTotal     float32  `mapstructure:"package_total" json:"packageTotal" form:"package_total" validate:"number,min=0"`
+	UnitID           string   `mapstructure:"unit_id" json:"unitId" form:"unit_id" validate:"uuid,omitempty"`
+	UnitType         string   `mapstructure:"unit_type" json:"unitType" form:"unit_type" validate:"omitempty"`
+	UnitAmount       float32  `mapstructure:"unit_amount" json:"unitAmount" form:"unit_amount" validate:"number,min=0"`
+	UnitExtra        float32  `mapstructure:"unit_extra" json:"unitExtra" form:"unit_extra" validate:"omitempty"`
+	Categories       []string `mapstructure:"categories" json:"categories" form:"categories" validate:"ascii,min=1,omitempty"`
+	Category         string   `mapstructure:"category" json:"category" form:"category" validate:"ascii,omitempty"`
 }
 
-func ToProductModel(product *ProductBody, packageModel *models2.Package, unitModel *models2.Unit) *models2.Product {
+func ToProductModel(product *ProductBody) *models2.Product {
 	if product != nil {
+		var categories []models2.Category
+		for i, category := range product.Categories {
+			nokocore.KeepVoid(i)
+			if category = nokocore.ToPascalCase(category); category != "" {
+				categoryModel := models2.Category{
+					CategoryName: category,
+				}
+				categories = append(categories, categoryModel)
+			}
+		}
+		if category := nokocore.ToPascalCase(product.Category); category != "" {
+			categoryModel := models2.Category{
+				CategoryName: category,
+			}
+			categories = append(categories, categoryModel)
+		}
 		return &models2.Product{
 			Barcode:          product.Barcode,
 			Brand:            product.Brand,
 			ProductName:      product.ProductName,
 			Supplier:         product.Supplier,
 			Description:      product.Description,
-			Category:         product.Category,
 			Expires:          sqlx.ParseDateOnlyNotNull(product.Expires),
 			PurchasePrice:    decimal.RequireFromString(product.PurchasePrice),
 			SupplierDiscount: product.SupplierDiscount,
 			VAT:              product.VAT,
 			ProfitMargin:     product.ProfitMargin,
-			PackageID:        packageModel.ID,
 			PackageTotal:     product.PackageTotal,
-			UnitID:           unitModel.ID,
 			UnitAmount:       product.UnitAmount,
 			UnitExtra:        product.UnitExtra,
-			Package:          *packageModel,
-			Unit:             *unitModel,
+			Categories:       categories,
 		}
 	}
 
@@ -55,43 +70,72 @@ func ToProductModel(product *ProductBody, packageModel *models2.Package, unitMod
 }
 
 type ProductResult struct {
+	UUID             uuid.UUID       `mapstructure:"uuid" json:"uuid"`
 	Barcode          string          `mapstructure:"barcode" json:"barcode"`
 	Brand            string          `mapstructure:"brand" json:"brand"`
 	ProductName      string          `mapstructure:"product_name" json:"productName"`
 	Supplier         string          `mapstructure:"supplier" json:"supplier"`
 	Description      string          `mapstructure:"description" json:"description"`
-	Category         string          `mapstructure:"category" json:"category"`
 	Expires          string          `mapstructure:"expires" json:"expires"`
 	PurchasePrice    decimal.Decimal `mapstructure:"purchase_price" json:"purchasePrice"`
 	SupplierDiscount float32         `mapstructure:"supplier_discount" json:"supplierDiscount"`
 	VAT              float32         `mapstructure:"vat" json:"tax"` // output "tax"
 	ProfitMargin     float32         `mapstructure:"profit_margin" json:"profitMargin"`
 	PackageId        uuid.UUID       `mapstructure:"package_id" json:"packageId"`
+	PackageType      string          `mapstructure:"package_type" json:"packageType"`
 	PackageTotal     float32         `mapstructure:"package_total" json:"packageTotal"`
 	UnitID           uuid.UUID       `mapstructure:"unit_id" json:"unitId"`
+	UnitType         string          `mapstructure:"unit_type" json:"unitType"`
 	UnitAmount       float32         `mapstructure:"unit_amount" json:"unitAmount"`
 	UnitExtra        float32         `mapstructure:"unit_extra" json:"unitExtra"`
+	CreatedAt        string          `mapstructure:"created_at" json:"createdAt"`
+	UpdatedAt        string          `mapstructure:"updated_at" json:"updatedAt"`
+	DeletedAt        string          `mapstructure:"deleted_at" json:"deletedAt,omitempty"`
+	Categories       []string        `mapstructure:"categories" json:"categories"`
+	Category         string          `mapstructure:"category" json:"category"`
 }
 
 func ToProductResult(product *models2.Product) ProductResult {
 	if product != nil {
+		var categories []string
+		for i, category := range product.Categories {
+			nokocore.KeepVoid(i)
+			categories = append(categories, category.CategoryName)
+		}
+		var category string
+		if len(categories) > 0 {
+			category = categories[0]
+		}
+		createdAt := nokocore.ToTimeUtcStringISO8601(product.CreatedAt)
+		updatedAt := nokocore.ToTimeUtcStringISO8601(product.UpdatedAt)
+		var deletedAt string
+		if product.DeletedAt.Valid {
+			deletedAt = nokocore.ToTimeUtcStringISO8601(product.DeletedAt.Time)
+		}
 		return ProductResult{
+			UUID:             product.UUID,
 			Barcode:          product.Barcode,
 			Brand:            product.Brand,
 			ProductName:      product.ProductName,
 			Supplier:         product.Supplier,
 			Description:      product.Description,
-			Category:         product.Category,
 			Expires:          product.Expires.Format(nokocore.DateOnlyFormat),
 			PurchasePrice:    product.PurchasePrice,
 			SupplierDiscount: product.SupplierDiscount,
 			VAT:              product.VAT,
 			ProfitMargin:     product.ProfitMargin,
 			PackageId:        product.Package.UUID,
+			PackageType:      product.Package.PackageType,
 			PackageTotal:     product.PackageTotal,
 			UnitID:           product.Unit.UUID,
+			UnitType:         product.Unit.UnitType,
 			UnitAmount:       product.UnitAmount,
 			UnitExtra:        product.UnitExtra,
+			CreatedAt:        createdAt,
+			UpdatedAt:        updatedAt,
+			DeletedAt:        deletedAt,
+			Categories:       categories,
+			Category:         category,
 		}
 	}
 

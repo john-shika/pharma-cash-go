@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"fmt"
-	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 	"nokowebapi/apis/extras"
@@ -12,8 +11,6 @@ import (
 	repositories2 "pharma-cash-go/app/repositories"
 	schemas2 "pharma-cash-go/app/schemas"
 )
-
-var validate = validator.New()
 
 func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
 
@@ -36,27 +33,73 @@ func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
 			return err
 		}
 
-		if packageModel, err = packageRepository.SafeFirst("uuid = ?", productBody.PackageID); err != nil {
-			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get package.", nil)
+		product := schemas2.ToProductModel(productBody)
+
+		if packageID := productBody.PackageID; packageID != "" {
+			if packageModel, err = packageRepository.SafeFirst("uuid = ?", packageID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyInternalServerError(ctx, "Failed to get package.", nil)
+			}
 		}
 
 		// can be automatic build
 		if packageModel == nil {
-			return extras.NewMessageBodyNotFound(ctx, "Package not found.", nil)
+			if packageType := nokocore.ToTitleCase(productBody.PackageType); packageType != "" {
+				if packageModel, err = packageRepository.SafeFirst("package_type = ?", packageType); err != nil {
+					console.Error(fmt.Sprintf("panic: %s", err.Error()))
+					return extras.NewMessageBodyInternalServerError(ctx, "Failed to get package.", nil)
+				}
+
+				if packageModel == nil {
+					packageModel = &models2.Package{
+						PackageType: packageType,
+					}
+					if err = packageRepository.SafeCreate(packageModel); err != nil {
+						console.Error(fmt.Sprintf("panic: %s", err.Error()))
+						return extras.NewMessageBodyInternalServerError(ctx, "Failed create package.", nil)
+					}
+				}
+
+			} else {
+				return extras.NewMessageBodyNotFound(ctx, "Package not found.", nil)
+			}
 		}
 
-		if unit, err = unitRepository.SafeFirst("uuid = ?", productBody.UnitID); err != nil {
-			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get unit.", nil)
+		product.PackageID = packageModel.ID
+		product.Package = *packageModel
+
+		if unitID := productBody.UnitID; unitID != "" {
+			if unit, err = unitRepository.SafeFirst("uuid = ?", unitID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyInternalServerError(ctx, "Failed to get unit.", nil)
+			}
 		}
 
 		// can be automatic build
 		if unit == nil {
-			return extras.NewMessageBodyNotFound(ctx, "Unit not found.", nil)
+			if unitType := nokocore.ToTitleCase(productBody.UnitType); unitType != "" {
+				if unit, err = unitRepository.SafeFirst("unit_type = ?", unitType); err != nil {
+					console.Error(fmt.Sprintf("panic: %s", err.Error()))
+					return extras.NewMessageBodyInternalServerError(ctx, "Failed to get unit.", nil)
+				}
+
+				if unit == nil {
+					unit = &models2.Unit{
+						UnitType: unitType,
+					}
+					if err = unitRepository.SafeCreate(unit); err != nil {
+						console.Error(fmt.Sprintf("panic: %s", err.Error()))
+						return extras.NewMessageBodyInternalServerError(ctx, "Failed create unit.", nil)
+					}
+				}
+
+			} else {
+				return extras.NewMessageBodyNotFound(ctx, "Unit not found.", nil)
+			}
 		}
 
-		product := schemas2.ToProductModel(productBody, packageModel, unit)
+		product.UnitID = unit.ID
+		product.Unit = *unit
 
 		if err = productRepository.SafeCreate(product); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))

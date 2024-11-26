@@ -19,18 +19,18 @@ type User struct {
 	SuperAdmin bool           `db:"super_admin" gorm:"not null;" mapstructure:"super_admin" json:"superAdmin"`
 	Level      int            `db:"level" gorm:"not null;" mapstructure:"level" json:"level"`
 
-	Roles    []Role    `gorm:"many2many:user_roles;" mapstructure:"roles" json:"roles,omitempty"`
 	Sessions []Session `db:"-" mapstructure:"sessions" json:"sessions,omitempty"`
+	Roles    []Role    `db:"-" gorm:"many2many:user_roles;" mapstructure:"roles" json:"roles,omitempty"`
 }
 
-func (u *User) TableName() string {
+func (User) TableName() string {
 	return "users"
 }
 
 func (u *User) CreateRoles(DB *gorm.DB) error {
 	var err error
 	var check Role
-	nokocore.KeepVoid(err, check)
+
 	for i, role := range u.Roles {
 		nokocore.KeepVoid(i)
 
@@ -53,9 +53,37 @@ func (u *User) CreateRoles(DB *gorm.DB) error {
 
 		// create new
 		role.UUID = nokocore.NewUUID()
-		if err = DB.Create(&role).Error; err != nil {
+		tx = DB.Create(&role)
+		if err = tx.Error; err != nil {
 			return err
 		}
+
+		// check rows affected
+		if tx.RowsAffected < 1 {
+			return errors.New("no rows affected")
+		}
+
+		// object assign
+		u.Roles[i] = role
+	}
+
+	return nil
+}
+
+func (u *User) ClearRoles(DB *gorm.DB) error {
+	var err error
+
+	if u.ID != 0 {
+		// store the current user roles
+		roles := u.Roles
+
+		// remove all registered user roles, user roles get empty
+		if err = DB.Model(u).Association("Roles").Clear(); err != nil {
+			return err
+		}
+
+		// get roles without registered
+		u.Roles = roles
 	}
 
 	return nil
@@ -74,7 +102,10 @@ func (u *User) RolesAppend(DB *gorm.DB, names ...string) error {
 		}
 
 		if !found {
-			u.Roles = append(u.Roles, Role{RoleName: name})
+			roleModel := Role{
+				RoleName: name,
+			}
+			u.Roles = append(u.Roles, roleModel)
 		}
 	}
 
@@ -89,16 +120,10 @@ func (u *User) BeforeSave(DB *gorm.DB) (err error) {
 		return err
 	}
 
-	// store the current user roles
-	roles := u.Roles
-
-	// remove all registered user roles, roles variable getting replaced
-	if err = DB.Model(u).Association("Roles").Clear(); err != nil {
+	// clear previous user roles
+	if err = u.ClearRoles(DB); err != nil {
 		return err
 	}
-
-	// get roles without registered
-	u.Roles = roles
 
 	password := nokocore.NewPassword(u.Password)
 	if u.Password, err = password.Hash(); err != nil {

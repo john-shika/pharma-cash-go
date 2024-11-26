@@ -36,7 +36,9 @@ func DBAutoMigrations(DB *gorm.DB) {
 		&models2.Product{},
 		&models2.Employee{},
 		&models2.Shift{},
+		&models2.Category{},
 		&models2.Product{},
+		&models2.ProductCategory{},
 		&models2.Package{},
 		&models2.Unit{},
 	}

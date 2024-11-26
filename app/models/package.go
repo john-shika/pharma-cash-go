@@ -10,6 +10,6 @@ type Package struct {
 	Products []Product `db:"-" mapstructure:"products" json:"products"`
 }
 
-func (p *Package) TableName() string {
+func (Package) TableName() string {
 	return "packages"
 }

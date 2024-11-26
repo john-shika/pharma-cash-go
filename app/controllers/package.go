@@ -5,6 +5,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 	"nokowebapi/apis/extras"
+	"nokowebapi/apis/utils"
 	"nokowebapi/console"
 	"nokowebapi/nokocore"
 	models2 "pharma-cash-go/app/models"
@@ -20,6 +21,12 @@ func CreatePackage(DB *gorm.DB) echo.HandlerFunc {
 		var err error
 		var packageModel *models2.Package
 		nokocore.KeepVoid(err)
+
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+
+		if !utils.RoleIs(jwtAuthInfo, nokocore.RoleAdmin, nokocore.RoleOfficer) {
+			return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
+		}
 
 		packageBody := new(schemas2.PackageBody)
 

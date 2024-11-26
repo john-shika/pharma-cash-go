@@ -45,15 +45,16 @@ func JWTAuth(DB *gorm.DB) echo.MiddlewareFunc {
 				return extras.NewMessageBodyUnauthorized(ctx, fmt.Sprintf("Invalid JWT token. Expected signing method: %s. Actual signing method: %s.", signingMethod.Alg(), jwtSigningMethod.Alg()), nil)
 			}
 
-			sessionId := jwtClaimsDataAccess.GetSessionId()
-			identity := jwtClaimsDataAccess.GetIdentity()
+			sessionID := jwtClaimsDataAccess.GetSessionID()
+			tokenID := jwtClaimsDataAccess.GetIdentity()
+			refreshTokenID := jwtClaimsDataAccess.GetIdentity()
 
 			// initial session
 			session = new(models.Session)
 
 			// get current session
 			preloads := []string{"User.Roles"}
-			if session, err = sessionRepository.SafePreFirst(preloads, "uuid = ? AND (token_id = ? OR refresh_token_id = ?)", sessionId, identity, identity); err != nil {
+			if session, err = sessionRepository.SafePreFirst(preloads, "uuid = ? AND (token_id = ? OR refresh_token_id = ?)", sessionID, tokenID, refreshTokenID); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 
 				return extras.NewMessageBodyUnauthorized(ctx, "Invalid JWT token.", nil)
@@ -62,10 +63,10 @@ func JWTAuth(DB *gorm.DB) echo.MiddlewareFunc {
 			if session != nil {
 
 				// update refresh token id
-				if session.RefreshTokenID.String == identity {
-					session.TokenID = identity
+				if session.RefreshTokenID.String == tokenID {
+					session.TokenID = tokenID
 					session.RefreshTokenID = sql.NullString{}
-					if err = sessionRepository.SafeUpdate(session, "uuid = ?", sessionId); err != nil {
+					if err = sessionRepository.SafeUpdate(session, "uuid = ?", sessionID); err != nil {
 						console.Error(fmt.Sprintf("panic: %s", err.Error()))
 					}
 				}

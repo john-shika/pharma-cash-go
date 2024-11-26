@@ -8,18 +8,26 @@ type PackageBody struct {
 	PackageType string `mapstructure:"package_type" json:"packageType" validate:"ascii,min=1"`
 }
 
-func ToPackageModel(body *PackageBody) *models2.Package {
-	return &models2.Package{
-		PackageType: body.PackageType,
+func ToPackageModel(packageBody *PackageBody) *models2.Package {
+	if packageBody != nil {
+		return &models2.Package{
+			PackageType: packageBody.PackageType,
+		}
 	}
+
+	return nil
 }
 
 type PackageResult struct {
 	PackageType string `mapstructure:"package_type" json:"packageType"`
 }
 
-func ToPackageResult(pkg *models2.Package) PackageResult {
-	return PackageResult{
-		PackageType: pkg.PackageType,
+func ToPackageResult(packageModel *models2.Package) PackageResult {
+	if packageModel != nil {
+		return PackageResult{
+			PackageType: packageModel.PackageType,
+		}
 	}
+
+	return PackageResult{}
 }

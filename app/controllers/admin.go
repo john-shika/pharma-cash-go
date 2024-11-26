@@ -20,11 +20,11 @@ import (
 	"strings"
 )
 
-func CreateUserHandler(DB *gorm.DB) echo.HandlerFunc {
+func CreateEmployeeHandler(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	userRepository := repositories.NewUserRepository(DB)
-	employeeRepository := repositories2.NewEmployeeRepository(DB)
+	//employeeRepository := repositories2.NewEmployeeRepository(DB)
 
 	return func(ctx echo.Context) error {
 		var err error
@@ -54,7 +54,7 @@ func CreateUserHandler(DB *gorm.DB) echo.HandlerFunc {
 		if username != "" {
 			if user, err = userRepository.SafeFirst("username = ?", employeeBody.Username); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
-				return extras.NewMessageBodyInternalServerError(ctx, "Internal server error.", nil)
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get user.", nil)
 			}
 
 			if user != nil {
@@ -67,7 +67,7 @@ func CreateUserHandler(DB *gorm.DB) echo.HandlerFunc {
 		if email != "" {
 			if user, err = userRepository.SafeFirst("email = ?", email); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
-				return extras.NewMessageBodyInternalServerError(ctx, "Internal server error.", nil)
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get user.", nil)
 			}
 
 			if user != nil {
@@ -80,7 +80,7 @@ func CreateUserHandler(DB *gorm.DB) echo.HandlerFunc {
 		if phone != "" {
 			if user, err = userRepository.SafeFirst("phone = ?", phone); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
-				return extras.NewMessageBodyInternalServerError(ctx, "Internal server error.", nil)
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get user.", nil)
 			}
 
 			if user != nil {
@@ -109,11 +109,16 @@ func CreateUserHandler(DB *gorm.DB) echo.HandlerFunc {
 			user = schemas2.ToUserModel(employeeBody)
 			if err = userRepository.SafeCreate(user); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
-				return errors.New("failed to create a new user")
+				return errors.New("failed to create user")
 			}
 
-			shiftDate := sqlx.NewDateOnly(nokocore.GetTimeUtcNow())
-			employee := &models2.Employee{
+			// parsing shift date
+			var shiftDate sqlx.NullDateOnly
+			if employeeBody.ShiftDate != "" {
+				shiftDate = sqlx.ParseDateOnly(employeeBody.ShiftDate)
+			}
+
+			employee = &models2.Employee{
 				UserID:    user.ID,
 				ShiftID:   shift.ID,
 				ShiftDate: shiftDate,
@@ -121,7 +126,7 @@ func CreateUserHandler(DB *gorm.DB) echo.HandlerFunc {
 
 			if err = employeeRepository.SafeCreate(employee); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
-				return errors.New("failed to create a new employee")
+				return errors.New("failed to create employee")
 			}
 
 			return nil
@@ -132,10 +137,141 @@ func CreateUserHandler(DB *gorm.DB) echo.HandlerFunc {
 			return extras.NewMessageBodyUnprocessableEntity(ctx, "Failed to create a new user.", nil)
 		}
 
-		preloads := []string{"Shift"}
-		if employee, err = employeeRepository.SafePreFirst(preloads, "user_id = ?", user.ID); err != nil {
+		//preloads := []string{"Shift"}
+		//if employee, err = employeeRepository.SafePreFirst(preloads, "user_id = ?", user.ID); err != nil {
+		//	console.Error(fmt.Sprintf("panic: %s", err.Error()))
+		//	return extras.NewMessageBodyInternalServerError(ctx, "Unable to get employee.", nil)
+		//}
+
+		var shift schemas2.ShiftResult
+		if employee != nil {
+			shift = schemas2.ToShiftResult(&employee.Shift)
+
+			// inject user data, without find current user again
+			employee.User = *user
+		}
+
+		userResult := schemas.ToUserResult(user, nil)
+		employeeResult := schemas2.ToEmployeeResult(employee)
+		return extras.NewMessageBodyOk(ctx, "Successfully create a new employee.", &nokocore.MapAny{
+			"employee": employeeResult,
+			"user":     userResult,
+			"shift":    shift,
+		})
+	}
+}
+
+func UpdateEmployeeHandler(DB *gorm.DB) echo.HandlerFunc {
+	nokocore.KeepVoid(DB)
+
+	userRepository := repositories.NewUserRepository(DB)
+	employeeRepository := repositories2.NewEmployeeRepository(DB)
+
+	return func(ctx echo.Context) error {
+		var err error
+		var userId string
+		var user *models.User
+		var employee *models2.Employee
+		nokocore.KeepVoid(err, user, employee)
+
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+
+		if !utils.RoleIsAdmin(jwtAuthInfo) {
+			return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
+		}
+
+		if userId = extras.ParseQueryToString(ctx, "user_id"); userId == "" {
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Required parameter 'user_id' is missing.", nil)
+		}
+
+		employeeBody := new(schemas2.EmployeeBody)
+		if err = ctx.Bind(employeeBody); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get employee.", nil)
+
+			return extras.NewMessageBodyInternalServerError(ctx, "Invalid request body.", nil)
+		}
+
+		if err = ctx.Validate(employeeBody); err != nil {
+			return err
+		}
+
+		preloads := []string{"Roles"}
+		if user, err = userRepository.SafePreFirst(preloads, "uuid = ?", userId); err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get user.", nil)
+		}
+
+		if user == nil {
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "User not found.", nil)
+		}
+
+		err = DB.Transaction(func(tx *gorm.DB) error {
+			userRepository := repositories.NewUserRepository(tx)
+			employeeRepository := repositories2.NewEmployeeRepository(tx)
+			shiftRepository := repositories2.NewShiftRepository(tx)
+
+			// normalize shift name
+			shiftName := utils2.ToShiftNameNorm(employeeBody.Shift)
+
+			var shift *models2.Shift
+			if shift, err = shiftRepository.SafeFirst("name = ?", shiftName); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return errors.New("shift not found")
+			}
+
+			if shift == nil {
+				return errors.New("shift not found")
+			}
+
+			var user2 *models.User
+			if user2, err = utils.CopyBaseModel(schemas2.ToUserModel(employeeBody), user); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return errors.New("failed to copy base model")
+			}
+
+			if err = userRepository.SafeUpdate(user2, "id = ?", user2.ID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return errors.New("failed to update user")
+			}
+
+			// parsing shift date
+			var shiftDate sqlx.NullDateOnly
+			if employeeBody.ShiftDate != "" {
+				if shiftDate, err = sqlx.SafeParseDateOnly(employeeBody.ShiftDate); err != nil {
+					console.Error(fmt.Sprintf("panic: %s", err.Error()))
+					return errors.New("failed to parse shift date")
+				}
+			}
+
+			preloads := []string{"Shift", "User", "User.Roles"}
+			if employee, err = employeeRepository.SafePreFirst(preloads, "user_id = ?", user.ID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return errors.New("failed to get employee")
+			}
+
+			if employee == nil {
+				return errors.New("employee not found")
+			}
+
+			employee.ShiftDate = shiftDate
+			if err = employeeRepository.SafeUpdate(employee, "id = ?", employee.ID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return errors.New("failed to update employee")
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Failed to update user.", nil)
+		}
+
+		// get new employee data
+		preloads = []string{"Shift", "User", "User.Roles"}
+		if employee, err = employeeRepository.SafePreFirst(preloads, "id = ?", employee.ID); err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return errors.New("failed to get employee")
 		}
 
 		var shift schemas2.ShiftResult
@@ -143,9 +279,12 @@ func CreateUserHandler(DB *gorm.DB) echo.HandlerFunc {
 			shift = schemas2.ToShiftResult(&employee.Shift)
 		}
 
-		return extras.NewMessageBodyOk(ctx, "Successfully created a new user.", &nokocore.MapAny{
-			"user":  schemas.ToUserResult(user, nil),
-			"shift": shift,
+		userResult := schemas.ToUserResult(user, nil)
+		employeeResult := schemas2.ToEmployeeResult(employee)
+		return extras.NewMessageBodyOk(ctx, "Successfully update employee.", &nokocore.MapAny{
+			"employee": employeeResult,
+			"user":     userResult,
+			"shift":    shift,
 		})
 	}
 }
@@ -166,10 +305,13 @@ func GetUsersHandler(DB *gorm.DB) echo.HandlerFunc {
 			return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
 		}
 
+		// get pagination request
 		pagination := extras.NewURLQueryPaginationFromEchoContext(ctx)
-		if users, err = userRepository.SafeMany(pagination.Offset, pagination.Limit, "1=1"); err != nil {
+
+		preloads := []string{"Roles"}
+		if users, err = userRepository.SafePreMany(preloads, pagination.Offset, pagination.Limit, "1=1"); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get users.", nil)
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get users.", nil)
 		}
 
 		size := len(users)
@@ -202,8 +344,11 @@ func GetEmployeesHandler(DB *gorm.DB) echo.HandlerFunc {
 			return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
 		}
 
+		// get pagination request
 		pagination := extras.NewURLQueryPaginationFromEchoContext(ctx)
-		if employees, err = employeeRepository.SafeMany(pagination.Offset, pagination.Limit, "1=1"); err != nil {
+
+		preloads := []string{"Shift", "User", "User.Roles"}
+		if employees, err = employeeRepository.SafePreMany(preloads, pagination.Offset, pagination.Limit, "1=1"); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get employees.", nil)
 		}
@@ -245,11 +390,11 @@ func DeleteUserHandler(DB *gorm.DB) echo.HandlerFunc {
 
 		if user, err = userRepository.First("uuid = ?", userId); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get user.", nil)
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get user.", nil)
 		}
 
 		if user == nil {
-			return extras.NewMessageBodyNotFound(ctx, "User not found.", nil)
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "User not found.", nil)
 		}
 
 		data := &nokocore.MapAny{
@@ -271,7 +416,8 @@ func DeleteUserHandler(DB *gorm.DB) echo.HandlerFunc {
 
 func AdminController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
-	group.POST("/user", CreateUserHandler(DB))
+	group.POST("/user", CreateEmployeeHandler(DB))
+	group.PUT("/user", UpdateEmployeeHandler(DB))
 	group.GET("/users", GetUsersHandler(DB))
 	group.GET("/employees", GetEmployeesHandler(DB))
 	group.DELETE("/user", DeleteUserHandler(DB))

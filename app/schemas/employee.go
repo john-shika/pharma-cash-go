@@ -21,13 +21,16 @@ type EmployeeBody struct {
 }
 
 func ToEmployeeModel(employee *EmployeeBody, user *models.User, shift *models2.Shift) *models2.Employee {
-	return &models2.Employee{
-		UserID:    user.ID,
-		ShiftID:   shift.ID,
-		ShiftDate: sqlx.ParseDateOnly(employee.ShiftDate),
-		User:      *user,
-		Shift:     *shift,
+	if employee != nil {
+		return &models2.Employee{
+			UserID:    user.ID,
+			ShiftID:   shift.ID,
+			ShiftDate: sqlx.ParseDateOnly(employee.ShiftDate),
+			User:      *user,
+			Shift:     *shift,
+		}
 	}
+	return nil
 }
 
 func ToUserBody(employee *EmployeeBody) *schemas.UserBody {
@@ -53,16 +56,16 @@ func ToUserModel(employee *EmployeeBody) *models.User {
 
 type EmployeeResult struct {
 	schemas.UserResult
-	Shift     string        `json:"shift"`
 	ShiftDate sqlx.DateOnly `json:"shiftDate,omitempty"`
+	Shift     ShiftResult   `json:"shift"`
 }
 
 func ToEmployeeResult(employee *models2.Employee) EmployeeResult {
 	if employee != nil {
 		return EmployeeResult{
 			UserResult: schemas.ToUserResult(&employee.User, nil),
-			Shift:      employee.Shift.Name,
 			ShiftDate:  employee.ShiftDate.DateOnly,
+			Shift:      ToShiftResult(&employee.Shift),
 		}
 	}
 

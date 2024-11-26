@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"net"
+	"github.com/shopspring/decimal"
 	"net/url"
 	"time"
 )
@@ -61,17 +61,13 @@ func GetTimeUtcISO8601(value any) (time.Time, error) {
 	case time.Time:
 		return value.(time.Time).UTC(), nil
 	case string:
-		v := Unwrap(Cast[string](value))
-		return ParseTimeUtcByStringISO8601(v)
+		return ParseTimeUtcByStringISO8601(value.(string))
 	case int64:
-		v := Unwrap(Cast[int64](value))
-		return GetTimeUtcByTimestamp(v), nil
+		return GetTimeUtcByTimestamp(value.(int64)), nil
 	case int32:
-		v := Unwrap(Cast[int32](value))
-		return GetTimeUtcByTimestamp(int64(v)), nil
+		return GetTimeUtcByTimestamp(int64(value.(int32))), nil
 	case int:
-		v := Unwrap(Cast[int](value))
-		return GetTimeUtcByTimestamp(int64(v)), nil
+		return GetTimeUtcByTimestamp(int64(value.(int))), nil
 	default:
 		return Default[time.Time](), ErrDataTypeInvalid
 	}
@@ -103,47 +99,83 @@ func ToTimeUtcStringISO8601(value any) string {
 	return t.Format(DateTimeFormatISO8601)
 }
 
-func GetURL(value any) (url.URL, error) {
-	// TODO: implement it
-	return url.URL{}, errors.New("not implemented yet")
+func GetURL(value any) (*url.URL, error) {
+	switch value.(type) {
+	case *url.URL:
+		return value.(*url.URL), nil
+	case string:
+		return url.Parse(value.(string))
+	default:
+		return nil, errors.New("invalid data type")
+	}
 }
 
 func IsURL(value any) bool {
-	// TODO: implement it
-	return false
+	var err error
+	var check *url.URL
+	KeepVoid(err, check)
+
+	if check, err = GetURL(value); err != nil {
+		return false
+	}
+
+	return true
 }
 
 func ToURLString(value any) string {
-	// TODO: implement it
-	panic("not implemented yet")
+	return Unwrap(GetURL(value)).String()
 }
 
 func GetUUID(value any) (uuid.UUID, error) {
-	// TODO: implement it
-	return uuid.Nil, errors.New("not implemented yet")
+	switch value.(type) {
+	case uuid.UUID:
+		return value.(uuid.UUID), nil
+	case string:
+		return uuid.Parse(value.(string))
+	default:
+		return uuid.Nil, errors.New("invalid data type")
+	}
 }
 
 func IsUUID(value any) bool {
-	// TODO: implement it
-	return false
+	var err error
+	var check uuid.UUID
+	KeepVoid(err, check)
+
+	if check, err = GetUUID(value); err != nil {
+		return false
+	}
+
+	return true
 }
 
 func ToUUIDString(value any) string {
-	// TODO: implement it
-	panic("not implemented yet")
+	return Unwrap(GetUUID(value)).String()
 }
 
-func GetIP(value any) (net.IP, error) {
-	// TODO: implement it
-	return net.ParseIP("127.0.0.1"), errors.New("not implemented yet")
+func GetDecimal(value any) (decimal.Decimal, error) {
+	switch value.(type) {
+	case decimal.Decimal:
+		return value.(decimal.Decimal), nil
+	case string:
+		return decimal.NewFromString(value.(string))
+	default:
+		return decimal.NewFromInt(0), errors.New("invalid data type")
+	}
 }
 
-func IsIP(value any) bool {
-	// TODO: implement it
-	return false
+func IsDecimal(value any) bool {
+	var err error
+	var check decimal.Decimal
+	KeepVoid(err, check)
+
+	if check, err = GetDecimal(value); err != nil {
+		return false
+	}
+
+	return true
 }
 
-func ToIPString(value any) string {
-	// TODO: implement it
-	panic("not implemented yet")
+func ToDecimalString(value any) string {
+	return Unwrap(GetDecimal(value)).String()
 }

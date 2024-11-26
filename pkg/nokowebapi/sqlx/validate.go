@@ -94,6 +94,48 @@ func CheckPassword(password string) error {
 	return nil
 }
 
+type ValidatorForStructImpl interface {
+	Validate(value any, attributes map[string]string) error
+	Keys() []string
+	Is(key string) bool
+}
+
+type ValidatorForStruct struct {
+	validate func(value any, attributes map[string]string) error
+	keys     []string
+}
+
+func NewValidatorForStruct(keys []string, validate func(value any, attributes map[string]string) error) ValidatorForStructImpl {
+	return &ValidatorForStruct{
+		keys:     keys,
+		validate: validate,
+	}
+}
+
+func (v *ValidatorForStruct) Validate(value any, attributes map[string]string) error {
+	if v.validate != nil {
+		return v.validate(value, attributes)
+	}
+
+	return nil
+}
+
+func (v *ValidatorForStruct) Keys() []string {
+	return v.keys
+}
+
+func (v *ValidatorForStruct) Is(key string) bool {
+	for i, k := range v.keys {
+		nokocore.KeepVoid(i)
+
+		if strings.EqualFold(k, key) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func ValidateStruct(value any) error {
 	var ok bool
 	var err error
@@ -104,10 +146,166 @@ func ValidateStruct(value any) error {
 		return errors.New("invalid value")
 	}
 
+	validators := []ValidatorForStructImpl{
+		NewValidatorForStruct([]string{"boolean"}, func(value any, attributes map[string]string) error {
+			return ValidateBoolean(value)
+		}),
+		NewValidatorForStruct([]string{"number"}, func(value any, attributes map[string]string) error {
+			var ok bool
+			var err error
+			var minVal int64
+			var maxVal int64
+			var minimum string
+			var maximum string
+			nokocore.KeepVoid(ok, err, minVal, maxVal, minimum, maximum)
+
+			if err = ValidateNumber(value); err != nil {
+				return err
+			}
+
+			numVal := nokocore.ToIntReflect(value)
+			if minimum, ok = attributes["min"]; ok {
+				if minVal, err = strconv.ParseInt(minimum, 10, 64); err != nil {
+					return errors.New("invalid min value")
+				}
+
+				if numVal < minVal {
+					return errors.New("value is less than min value")
+				}
+			}
+
+			if maximum, ok = attributes["max"]; ok {
+				if maxVal, err = strconv.ParseInt(maximum, 10, 64); err != nil {
+					return errors.New("invalid max value")
+				}
+
+				if numVal > maxVal {
+					return errors.New("value is greater than max value")
+				}
+			}
+
+			return nil
+		}),
+		NewValidatorForStruct([]string{"numeric"}, func(value any, attributes map[string]string) error {
+			var ok bool
+			var err error
+			var minVal float64
+			var maxVal float64
+			var minimum string
+			var maximum string
+			nokocore.KeepVoid(ok, err, minVal, maxVal, minimum, maximum)
+
+			if err = ValidateNumeric(value); err != nil {
+				return err
+			}
+
+			numVal := nokocore.ToFloatReflect(value)
+			if minimum, ok = attributes["min"]; ok {
+				if minVal, err = strconv.ParseFloat(minimum, 64); err != nil {
+					return errors.New("invalid min value")
+				}
+
+				if numVal < minVal {
+					return errors.New("value is less than min value")
+				}
+			}
+
+			if maximum, ok = attributes["max"]; ok {
+				if maxVal, err = strconv.ParseFloat(maximum, 64); err != nil {
+					return errors.New("invalid max value")
+				}
+
+				if numVal > maxVal {
+					return errors.New("value is greater than max value")
+				}
+			}
+
+			return nil
+		}),
+		NewValidatorForStruct([]string{"alphaLower"}, func(value any, attributes map[string]string) error {
+			return ValidateAlphaLower(value)
+		}),
+		NewValidatorForStruct([]string{"alphaUpper"}, func(value any, attributes map[string]string) error {
+			return ValidateAlphaUpper(value)
+		}),
+		NewValidatorForStruct([]string{"alphabet"}, func(value any, attributes map[string]string) error {
+			return ValidateAlphabet(value)
+		}),
+		NewValidatorForStruct([]string{"alphaNum"}, func(value any, attributes map[string]string) error {
+			return ValidateAlphaNum(value)
+		}),
+		NewValidatorForStruct([]string{"ascii"}, func(value any, attributes map[string]string) error {
+			return ValidateAscii(value)
+		}),
+		NewValidatorForStruct([]string{"email"}, func(value any, attributes map[string]string) error {
+			return ValidateEmail(value)
+		}),
+		NewValidatorForStruct([]string{"phone"}, func(value any, attributes map[string]string) error {
+			return ValidatePhone(value)
+		}),
+		NewValidatorForStruct([]string{"password"}, func(value any, attributes map[string]string) error {
+			return ValidatePassword(value)
+		}),
+		NewValidatorForStruct([]string{"datetime"}, func(value any, attributes map[string]string) error {
+			return ValidateDateTime(value)
+		}),
+		NewValidatorForStruct([]string{"datetimeISO", "datetimeISO8601"}, func(value any, attributes map[string]string) error {
+			return ValidateDateTimeISO8601(value)
+		}),
+		NewValidatorForStruct([]string{"dateOnly"}, func(value any, attributes map[string]string) error {
+			return ValidateDateOnly(value)
+		}),
+		NewValidatorForStruct([]string{"timeOnly"}, func(value any, attributes map[string]string) error {
+			return ValidateTimeOnly(value)
+		}),
+		NewValidatorForStruct([]string{"url"}, func(value any, attributes map[string]string) error {
+			return ValidateURL(value)
+		}),
+		NewValidatorForStruct([]string{"uuid"}, func(value any, attributes map[string]string) error {
+			return ValidateUUID(value)
+		}),
+		NewValidatorForStruct([]string{"decimal"}, func(value any, attributes map[string]string) error {
+			var ok bool
+			var err error
+			var minVal decimal.Decimal
+			var maxVal decimal.Decimal
+			var minimum string
+			var maximum string
+			nokocore.KeepVoid(ok, err, minVal, maxVal, minimum, maximum)
+
+			if err = ValidateDecimal(value); err != nil {
+				return err
+			}
+
+			numVal := nokocore.ToDecimalReflect(value)
+			if minimum, ok = attributes["min"]; ok {
+				if minVal, err = decimal.NewFromString(minimum); err != nil {
+					return errors.New("invalid min value")
+				}
+
+				if numVal.LessThan(minVal) {
+					return errors.New("value is less than min value")
+				}
+			}
+
+			if maximum, ok = attributes["max"]; ok {
+				if maxVal, err = decimal.NewFromString(maximum); err != nil {
+					return errors.New("invalid max value")
+				}
+
+				if numVal.GreaterThan(maxVal) {
+					return errors.New("value is greater than max value")
+				}
+			}
+
+			return nil
+		}),
+	}
+
 	switch val.Kind() {
 	case reflect.Struct:
-		options := nokocore.NewForEachStructFieldsOptions()
 		var errorStack []error
+		options := nokocore.NewForEachStructFieldsOptions()
 		err = nokocore.ForEachStructFieldsReflect(val, options, func(name string, sFieldX nokocore.StructFieldExImpl) error {
 			err = func() error {
 				vField := sFieldX.GetValue()
@@ -118,51 +316,19 @@ func ValidateStruct(value any) error {
 
 				ignore := false
 				omitEmpty := false
-				isBoolean := false
-				isNumber := false
-				isNumeric := false
-				isAlphaLower := false
-				isAlphaUpper := false
-				isAlphabet := false
-				isAlphaNum := false
-				isAscii := false
-				isEmail := false
-				isPhone := false
-				isPassword := false
-				isDateTime := false
-				isDateTimeISO8601 := false
-				isDateOnly := false
-				isTimeOnly := false
-				isURL := false
-				isUUID := false
-				isDecimal := false
 
-				// additional options for number or numeric
-				var minimum float64
-				var maximum float64
-
-				setMinimum := false
-				setMaximum := false
-
+				attributes := make(map[string]string)
 				for i, token := range tokens {
 					nokocore.KeepVoid(i)
 
 					token = strings.TrimSpace(token)
 					if token, ok = strings.CutPrefix(token, "min="); ok {
-						if minimum, err = strconv.ParseFloat(token, 64); err != nil {
-							return errors.New(fmt.Sprintf("invalid options for field '%s': min=%s", name, token))
-						}
-
-						setMinimum = true
+						attributes["min"] = token
 						continue
 					}
 
 					if token, ok = strings.CutPrefix(token, "max="); ok {
-						if maximum, err = strconv.ParseFloat(token, 64); err != nil {
-							return errors.New(fmt.Sprintf("invalid options for field '%s': max=%s", name, token))
-						}
-
-						setMaximum = true
+						attributes["max"] = token
 						continue
 					}
 
@@ -171,80 +337,11 @@ func ValidateStruct(value any) error {
 						ignore = true
 						break
 
-					case "boolean":
-						isBoolean = true
-						break
-
-					case "number":
-						isNumber = true
-						break
-
-					case "numeric":
-						isNumeric = true
-						break
-
-					case "alphaLower":
-						isAlphaLower = true
-						break
-
-					case "alphaUpper":
-						isAlphaUpper = true
-						break
-
-					case "alphabet":
-						isAlphabet = true
-						break
-
-					case "alphaNum":
-						isAlphaNum = true
-						break
-
-					case "ascii":
-						isAscii = true
-						break
-
-					case "email":
-						isEmail = true
-						break
-
-					case "phone":
-						isPhone = true
-						break
-
-					case "password":
-						isPassword = true
-						break
-
-					case "datetime":
-						isDateTime = true
-						break
-
-					case "datetimeISO8601":
-						isDateTimeISO8601 = true
-						break
-
-					case "dateOnly":
-						isDateOnly = true
-						break
-
-					case "timeOnly":
-						isTimeOnly = true
-						break
-
-					case "url":
-						isURL = true
-						break
-
-					case "uuid":
-						isUUID = true
-						break
-
-					case "decimal":
-						isDecimal = true
-						break
-
 					case "omitempty":
 						omitEmpty = true
+						break
+
+					default:
 						break
 					}
 				}
@@ -253,8 +350,13 @@ func ValidateStruct(value any) error {
 					return nil
 				}
 
+				nameCamelCase := nokocore.ToCamelCase(name)
 				if nokocore.IsNoneOrEmptyWhiteSpaceReflect(vField) {
 					if !omitEmpty {
+						if name != nameCamelCase {
+							return errors.New(fmt.Sprintf("field '%s' is required, use '%s' for form data", nameCamelCase, name))
+						}
+
 						return errors.New(fmt.Sprintf("field '%s' is required", name))
 					}
 
@@ -262,150 +364,16 @@ func ValidateStruct(value any) error {
 					return nil
 				}
 
-				if isBoolean {
-					if err = ValidateBoolean(vField); err != nil {
-						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
-					}
-				}
+				for i, token := range tokens {
+					nokocore.KeepVoid(i)
 
-				if isNumber {
-					if err = ValidateNumber(vField); err != nil {
-						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
-					}
+					for j, validator := range validators {
+						nokocore.KeepVoid(j)
 
-					num := nokocore.ToInt(vField.Interface())
-
-					minInt64 := int64(minimum)
-					if setMinimum && num < minInt64 {
-						return errors.New(fmt.Sprintf("field '%s' is less than %d", name, minInt64))
-					}
-
-					maxInt64 := int64(maximum)
-					if setMaximum && num > maxInt64 {
-						return errors.New(fmt.Sprintf("field '%s' is greater than %d", name, maxInt64))
-					}
-				}
-
-				if isNumeric {
-					if err = ValidateNumeric(vField); err != nil {
-						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
-					}
-
-					num := nokocore.ToFloat(vField.Interface())
-
-					if setMinimum && num < minimum {
-						temp := strconv.FormatFloat(minimum, 'f', -1, 64)
-						return errors.New(fmt.Sprintf("field '%s' is less than %s", name, temp))
-					}
-
-					if setMaximum && num > maximum {
-						temp := strconv.FormatFloat(maximum, 'f', -1, 64)
-						return errors.New(fmt.Sprintf("field '%s' is greater than %s", name, temp))
-					}
-				}
-
-				if isAlphaLower {
-					if err = ValidateAlphaLower(vField); err != nil {
-						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
-					}
-				}
-
-				if isAlphaUpper {
-					if err = ValidateAlphaUpper(vField); err != nil {
-						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
-					}
-				}
-
-				if isAlphabet {
-					if err = ValidateAlphabet(vField); err != nil {
-						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
-					}
-				}
-
-				if isAlphaNum {
-					if err = ValidateAlphaNum(vField); err != nil {
-						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
-					}
-				}
-
-				if isAscii {
-					if err = ValidateAscii(vField); err != nil {
-						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
-					}
-				}
-
-				if isEmail {
-					if err = ValidateEmail(vField); err != nil {
-						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
-					}
-				}
-
-				if isPhone {
-					if err = ValidatePhone(vField); err != nil {
-						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
-					}
-				}
-
-				if isPassword {
-					return ValidatePassword(vField)
-				}
-
-				if isDateTime {
-					if err = ValidateDateTime(vField); err != nil {
-						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
-					}
-				}
-
-				if isDateTimeISO8601 {
-					if err = ValidateDateTimeISO8601(vField); err != nil {
-						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
-					}
-				}
-
-				if isDateOnly {
-					if err = ValidateDateOnly(vField); err != nil {
-						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
-					}
-				}
-
-				if isTimeOnly {
-					if err = ValidateTimeOnly(vField); err != nil {
-						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
-					}
-				}
-
-				if isURL {
-					if err = ValidateURL(vField); err != nil {
-						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
-					}
-				}
-
-				if isUUID {
-					if err = ValidateUUID(vField); err != nil {
-						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
-					}
-				}
-
-				if isDecimal {
-					if err = ValidateDecimal(vField); err != nil {
-						return errors.New(fmt.Sprintf("field '%s' is %s", name, err.Error()))
-					}
-
-					num := nokocore.ToDecimal(vField.Interface())
-
-					if setMinimum {
-						minDecimal := nokocore.ToDecimal(minimum)
-						if num.LessThan(minDecimal) {
-							temp := strconv.FormatFloat(minimum, 'f', -1, 64)
-							return errors.New(fmt.Sprintf("field '%s' is less than %s", name, temp))
-						}
-					}
-
-					if setMaximum {
-						maxDecimal := nokocore.ToDecimal(maximum)
-						if num.GreaterThan(maxDecimal) {
-							temp := strconv.FormatFloat(maximum, 'f', -1, 64)
-							return errors.New(fmt.Sprintf("field '%s' is greater than %s", name, temp))
+						if validator.Is(token) {
+							if err = validator.Validate(vField, attributes); err != nil {
+								return fmt.Errorf("field '%s' is %w", nameCamelCase, err)
+							}
 						}
 					}
 				}
@@ -415,23 +383,40 @@ func ValidateStruct(value any) error {
 					return ValidateStruct(vField)
 
 				case reflect.String:
-					size := int64(vField.Len())
+					var ok bool
+					var minVal int
+					var maxVal int
+					var minimum string
+					var maximum string
+					nokocore.KeepVoid(ok, minVal, maxVal, minimum, maximum)
 
-					minInt64 := int64(minimum)
-					if setMinimum && size < minInt64 {
-						return errors.New(fmt.Sprintf("field '%s' is less than %d", name, minInt64))
+					size := vField.Len()
+
+					if minimum, ok = attributes["min"]; ok {
+						if minVal, err = strconv.Atoi(minimum); err != nil {
+							return errors.New("invalid min value")
+						}
+
+						if size < minVal {
+							return errors.New(fmt.Sprintf("field '%s' is less than %d", name, minVal))
+						}
 					}
 
-					maxInt64 := int64(maximum)
-					if setMaximum && size > maxInt64 {
-						return errors.New(fmt.Sprintf("field '%s' is greater than %d", name, maxInt64))
+					if maximum, ok = attributes["max"]; ok {
+						if maxVal, err = strconv.Atoi(maximum); err != nil {
+							return errors.New("invalid max value")
+						}
+
+						if size > maxVal {
+							return errors.New(fmt.Sprintf("field '%s' is greater than %d", name, maxVal))
+						}
 					}
+
+					return nil
 
 				default:
-					break
+					return nil
 				}
-
-				return nil
 			}()
 
 			if err != nil {

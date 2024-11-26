@@ -140,7 +140,7 @@ func RefreshTokenHandler(DB *gorm.DB) echo.HandlerFunc {
 		jwtClaimsDataAccess.SetIssuedAt(timeUtcNow)
 		jwtClaimsDataAccess.SetExpiresAt(expires)
 		jwtClaimsDataAccess.SetUser(user.Username)
-		jwtClaimsDataAccess.SetSessionId(sessionId.String())
+		jwtClaimsDataAccess.SetSessionID(sessionId.String())
 		jwtClaimsDataAccess.SetRoles(roles)
 		jwtClaimsDataAccess.SetAdmin(user.Admin)
 		jwtClaimsDataAccess.SetLevel(user.Level)

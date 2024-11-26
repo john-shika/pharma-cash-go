@@ -421,19 +421,19 @@ func ToStringReflect(value any) string {
 
 	case reflect.Struct:
 		if IsTimeUtcISO8601(val) {
-			return strconv.Quote(ToTimeUtcStringISO8601(val))
+			return ToTimeUtcStringISO8601(val)
 		}
 
 		if IsURL(val) {
-			return strconv.Quote(ToURLString(val))
+			return ToURLString(val)
 		}
 
 		if IsUUID(val) {
-			return strconv.Quote(ToUUIDString(val))
+			return ToUUIDString(val)
 		}
 
-		if IsIP(val) {
-			return strconv.Quote(ToIPString(val))
+		if IsDecimal(val) {
+			return ToDecimalString(val)
 		}
 
 		return fmt.Sprintf("%s {}", GetNameTypeReflect(val))
@@ -1303,7 +1303,7 @@ func GetValueWithSuperKey(data any, key string) any {
 		break
 
 	case reflect.Struct:
-		temp = GetMapStrAnyValueReflect(val)
+		temp = val.Interface()
 		break
 
 	default:
@@ -1340,7 +1340,7 @@ func GetValueWithSuperKeyReflect(data any, key string) reflect.Value {
 
 	var temp reflect.Value
 	switch val.Kind() {
-	case reflect.Array, reflect.Slice:
+	case reflect.Array, reflect.Slice, reflect.String:
 		if idx, err = strconv.Atoi(token); err != nil {
 			panic("invalid key")
 		}

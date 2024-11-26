@@ -12,11 +12,15 @@ type ShiftBody struct {
 }
 
 func ToShiftModel(shift *ShiftBody) *models2.Shift {
-	return &models2.Shift{
-		Name:      shift.Name,
-		StartDate: sqlx.ParseTimeOnly(shift.StartDate),
-		EndDate:   sqlx.ParseTimeOnly(shift.EndDate),
+	if shift != nil {
+		return &models2.Shift{
+			Name:      shift.Name,
+			StartDate: sqlx.ParseTimeOnly(shift.StartDate),
+			EndDate:   sqlx.ParseTimeOnly(shift.EndDate),
+		}
 	}
+
+	return nil
 }
 
 type ShiftResult struct {

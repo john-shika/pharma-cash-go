@@ -209,8 +209,8 @@ type JwtClaimsDataAccessImpl interface {
 	SetIssuedAt(date any)
 	GetExpires() *jwt.NumericDate
 	SetExpiresAt(date any)
-	GetSessionId() string
-	SetSessionId(sessionId string)
+	GetSessionID() string
+	SetSessionID(sessionId string)
 	GetUser() string
 	SetUser(user string)
 	GetEmail() string
@@ -233,7 +233,7 @@ type JwtClaimsDataAccess struct {
 	NotBefore *jwt.NumericDate `mapstructure:"nbf" json:"nbf,omitempty"`
 	IssuedAt  *jwt.NumericDate `mapstructure:"iat" json:"iat,omitempty"`
 	ExpiresAt *jwt.NumericDate `mapstructure:"exp" json:"exp,omitempty"`
-	SessionId string           `mapstructure:"sid" json:"sid,omitempty"`
+	SessionID string           `mapstructure:"sid" json:"sid,omitempty"`
 	User      string           `mapstructure:"user" json:"user,omitempty"`
 	Email     string           `mapstructure:"email" json:"email,omitempty"`
 	Phone     string           `mapstructure:"phone" json:"phone,omitempty"`
@@ -309,12 +309,12 @@ func (claimsDataAccess *JwtClaimsDataAccess) SetExpiresAt(date any) {
 	claimsDataAccess.ExpiresAt = GetJwtNumericDateFromAny(date)
 }
 
-func (claimsDataAccess *JwtClaimsDataAccess) GetSessionId() string {
-	return claimsDataAccess.SessionId
+func (claimsDataAccess *JwtClaimsDataAccess) GetSessionID() string {
+	return claimsDataAccess.SessionID
 }
 
-func (claimsDataAccess *JwtClaimsDataAccess) SetSessionId(sessionId string) {
-	claimsDataAccess.SessionId = sessionId
+func (claimsDataAccess *JwtClaimsDataAccess) SetSessionID(sessionId string) {
+	claimsDataAccess.SessionID = sessionId
 }
 
 func (claimsDataAccess *JwtClaimsDataAccess) GetUser() string {
@@ -427,7 +427,7 @@ func (j *JwtClaims) GetDataAccess() *JwtClaimsDataAccess {
 		Audience:  j.GetAudience(),
 		IssuedAt:  j.GetIssued(),
 		ExpiresAt: j.GetExpires(),
-		SessionId: j.GetIdentity(),
+		SessionID: j.GetIdentity(),
 		User:      j.GetUser(),
 		Email:     j.GetEmail(),
 		Phone:     j.GetPhone(),
@@ -679,7 +679,7 @@ func ToJwtClaims(claimsDataAccess JwtClaimsDataAccessImpl, jwtSigningMethod jwt.
 	claims.SetAudience(claimsDataAccess.GetAudience())
 	claims.SetIssuedAt(claimsDataAccess.GetIssued())
 	claims.SetExpires(claimsDataAccess.GetExpires())
-	claims.SetSessionId(claimsDataAccess.GetSessionId())
+	claims.SetSessionId(claimsDataAccess.GetSessionID())
 	claims.SetUser(claimsDataAccess.GetUser())
 	claims.SetEmail(claimsDataAccess.GetEmail())
 	claims.SetPhone(claimsDataAccess.GetPhone())
@@ -697,7 +697,7 @@ func ToJwtClaimsDataAccess(claims JwtClaimsImpl) (JwtClaimsDataAccessImpl, jwt.S
 	claimsDataAccess.SetAudience(claims.GetAudience())
 	claimsDataAccess.SetIssuedAt(claims.GetIssued())
 	claimsDataAccess.SetExpiresAt(claims.GetExpires())
-	claimsDataAccess.SetSessionId(claims.GetSessionId())
+	claimsDataAccess.SetSessionID(claims.GetSessionId())
 	claimsDataAccess.SetUser(claims.GetUser())
 	claimsDataAccess.SetEmail(claims.GetEmail())
 	claimsDataAccess.SetPhone(claims.GetPhone())

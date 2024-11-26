@@ -8,10 +8,14 @@ type UnitBody struct {
 	UnitType string `mapstructure:"unit_type" json:"unitType" validate:"ascii,min=1"`
 }
 
-func ToUnitModel(body *UnitBody) *models2.Unit {
-	return &models2.Unit{
-		UnitType: body.UnitType,
+func ToUnitModel(unit *UnitBody) *models2.Unit {
+	if unit != nil {
+		return &models2.Unit{
+			UnitType: unit.UnitType,
+		}
 	}
+
+	return nil
 }
 
 type UnitResult struct {
@@ -19,7 +23,11 @@ type UnitResult struct {
 }
 
 func ToUnitResult(unit *models2.Unit) UnitResult {
-	return UnitResult{
-		UnitType: unit.UnitType,
+	if unit != nil {
+		return UnitResult{
+			UnitType: unit.UnitType,
+		}
 	}
+
+	return UnitResult{}
 }

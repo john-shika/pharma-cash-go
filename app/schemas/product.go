@@ -18,7 +18,7 @@ type ProductBody struct {
 	Expires          string  `mapstructure:"expires" json:"expires" validate:"dateOnly"`
 	PurchasePrice    string  `mapstructure:"purchase_price" json:"purchasePrice" validate:"decimal,min=0"`
 	SupplierDiscount float32 `mapstructure:"supplier_discount" json:"supplierDiscount" validate:"numeric,min=0"`
-	VAT              float32 `mapstructure:"vat" json:"vat" validate:"numeric,min=0"`
+	VAT              float32 `mapstructure:"vat" json:"tax" validate:"numeric,min=0"` // input "tax"
 	ProfitMargin     float32 `mapstructure:"profit_margin" json:"profitMargin" validate:"numeric,min=0"`
 	PackageID        string  `mapstructure:"package_id" json:"packageId" validate:"uuid"`
 	PackageTotal     float32 `mapstructure:"package_total" json:"packageTotal" validate:"number,min=0"`
@@ -27,27 +27,31 @@ type ProductBody struct {
 	UnitExtra        float32 `mapstructure:"unit_extra" json:"unitExtra" validate:"omitempty"`
 }
 
-func ToProductModel(productBody *ProductBody, packageModel *models2.Package, unitModel *models2.Unit) *models2.Product {
-	return &models2.Product{
-		Barcode:          productBody.Barcode,
-		Brand:            productBody.Brand,
-		ProductName:      productBody.ProductName,
-		Supplier:         productBody.Supplier,
-		Description:      productBody.Description,
-		Category:         productBody.Category,
-		Expires:          sqlx.ParseDateOnlyNotNull(productBody.Expires),
-		PurchasePrice:    decimal.RequireFromString(productBody.PurchasePrice),
-		SupplierDiscount: productBody.SupplierDiscount,
-		VAT:              productBody.VAT,
-		ProfitMargin:     productBody.ProfitMargin,
-		PackageID:        packageModel.ID,
-		PackageTotal:     productBody.PackageTotal,
-		UnitID:           unitModel.ID,
-		UnitAmount:       productBody.UnitAmount,
-		UnitExtra:        productBody.UnitExtra,
-		Package:          *packageModel,
-		Unit:             *unitModel,
+func ToProductModel(product *ProductBody, packageModel *models2.Package, unitModel *models2.Unit) *models2.Product {
+	if product != nil {
+		return &models2.Product{
+			Barcode:          product.Barcode,
+			Brand:            product.Brand,
+			ProductName:      product.ProductName,
+			Supplier:         product.Supplier,
+			Description:      product.Description,
+			Category:         product.Category,
+			Expires:          sqlx.ParseDateOnlyNotNull(product.Expires),
+			PurchasePrice:    decimal.RequireFromString(product.PurchasePrice),
+			SupplierDiscount: product.SupplierDiscount,
+			VAT:              product.VAT,
+			ProfitMargin:     product.ProfitMargin,
+			PackageID:        packageModel.ID,
+			PackageTotal:     product.PackageTotal,
+			UnitID:           unitModel.ID,
+			UnitAmount:       product.UnitAmount,
+			UnitExtra:        product.UnitExtra,
+			Package:          *packageModel,
+			Unit:             *unitModel,
+		}
 	}
+
+	return nil
 }
 
 type ProductResult struct {
@@ -60,7 +64,7 @@ type ProductResult struct {
 	Expires          string          `mapstructure:"expires" json:"expires"`
 	PurchasePrice    decimal.Decimal `mapstructure:"purchase_price" json:"purchasePrice"`
 	SupplierDiscount float32         `mapstructure:"supplier_discount" json:"supplierDiscount"`
-	VAT              float32         `mapstructure:"vat" json:"vat"`
+	VAT              float32         `mapstructure:"vat" json:"tax"` // output "tax"
 	ProfitMargin     float32         `mapstructure:"profit_margin" json:"profitMargin"`
 	PackageId        uuid.UUID       `mapstructure:"package_id" json:"packageId"`
 	PackageTotal     float32         `mapstructure:"package_total" json:"packageTotal"`
@@ -70,22 +74,26 @@ type ProductResult struct {
 }
 
 func ToProductResult(product *models2.Product) ProductResult {
-	return ProductResult{
-		Barcode:          product.Barcode,
-		Brand:            product.Brand,
-		ProductName:      product.ProductName,
-		Supplier:         product.Supplier,
-		Description:      product.Description,
-		Category:         product.Category,
-		Expires:          product.Expires.Format(nokocore.DateOnlyFormat),
-		PurchasePrice:    product.PurchasePrice,
-		SupplierDiscount: product.SupplierDiscount,
-		VAT:              product.VAT,
-		ProfitMargin:     product.ProfitMargin,
-		PackageId:        product.Package.UUID,
-		PackageTotal:     product.PackageTotal,
-		UnitID:           product.Unit.UUID,
-		UnitAmount:       product.UnitAmount,
-		UnitExtra:        product.UnitExtra,
+	if product != nil {
+		return ProductResult{
+			Barcode:          product.Barcode,
+			Brand:            product.Brand,
+			ProductName:      product.ProductName,
+			Supplier:         product.Supplier,
+			Description:      product.Description,
+			Category:         product.Category,
+			Expires:          product.Expires.Format(nokocore.DateOnlyFormat),
+			PurchasePrice:    product.PurchasePrice,
+			SupplierDiscount: product.SupplierDiscount,
+			VAT:              product.VAT,
+			ProfitMargin:     product.ProfitMargin,
+			PackageId:        product.Package.UUID,
+			PackageTotal:     product.PackageTotal,
+			UnitID:           product.Unit.UUID,
+			UnitAmount:       product.UnitAmount,
+			UnitExtra:        product.UnitExtra,
+		}
 	}
+
+	return ProductResult{}
 }

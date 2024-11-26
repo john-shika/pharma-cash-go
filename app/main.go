@@ -85,6 +85,16 @@ func Main(args []string) nokocore.ExitCode {
 	// http error handling
 	e.HTTPErrorHandler = extras.EchoHTTPErrorHandler()
 
+	// health check
+	e.HEAD("/", func(c echo.Context) error {
+		return c.NoContent(http.StatusOK)
+	})
+
+	// home page
+	e.GET("/", func(c echo.Context) error {
+		return c.String(http.StatusOK, "Hello, World\x21")
+	})
+
 	// create group rest api
 	group := e.Group("/api/v1")
 

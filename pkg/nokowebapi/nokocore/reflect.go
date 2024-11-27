@@ -1243,7 +1243,7 @@ func ParseValueReflect(value any, key string) any {
 	}
 }
 
-func baseTokens(key string) (string, string) {
+func baseToken(key string) (string, string) {
 	tokens := getTokens(key)
 	token := ""
 
@@ -1253,6 +1253,7 @@ func baseTokens(key string) (string, string) {
 		token = tokens[0]
 	}
 
+	// token, full key
 	return token, key
 }
 
@@ -1266,7 +1267,7 @@ func GetValueWithSuperKey(data any, key string) any {
 		return nil
 	}
 
-	token, key = baseTokens(key)
+	token, key = baseToken(key)
 
 	var temp any
 	switch val.Kind() {
@@ -1336,7 +1337,7 @@ func GetValueWithSuperKeyReflect(data any, key string) reflect.Value {
 		return reflect.Value{}
 	}
 
-	token, key = baseTokens(key)
+	token, key = baseToken(key)
 
 	var temp reflect.Value
 	switch val.Kind() {

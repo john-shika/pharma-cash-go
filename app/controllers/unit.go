@@ -24,7 +24,7 @@ func CreateUnit(DB *gorm.DB) echo.HandlerFunc {
 
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
 
-		if !utils.RoleIs(jwtAuthInfo, nokocore.RoleAdmin, nokocore.RoleOfficer) {
+		if !utils.RoleIsAdmin(jwtAuthInfo) && !utils.RoleIs(jwtAuthInfo, nokocore.RoleOfficer) {
 			return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
 		}
 

@@ -155,8 +155,8 @@ func GetAllProductsHandler(DB *gorm.DB) echo.HandlerFunc {
 
 func ProductController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
-	group.GET("/products", GetAllProductsHandler(DB))
 	group.POST("/product", CreateProductHandler(DB))
+	group.GET("/products", GetAllProductsHandler(DB))
 
 	return group
 }

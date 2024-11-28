@@ -96,8 +96,8 @@ func GetAllUnitsHandler(DB *gorm.DB) echo.HandlerFunc {
 
 func UnitController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
-	group.GET("/units", GetAllUnitsHandler(DB))
 	group.POST("/unit", CreateUnitHandler(DB))
+	group.GET("/units", GetAllUnitsHandler(DB))
 
 	return group
 }

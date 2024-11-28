@@ -41,7 +41,7 @@ func NewService() {
 
 	var fontSize int
 
-	fontSize = 12
+	fontSize = 10
 	err = pdf.SetFont(fontFamily, "", fontSize)
 	if err != nil {
 		console.Error(fmt.Sprintf("panic: %s", err.Error()))
@@ -60,29 +60,28 @@ func NewService() {
 	var X, Y float64
 
 	X = pageSize.W - 240
-	Y = 20
+	Y = 38
 
 	pdf.SetXY(X, Y)
 	pdf.Cell(nil, fmt.Sprintf("%-9s: %s", "Name", "Widho, Hakim"))
 
-	Y += 16
+	Y += 14
 	pdf.SetXY(X, Y)
 	pdf.Cell(nil, fmt.Sprintf("%-9s: %s", "Username", "admin"))
 
-	Y += 16
+	Y += 14
 	pdf.SetXY(X, Y)
 	pdf.Cell(nil, fmt.Sprintf("%-9s: %s", "Role", "Administrator"))
 
-	Y += 16
+	Y += 14
 	pdf.SetXY(X, Y)
 	pdf.Cell(nil, fmt.Sprintf("%-9s: %s", "Date", nokocore.GetTimeUtcNow().Local().Format(nokocore.DateTimeFormat)))
 
 	X = 34
-	Y += 32
+	Y += 20
 	pdf.SetXY(X, Y)
 
-	// Size: 88
-	pdf.Cell(nil, "========================================================================================")
+	pdf.Cell(nil, "=========================================================================================================")
 
 	Y += 12
 	pdf.SetXY(X, Y)

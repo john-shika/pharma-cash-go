@@ -156,6 +156,7 @@ func GetAllProductByName(DB *gorm.DB) echo.HandlerFunc {
 func ProductController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
 	group.POST("/products", CreateProduct(DB))
+	group.GET("/products", GetAllProductByName(DB))
 
 	return group
 }

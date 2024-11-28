@@ -67,9 +67,33 @@ func CreatePackage(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
+func GetallPackage(DB *gorm.DB) echo.HandlerFunc {
+
+	return func(ctx echo.Context) error {
+		var err error
+		nokocore.KeepVoid(err)
+
+		var packages []models2.Package
+		if err = DB.Find(&packages).Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get packages.", nil)
+		}
+
+		var packageResults []schemas2.PackageResult
+		for _, packageModel := range packages {
+			packageResults = append(packageResults, schemas2.ToPackageResult(&packageModel))
+		}
+
+		return extras.NewMessageBodyOk(ctx, "Successfully get packages.", &nokocore.MapAny{
+			"packages": packageResults,
+		})
+	}
+}
+
 func PackagingController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
 	group.POST("/package", CreatePackage(DB))
+	group.GET("/package", GetallPackage(DB))
 
 	return group
 }

@@ -67,9 +67,33 @@ func CreateUnit(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
+func GetallUnit(DB *gorm.DB) echo.HandlerFunc {
+
+	return func(ctx echo.Context) error {
+		var err error
+		nokocore.KeepVoid(err)
+
+		var units []models2.Unit
+		if err = DB.Find(&units).Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get units.", nil)
+		}
+
+		var unitResults []schemas2.UnitResult
+		for _, unit := range units {
+			unitResults = append(unitResults, schemas2.ToUnitResult(&unit))
+		}
+
+		return extras.NewMessageBodyOk(ctx, "Successfully get units.", &nokocore.MapAny{
+			"units": unitResults,
+		})
+	}
+}
+
 func UnitController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
 	group.POST("/unit", CreateUnit(DB))
+	group.GET("/unit", GetallUnit(DB))
 
 	return group
 }

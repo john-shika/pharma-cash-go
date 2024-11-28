@@ -49,6 +49,10 @@ func CreateEmployeeHandler(DB *gorm.DB) echo.HandlerFunc {
 			return err
 		}
 
+		if strings.TrimSpace(employeeBody.Password) == "" {
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Password is required.", nil)
+		}
+
 		username := strings.TrimSpace(employeeBody.Username)
 		employeeBody.Username = username
 		if username != "" {
@@ -206,6 +210,10 @@ func UpdateEmployeeHandler(DB *gorm.DB) echo.HandlerFunc {
 				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get user.", nil)
 			}
 
+			if employee == nil {
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Employee not found.", nil)
+			}
+
 			// inject with current user
 			user = &employee.User
 		}
@@ -236,6 +244,11 @@ func UpdateEmployeeHandler(DB *gorm.DB) echo.HandlerFunc {
 			if user2, err = utils.CopyBaseModel(schemas2.ToUserModel(employeeBody), user); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return errors.New("failed to copy base model")
+			}
+
+			// fill password from previous user password
+			if strings.TrimSpace(user2.Password) == "" {
+				user2.Password = user.Password
 			}
 
 			if err = userRepository.SafeUpdate(user2, "id = ?", user2.ID); err != nil {
@@ -380,26 +393,51 @@ func DeleteUserHandler(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	userRepository := repositories.NewUserRepository(DB)
+	employeeRepository := repositories2.NewEmployeeRepository(DB)
 
 	return func(ctx echo.Context) error {
 		var err error
-		var user *models.User
 		var userId string
-		nokocore.KeepVoid(err, user, userId)
+		var employeeId string
+		var user *models.User
+		var employee *models2.Employee
+		nokocore.KeepVoid(err, userId, employeeId, user, employee)
 
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+
+		permanent := extras.ParseQueryToBool(ctx, "permanent")
 
 		if !utils.RoleIsAdmin(jwtAuthInfo) {
 			return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
 		}
 
 		if userId = extras.ParseQueryToString(ctx, "user_id"); userId == "" {
-			return extras.NewMessageBodyUnprocessableEntity(ctx, "Required parameter 'user_id' is missing.", nil)
+			if employeeId = extras.ParseQueryToString(ctx, "employee_id"); employeeId == "" {
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Required parameter 'user_id' or 'employee_id' is missing.", nil)
+			}
 		}
 
-		if user, err = userRepository.First("uuid = ?", userId); err != nil {
-			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get user.", nil)
+		if userId != "" {
+			preloads := []string{"Roles"}
+			if user, err = userRepository.PreFirst(preloads, "uuid = ?", userId); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get user.", nil)
+			}
+		}
+
+		if user == nil && employeeId != "" {
+			preloads := []string{"Shift", "User", "User.Roles"}
+			if employee, err = employeeRepository.PreFirst(preloads, "uuid = ?", employeeId); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get user.", nil)
+			}
+
+			if employee == nil {
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Employee not found.", nil)
+			}
+
+			// inject with current user
+			user = &employee.User
 		}
 
 		if user == nil {
@@ -410,13 +448,43 @@ func DeleteUserHandler(DB *gorm.DB) echo.HandlerFunc {
 			"user": schemas.ToUserResult(user),
 		}
 
-		if user.DeletedAt.Valid {
+		if !permanent && user.DeletedAt.Valid {
 			return extras.NewMessageBodyOk(ctx, "User already deleted.", data)
 		}
 
-		if err = userRepository.SafeDelete(user, "uuid = ?", userId); err != nil {
-			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete user.", nil)
+		if employee == nil {
+			if employee, err = employeeRepository.SafeFirst("user_id = ?", user.ID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get employee.", nil)
+			}
+		}
+
+		if employee != nil {
+			if permanent {
+				if err = employeeRepository.Delete(employee, "id = ?", employee.ID); err != nil {
+					console.Error(fmt.Sprintf("panic: %s", err.Error()))
+					return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete employee.", nil)
+				}
+
+			} else {
+				if err = employeeRepository.SafeDelete(employee, "id = ?", employee.ID); err != nil {
+					console.Error(fmt.Sprintf("panic: %s", err.Error()))
+					return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete employee.", nil)
+				}
+			}
+		}
+
+		if permanent {
+			if err = userRepository.Delete(user, "uuid = ?", userId); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete user.", nil)
+			}
+
+		} else {
+			if err = userRepository.SafeDelete(user, "uuid = ?", userId); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete user.", nil)
+			}
 		}
 
 		return extras.NewMessageBodyOk(ctx, "Successfully deleted.", data)

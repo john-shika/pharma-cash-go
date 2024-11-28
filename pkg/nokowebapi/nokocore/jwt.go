@@ -23,11 +23,11 @@ var ErrJwtEmailNotFound = errors.New("jwt email not found")
 var ErrJwtSecretKeyNotFound = errors.New("jwt secret key not found")
 
 type JwtConfig struct {
-	Algorithm string   `mapstructure:"algorithm,required" json:"algorithm,required"`
-	SecretKey string   `mapstructure:"secret_key,required" json:"secretKey,required"`
-	Audience  []string `mapstructure:"audience,required" json:"audience,required"`
-	Issuer    string   `mapstructure:"issuer,required" json:"issuer,required"`
-	ExpiresIn string   `mapstructure:"expires_in,required" json:"expiresIn,required"`
+	Algorithm string   `mapstructure:"algorithm" json:"algorithm" yaml:"algorithm"`
+	SecretKey string   `mapstructure:"secret_key" json:"secretKey" yaml:"secret_key"`
+	Audience  []string `mapstructure:"audience" json:"audience" yaml:"audience"`
+	Issuer    string   `mapstructure:"issuer" json:"issuer" yaml:"issuer"`
+	ExpiresIn string   `mapstructure:"expires_in" json:"expiresIn" yaml:"expires_in"`
 }
 
 func NewJwtConfig() *JwtConfig {

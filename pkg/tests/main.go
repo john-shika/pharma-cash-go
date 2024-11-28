@@ -13,4 +13,6 @@ func main() {
 
 	fmt.Println(string(nokocore.Unwrap(json.Marshal(timeOnly))))
 	fmt.Println(timeOnly)
+	
+	fmt.Println(nokocore.ToPascalCase("ttk"))
 }

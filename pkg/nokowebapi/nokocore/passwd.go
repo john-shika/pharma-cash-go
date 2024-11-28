@@ -67,6 +67,11 @@ func (p *Password) Hash() (string, error) {
 	var buffer bytes.Buffer
 	KeepVoid(n, err, buffer)
 
+	// password already hashed
+	if strings.HasPrefix(p.Value, p.pdkf2Config.Prefix) {
+		return p.Value, nil
+	}
+
 	if len(p.Value) < p.passConfig.MinLength || len(p.Value) > p.passConfig.MaxLength {
 		return "", ErrPassInvalidLength
 	}

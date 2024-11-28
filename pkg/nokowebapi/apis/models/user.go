@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"nokowebapi/nokocore"
 	"strings"
@@ -29,7 +30,6 @@ func (User) TableName() string {
 
 func (u *User) CreateRoles(DB *gorm.DB) error {
 	var err error
-	var check Role
 
 	for i, role := range u.Roles {
 		nokocore.KeepVoid(i)
@@ -40,6 +40,7 @@ func (u *User) CreateRoles(DB *gorm.DB) error {
 		}
 
 		// searching
+		var check Role
 		tx := DB.Where("role_name = ?", role.RoleName).Find(&check)
 		if err = tx.Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
@@ -74,16 +75,17 @@ func (u *User) ClearRoles(DB *gorm.DB) error {
 	var err error
 
 	if u.ID != 0 {
-		// store the current user roles
-		roles := u.Roles
-
-		// remove all registered user roles, user roles get empty
-		if err = DB.Model(u).Association("Roles").Clear(); err != nil {
-			return err
+		// pseudo user
+		user := User{
+			BaseModel: BaseModel{
+				ID: u.ID,
+			},
 		}
 
-		// get roles without registered
-		u.Roles = roles
+		// remove all registered user roles, user roles get empty
+		if err = DB.Model(&user).Association("Roles").Clear(); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -115,9 +117,19 @@ func (u *User) RolesAppend(DB *gorm.DB, names ...string) error {
 func (u *User) BeforeSave(DB *gorm.DB) (err error) {
 	nokocore.KeepVoid(DB)
 
+	for i, role := range u.Roles {
+		nokocore.KeepVoid(i)
+		fmt.Printf("Role (Before): %s\n", role.RoleName)
+	}
+
 	// create user roles if not exists
 	if err = u.CreateRoles(DB); err != nil {
 		return err
+	}
+
+	for i, role := range u.Roles {
+		nokocore.KeepVoid(i)
+		fmt.Printf("Role (Create): %s\n", role.RoleName)
 	}
 
 	// clear previous user roles
@@ -125,9 +137,16 @@ func (u *User) BeforeSave(DB *gorm.DB) (err error) {
 		return err
 	}
 
-	password := nokocore.NewPassword(u.Password)
-	if u.Password, err = password.Hash(); err != nil {
-		return err
+	for i, role := range u.Roles {
+		nokocore.KeepVoid(i)
+		fmt.Printf("Role (Clear): %s\n", role.RoleName)
+	}
+
+	if u.Password != "" {
+		password := nokocore.NewPassword(u.Password)
+		if u.Password, err = password.Hash(); err != nil {
+			return err
+		}
 	}
 
 	user := nokocore.ToRoleString(nokocore.RoleUser)
@@ -147,6 +166,11 @@ func (u *User) BeforeSave(DB *gorm.DB) (err error) {
 		if err = u.RolesAppend(DB, superAdmin); err != nil {
 			return err
 		}
+	}
+
+	for i, role := range u.Roles {
+		nokocore.KeepVoid(i)
+		fmt.Printf("Role (After): %s\n", role.RoleName)
 	}
 
 	return nil

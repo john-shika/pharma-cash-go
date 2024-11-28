@@ -39,7 +39,6 @@ func (Product) TableName() string {
 
 func (p *Product) CreateCategories(DB *gorm.DB) error {
 	var err error
-	var check Category
 
 	for i, category := range p.Categories {
 		nokocore.KeepVoid(i)
@@ -50,6 +49,7 @@ func (p *Product) CreateCategories(DB *gorm.DB) error {
 		}
 
 		// searching
+		var check Category
 		tx := DB.Where("category_name = ?", category.CategoryName).Find(&check)
 		if err = tx.Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
@@ -84,16 +84,17 @@ func (p *Product) ClearCategories(DB *gorm.DB) error {
 	var err error
 
 	if p.ID != 0 {
-		// store the current product categories
-		roles := p.Categories
-
-		// remove all registered product categories, product categories get empty
-		if err = DB.Model(p).Association("Categories").Clear(); err != nil {
-			return err
+		// pseudo product
+		product := Product{
+			BaseModel: models.BaseModel{
+				ID: p.ID,
+			},
 		}
 
-		// get roles without registered
-		p.Categories = roles
+		// remove all registered product categories, product categories get empty
+		if err = DB.Model(&product).Association("Categories").Clear(); err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -15,9 +15,57 @@ type UserBody struct {
 	Phone      string   `mapstructure:"phone" json:"phone" form:"phone" validate:"phone,omitempty"`
 	Admin      bool     `mapstructure:"admin" json:"admin" form:"admin" validate:"boolean,omitempty"`
 	SuperAdmin bool     `mapstructure:"super_admin" json:"superAdmin" form:"super_admin" validate:"boolean,omitempty"`
-	Level      int      `mapstructure:"level" json:"level" form:"level" validate:"number,min=0,max=99,omitempty"` // FUTURE: can handle min=N,max=N
+	Level      int      `mapstructure:"level" json:"level" form:"level" validate:"number,min=0,max=99,omitempty"`
 	Roles      []string `mapstructure:"roles" json:"roles" form:"roles" validate:"alphanum,min=1,omitempty"`
 	Role       string   `mapstructure:"role" json:"role" form:"role" validate:"alphanum,omitempty"`
+}
+
+// TODO: Explicit for pharma cash app
+// normRoleDW method, modified explicit for pharma cash app
+func normRoleDW(role string) models.Role {
+	roleModel := models.Role{}
+	switch nokocore.ToPascalCase(role) {
+	case "Apoteker":
+		roleModel.RoleName = nokocore.ToRoleString(nokocore.RoleOfficer)
+	case "Ttk":
+		roleModel.RoleName = nokocore.ToRoleString(nokocore.RoleAssistant)
+	case "Supervisor":
+		roleModel.RoleName = nokocore.ToRoleString(nokocore.RoleSupervisor)
+	default:
+		roleModel.RoleName = nokocore.ToRoleString(nokocore.RoleUser)
+	}
+	return roleModel
+}
+
+// TODO: Explicit for pharma cash app
+// normRoleSingleDW method, modified explicit for pharma cash app
+func normRoleSingleDW(roles []string) string {
+	var role string
+	found := false
+	for i, value := range roles {
+		nokocore.KeepVoid(i)
+		switch nokocore.ToPascalCase(value) {
+		case nokocore.ToRoleString(nokocore.RoleOfficer):
+			role = "apoteker"
+			found = true
+			break
+
+		case nokocore.ToRoleString(nokocore.RoleAssistant):
+			role = "ttk"
+			found = true
+			break
+
+		case nokocore.ToRoleString(nokocore.RoleSupervisor):
+			role = "supervisor"
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		role = roles[0]
+	}
+	return role
 }
 
 func ToUserModel(user *UserBody) *models.User {
@@ -26,16 +74,12 @@ func ToUserModel(user *UserBody) *models.User {
 		for i, role := range user.Roles {
 			nokocore.KeepVoid(i)
 			if role = nokocore.ToPascalCase(role); role != "" {
-				roleModel := models.Role{
-					RoleName: role,
-				}
+				roleModel := normRoleDW(role)
 				roles = append(roles, roleModel)
 			}
 		}
 		if role := nokocore.ToPascalCase(user.Role); role != "" {
-			roleModel := models.Role{
-				RoleName: role,
-			}
+			roleModel := normRoleDW(role)
 			roles = append(roles, roleModel)
 		}
 		return &models.User{
@@ -85,7 +129,7 @@ func ToUserResult(user *models.User) UserResult {
 		}
 		var role string
 		if len(roles) > 0 {
-			role = roles[0]
+			role = normRoleSingleDW(roles)
 		}
 		return UserResult{
 			UUID:      user.UUID,

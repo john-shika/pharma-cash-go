@@ -379,7 +379,8 @@ func ToStringReflect(value any) string {
 		return strconv.FormatUint(val.Uint(), 10)
 
 	case reflect.Uintptr:
-		return fmt.Sprintf("0x%016x", val.Uint())
+		//return fmt.Sprintf("0x%016x", val.Uint())
+		return fmt.Sprintf("%#016x", val.Uint())
 
 	case reflect.Float32, reflect.Float64:
 		return strconv.FormatFloat(val.Float(), 'f', -1, 64)

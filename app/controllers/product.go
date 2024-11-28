@@ -2,20 +2,17 @@ package controllers
 
 import (
 	"fmt"
+	"github.com/labstack/echo/v4"
+	"gorm.io/gorm"
 	"nokowebapi/apis/extras"
+	"nokowebapi/apis/utils"
 	"nokowebapi/console"
 	"nokowebapi/nokocore"
 	models2 "pharma-cash-go/app/models"
 	repositories2 "pharma-cash-go/app/repositories"
 	schemas2 "pharma-cash-go/app/schemas"
 	"strconv"
-
-	"github.com/go-playground/validator/v10"
-	"github.com/labstack/echo/v4"
-	"gorm.io/gorm"
 )
-
-var validate = validator.New()
 
 func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
 
@@ -29,6 +26,12 @@ func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
 		var unit *models2.Unit
 		nokocore.KeepVoid(err, packageModel, unit)
 
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+
+		if !utils.RoleIsAdmin(jwtAuthInfo) && !utils.RoleIs(jwtAuthInfo, nokocore.RoleOfficer) {
+			return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
+		}
+
 		productBody := new(schemas2.ProductBody)
 		if err = ctx.Bind(&productBody); err != nil {
 			return extras.NewMessageBodyBadRequest(ctx, "Invalid request body.", err)
@@ -38,25 +41,73 @@ func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
 			return err
 		}
 
-		if packageModel, err = packageRepository.SafeFirst("uuid = ?", productBody.PackageID); err != nil {
-			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get package.", nil)
+		product := schemas2.ToProductModel(productBody)
+
+		if packageID := productBody.PackageID; packageID != "" {
+			if packageModel, err = packageRepository.SafeFirst("uuid = ?", packageID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyInternalServerError(ctx, "Failed to get package.", nil)
+			}
 		}
 
+		// can be automatic build
 		if packageModel == nil {
-			return extras.NewMessageBodyNotFound(ctx, "Package not found.", nil)
+			if packageType := nokocore.ToTitleCase(productBody.PackageType); packageType != "" {
+				if packageModel, err = packageRepository.SafeFirst("package_type = ?", packageType); err != nil {
+					console.Error(fmt.Sprintf("panic: %s", err.Error()))
+					return extras.NewMessageBodyInternalServerError(ctx, "Failed to get package.", nil)
+				}
+
+				if packageModel == nil {
+					packageModel = &models2.Package{
+						PackageType: packageType,
+					}
+					if err = packageRepository.SafeCreate(packageModel); err != nil {
+						console.Error(fmt.Sprintf("panic: %s", err.Error()))
+						return extras.NewMessageBodyInternalServerError(ctx, "Failed create package.", nil)
+					}
+				}
+
+			} else {
+				return extras.NewMessageBodyNotFound(ctx, "Package not found.", nil)
+			}
 		}
 
-		if unit, err = unitRepository.SafeFirst("uuid = ?", productBody.UnitID); err != nil {
-			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get unit.", nil)
+		product.PackageID = packageModel.ID
+		product.Package = *packageModel
+
+		if unitID := productBody.UnitID; unitID != "" {
+			if unit, err = unitRepository.SafeFirst("uuid = ?", unitID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyInternalServerError(ctx, "Failed to get unit.", nil)
+			}
 		}
 
+		// can be automatic build
 		if unit == nil {
-			return extras.NewMessageBodyNotFound(ctx, "Unit not found.", nil)
+			if unitType := nokocore.ToTitleCase(productBody.UnitType); unitType != "" {
+				if unit, err = unitRepository.SafeFirst("unit_type = ?", unitType); err != nil {
+					console.Error(fmt.Sprintf("panic: %s", err.Error()))
+					return extras.NewMessageBodyInternalServerError(ctx, "Failed to get unit.", nil)
+				}
+
+				if unit == nil {
+					unit = &models2.Unit{
+						UnitType: unitType,
+					}
+					if err = unitRepository.SafeCreate(unit); err != nil {
+						console.Error(fmt.Sprintf("panic: %s", err.Error()))
+						return extras.NewMessageBodyInternalServerError(ctx, "Failed create unit.", nil)
+					}
+				}
+
+			} else {
+				return extras.NewMessageBodyNotFound(ctx, "Unit not found.", nil)
+			}
 		}
 
-		product := schemas2.ToProductModel(productBody, packageModel, unit)
+		product.UnitID = unit.ID
+		product.Unit = *unit
 
 		if err = productRepository.SafeCreate(product); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
@@ -105,7 +156,6 @@ func GetAllProductByName(DB *gorm.DB) echo.HandlerFunc {
 func ProductController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
 	group.POST("/products", CreateProduct(DB))
-	group.GET("/products", GetAllProductByName(DB))
 
 	return group
 }

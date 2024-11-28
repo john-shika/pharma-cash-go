@@ -1,25 +1,49 @@
 package schemas
 
 import (
+	"github.com/google/uuid"
+	"nokowebapi/nokocore"
 	models2 "pharma-cash-go/app/models"
 )
 
 type PackageBody struct {
-	PackageType string `mapstructure:"package_type" json:"packageType" validate:"ascii,min=1"`
+	PackageType string `mapstructure:"package_type" json:"packageType" form:"package_type" validate:"ascii"`
 }
 
-func ToPackageModel(body *PackageBody) *models2.Package {
-	return &models2.Package{
-		PackageType: body.PackageType,
+func ToPackageModel(packageBody *PackageBody) *models2.Package {
+	if packageBody != nil {
+		return &models2.Package{
+			PackageType: packageBody.PackageType,
+		}
 	}
+
+	return nil
 }
 
 type PackageResult struct {
-	PackageType string `mapstructure:"package_type" json:"packageType"`
+	UUID        uuid.UUID `mapstructure:"uuid" json:"uuid"`
+	PackageType string    `mapstructure:"package_type" json:"packageType"`
+	CreatedAt   string    `mapstructure:"created_at" json:"createdAt"`
+	UpdatedAt   string    `mapstructure:"updated_at" json:"updatedAt"`
+	DeletedAt   string    `mapstructure:"deleted_at" json:"deletedAt,omitempty"`
 }
 
-func ToPackageResult(pkg *models2.Package) PackageResult {
-	return PackageResult{
-		PackageType: pkg.PackageType,
+func ToPackageResult(packageModel *models2.Package) PackageResult {
+	if packageModel != nil {
+		createdAt := nokocore.ToTimeUtcStringISO8601(packageModel.CreatedAt)
+		updatedAt := nokocore.ToTimeUtcStringISO8601(packageModel.UpdatedAt)
+		var deletedAt string
+		if packageModel.DeletedAt.Valid {
+			deletedAt = nokocore.ToTimeUtcStringISO8601(packageModel.DeletedAt.Time)
+		}
+		return PackageResult{
+			UUID:        packageModel.UUID,
+			PackageType: packageModel.PackageType,
+			CreatedAt:   createdAt,
+			UpdatedAt:   updatedAt,
+			DeletedAt:   deletedAt,
+		}
 	}
+
+	return PackageResult{}
 }

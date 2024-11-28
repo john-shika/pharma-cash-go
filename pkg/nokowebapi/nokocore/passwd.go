@@ -1,6 +1,7 @@
 package nokocore
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"errors"
@@ -11,8 +12,8 @@ import (
 var ErrPassInvalidLength = errors.New("password invalid length")
 
 type PassConfig struct {
-	MinLength int
-	MaxLength int
+	MinLength int `mapstructure:"min_length" json:"minLength" yaml:"min_length"`
+	MaxLength int `mapstructure:"max_length" json:"maxLength" yaml:"max_length"`
 }
 
 func NewPassConfig() *PassConfig {
@@ -23,11 +24,11 @@ func NewPassConfig() *PassConfig {
 }
 
 type Pdkf2Config struct {
-	N         int
-	SaltSize  int
-	KeyLength int
-	Separator string
-	Prefix    string
+	N         int    `mapstructure:"n" json:"n" yaml:"n"`
+	SaltSize  int    `mapstructure:"salt_size" json:"saltSize" yaml:"salt_size"`
+	KeyLength int    `mapstructure:"key_length" json:"keyLength" yaml:"key_length"`
+	Separator string `mapstructure:"separator" json:"separator" yaml:"separator"`
+	Prefix    string `mapstructure:"prefix" json:"prefix" yaml:"prefix"`
 }
 
 func NewPdkf2Config() *Pdkf2Config {
@@ -63,7 +64,8 @@ func NewPassword(password string) PassImpl {
 func (p *Password) Hash() (string, error) {
 	var n int
 	var err error
-	KeepVoid(n, err)
+	var buffer bytes.Buffer
+	KeepVoid(n, err, buffer)
 
 	if len(p.Value) < p.passConfig.MinLength || len(p.Value) > p.passConfig.MaxLength {
 		return "", ErrPassInvalidLength
@@ -74,10 +76,14 @@ func (p *Password) Hash() (string, error) {
 		return "", err
 	}
 
-	buff := []byte(p.Value)
-	key := pbkdf2.Key(buff, salt, p.pdkf2Config.N, p.pdkf2Config.KeyLength, sha256.New)
+	key := pbkdf2.Key([]byte(p.Value), salt, p.pdkf2Config.N, p.pdkf2Config.KeyLength, sha256.New)
 
-	temp := p.pdkf2Config.Prefix + Base64EncodeURLSafe(salt) + p.pdkf2Config.Separator + Base64EncodeURLSafe(key)
+	buffer.WriteString(p.pdkf2Config.Prefix)
+	buffer.WriteString(Base64EncodeURLSafe(salt))
+	buffer.WriteString(p.pdkf2Config.Separator)
+	buffer.WriteString(Base64EncodeURLSafe(key))
+
+	temp := buffer.String()
 	return temp, nil
 }
 

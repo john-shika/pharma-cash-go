@@ -15,8 +15,9 @@ type UserBody struct {
 	Phone      string   `mapstructure:"phone" json:"phone" form:"phone" validate:"phone,omitempty"`
 	Admin      bool     `mapstructure:"admin" json:"admin" form:"admin" validate:"boolean,omitempty"`
 	SuperAdmin bool     `mapstructure:"super_admin" json:"superAdmin" form:"super_admin" validate:"boolean,omitempty"`
-	Roles      []string `mapstructure:"roles" json:"roles" form:"roles" validate:"omitempty"`
 	Level      int      `mapstructure:"level" json:"level" form:"level" validate:"number,min=0,max=99,omitempty"` // FUTURE: can handle min=N,max=N
+	Roles      []string `mapstructure:"roles" json:"roles" form:"roles" validate:"alphanum,min=1,omitempty"`
+	Role       string   `mapstructure:"role" json:"role" form:"role" validate:"alphanum,omitempty"`
 }
 
 func ToUserModel(user *UserBody) *models.User {
@@ -24,10 +25,18 @@ func ToUserModel(user *UserBody) *models.User {
 		var roles []models.Role
 		for i, role := range user.Roles {
 			nokocore.KeepVoid(i)
-
 			if role = nokocore.ToPascalCase(role); role != "" {
-				roles = append(roles, models.Role{RoleName: role})
+				roleModel := models.Role{
+					RoleName: role,
+				}
+				roles = append(roles, roleModel)
 			}
+		}
+		if role := nokocore.ToPascalCase(user.Role); role != "" {
+			roleModel := models.Role{
+				RoleName: role,
+			}
+			roles = append(roles, roleModel)
 		}
 		return &models.User{
 			FullName:   sqlx.NewString(user.FullName),
@@ -52,25 +61,31 @@ type UserResult struct {
 	Email     string          `mapstructure:"email" json:"email"`
 	Phone     string          `mapstructure:"phone" json:"phone"`
 	Admin     bool            `mapstructure:"admin" json:"admin"`
-	Roles     []string        `mapstructure:"roles" json:"roles"`
 	Level     int             `mapstructure:"level" json:"level"`
 	CreatedAt string          `mapstructure:"created_at" json:"createdAt"`
 	UpdatedAt string          `mapstructure:"updated_at" json:"updatedAt"`
 	DeletedAt string          `mapstructure:"deleted_at" json:"deletedAt,omitempty"`
 	Sessions  []SessionResult `mapstructure:"sessions" json:"sessions,omitempty"`
+	Roles     []string        `mapstructure:"roles" json:"roles"`
+	Role      string          `mapstructure:"role" json:"role"`
 }
 
-func ToUserResult(user *models.User, sessions []SessionResult) UserResult {
-	var deletedAt string
+func ToUserResult(user *models.User) UserResult {
 	if user != nil {
 		var roles []string
 		for i, role := range user.Roles {
 			nokocore.KeepVoid(i)
-
 			roles = append(roles, role.RoleName)
 		}
+		createdAt := nokocore.ToTimeUtcStringISO8601(user.CreatedAt)
+		updatedAt := nokocore.ToTimeUtcStringISO8601(user.UpdatedAt)
+		var deletedAt string
 		if user.DeletedAt.Valid {
 			deletedAt = nokocore.ToTimeUtcStringISO8601(user.DeletedAt.Time)
+		}
+		var role string
+		if len(roles) > 0 {
+			role = roles[0]
 		}
 		return UserResult{
 			UUID:      user.UUID,
@@ -79,12 +94,12 @@ func ToUserResult(user *models.User, sessions []SessionResult) UserResult {
 			Email:     user.Email.String,
 			Phone:     user.Phone.String,
 			Admin:     user.Admin,
-			Roles:     roles,
 			Level:     user.Level,
-			CreatedAt: nokocore.ToTimeUtcStringISO8601(user.CreatedAt),
-			UpdatedAt: nokocore.ToTimeUtcStringISO8601(user.UpdatedAt),
+			CreatedAt: createdAt,
+			UpdatedAt: updatedAt,
 			DeletedAt: deletedAt,
-			Sessions:  sessions,
+			Roles:     roles,
+			Role:      role,
 		}
 	}
 

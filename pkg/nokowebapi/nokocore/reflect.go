@@ -97,11 +97,25 @@ func IsValidReflect(value any) bool {
 
 	// must be not zero value
 	if val.IsValid() {
-		if val.IsZero() && val.Kind() != reflect.Bool {
-			return false
-		}
-		
 		switch val.Kind() {
+		case reflect.Bool:
+			return true
+
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return true
+
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			return true
+
+		case reflect.Uintptr:
+			return val.Uint() != 0
+
+		case reflect.Float32, reflect.Float64:
+			return true
+
+		case reflect.Complex64, reflect.Complex128:
+			return true
+
 		case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
 			// chan, func, interface, map, pointer, slice
 			// will be considered as nullable value
@@ -113,7 +127,7 @@ func IsValidReflect(value any) bool {
 		default:
 			// not chan, func, interface, map, pointer, slice
 			// will be considered as notnull value
-			return true
+			return !val.IsZero()
 		}
 	}
 	// zero or null value
@@ -407,19 +421,19 @@ func ToStringReflect(value any) string {
 
 	case reflect.Struct:
 		if IsTimeUtcISO8601(val) {
-			return strconv.Quote(ToTimeUtcStringISO8601(val))
+			return ToTimeUtcStringISO8601(val)
 		}
 
 		if IsURL(val) {
-			return strconv.Quote(ToURLString(val))
+			return ToURLString(val)
 		}
 
 		if IsUUID(val) {
-			return strconv.Quote(ToUUIDString(val))
+			return ToUUIDString(val)
 		}
 
-		if IsIP(val) {
-			return strconv.Quote(ToIPString(val))
+		if IsDecimal(val) {
+			return ToDecimalString(val)
 		}
 
 		return fmt.Sprintf("%s {}", GetNameTypeReflect(val))
@@ -1229,7 +1243,7 @@ func ParseValueReflect(value any, key string) any {
 	}
 }
 
-func baseTokens(key string) (string, string) {
+func baseToken(key string) (string, string) {
 	tokens := getTokens(key)
 	token := ""
 
@@ -1239,6 +1253,7 @@ func baseTokens(key string) (string, string) {
 		token = tokens[0]
 	}
 
+	// token, full key
 	return token, key
 }
 
@@ -1252,7 +1267,7 @@ func GetValueWithSuperKey(data any, key string) any {
 		return nil
 	}
 
-	token, key = baseTokens(key)
+	token, key = baseToken(key)
 
 	var temp any
 	switch val.Kind() {
@@ -1289,7 +1304,7 @@ func GetValueWithSuperKey(data any, key string) any {
 		break
 
 	case reflect.Struct:
-		temp = GetMapStrAnyValueReflect(val)
+		temp = val.Interface()
 		break
 
 	default:
@@ -1322,11 +1337,11 @@ func GetValueWithSuperKeyReflect(data any, key string) reflect.Value {
 		return reflect.Value{}
 	}
 
-	token, key = baseTokens(key)
+	token, key = baseToken(key)
 
 	var temp reflect.Value
 	switch val.Kind() {
-	case reflect.Array, reflect.Slice:
+	case reflect.Array, reflect.Slice, reflect.String:
 		if idx, err = strconv.Atoi(token); err != nil {
 			panic("invalid key")
 		}

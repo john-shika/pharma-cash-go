@@ -40,6 +40,9 @@ const (
 	ShikaObjectDataTypeFunction
 	ShikaObjectDataTypeAttribute
 	ShikaObjectDataTypeTime
+	ShikaObjectDataTypeURL
+	ShikaObjectDataTypeUUID
+	ShikaObjectDataTypeDecimal
 )
 
 func (shikaObjectDataTypeKind ShikaObjectDataTypeKind) ToString() string {
@@ -557,15 +560,15 @@ func GetShikaObjectProperty(obj any) ShikaObjectPropertyImpl {
 		}
 
 		if IsURL(val) {
-			return NewShikaObjectProperty(ToURLString(val), ShikaObjectDataTypeString)
+			return NewShikaObjectProperty(ToURLString(val), ShikaObjectDataTypeURL)
 		}
 
 		if IsUUID(val) {
-			return NewShikaObjectProperty(ToUUIDString(val), ShikaObjectDataTypeString)
+			return NewShikaObjectProperty(ToUUIDString(val), ShikaObjectDataTypeUUID)
 		}
 
-		if IsIP(val) {
-			return NewShikaObjectProperty(ToIPString(val), ShikaObjectDataTypeString)
+		if IsDecimal(val) {
+			return NewShikaObjectProperty(ToDecimalString(val), ShikaObjectDataTypeDecimal)
 		}
 
 		/// END CONVERTERS

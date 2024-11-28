@@ -6,6 +6,7 @@ import (
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"nokowebapi/console"
 	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
 )
@@ -39,20 +40,24 @@ func NewBaseRepository[T any](DB *gorm.DB) BaseRepository[T] {
 	}
 }
 
+func (b *BaseRepository[T]) isRegis(schema *T) bool {
+	schemaID := nokocore.GetValueWithSuperKey(schema, "BaseModel.id").(uint)
+	schemaUUID := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
+	return schemaID != 0 && schemaUUID != uuid.Nil
+}
+
 func (b *BaseRepository[T]) SafeFirst(query string, args ...any) (*T, error) {
 	var err error
 	var schema T
-	nokocore.KeepVoid(err, schema)
 
 	stmt := b.DB.Where("deleted_at IS NULL")
 	tx := stmt.Where(query, args...).Limit(1).Find(&schema)
 	if err = tx.Error; err != nil {
-		return nil, err
+		console.Error(fmt.Sprintf("panic: %s", err.Error()))
+		return nil, errors.New("failed to find table")
 	}
 
-	// the schema was initialized but not updated from the database
-	identity := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
-	if identity != uuid.Nil {
+	if b.isRegis(&schema) {
 		return &schema, nil
 	}
 
@@ -62,17 +67,15 @@ func (b *BaseRepository[T]) SafeFirst(query string, args ...any) (*T, error) {
 func (b *BaseRepository[T]) First(query string, args ...any) (*T, error) {
 	var err error
 	var schema T
-	nokocore.KeepVoid(err, schema)
 
 	stmt := b.DB.Unscoped()
 	tx := stmt.Where(query, args...).Limit(1).Find(&schema)
 	if err = tx.Error; err != nil {
-		return nil, err
+		console.Error(fmt.Sprintf("panic: %s", err.Error()))
+		return nil, errors.New("failed to find table")
 	}
 
-	// the schema was initialized but not updated from the database
-	identity := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
-	if identity != uuid.Nil {
+	if b.isRegis(&schema) {
 		return &schema, nil
 	}
 
@@ -82,12 +85,12 @@ func (b *BaseRepository[T]) First(query string, args ...any) (*T, error) {
 func (b *BaseRepository[T]) SafeMany(offset int, limit int, query string, args ...any) ([]T, error) {
 	var err error
 	var schemas []T
-	nokocore.KeepVoid(err, schemas)
 
 	stmt := b.DB.Where("deleted_at IS NULL")
 	tx := stmt.Where(query, args...).Offset(offset).Limit(limit).Find(&schemas)
 	if err = tx.Error; err != nil {
-		return nil, err
+		console.Error(fmt.Sprintf("panic: %s", err.Error()))
+		return nil, errors.New("failed to find table")
 	}
 
 	return schemas, nil
@@ -96,12 +99,12 @@ func (b *BaseRepository[T]) SafeMany(offset int, limit int, query string, args .
 func (b *BaseRepository[T]) Many(offset int, limit int, query string, args ...any) ([]T, error) {
 	var err error
 	var schemas []T
-	nokocore.KeepVoid(err, schemas)
 
 	stmt := b.DB.Unscoped()
 	tx := stmt.Where(query, args...).Offset(offset).Limit(limit).Find(&schemas)
 	if err = tx.Error; err != nil {
-		return nil, err
+		console.Error(fmt.Sprintf("panic: %s", err.Error()))
+		return nil, errors.New("failed to find table")
 	}
 
 	return schemas, nil
@@ -110,23 +113,20 @@ func (b *BaseRepository[T]) Many(offset int, limit int, query string, args ...an
 func (b *BaseRepository[T]) SafePreFirst(preloads []string, query string, args ...any) (*T, error) {
 	var err error
 	var schema T
-	nokocore.KeepVoid(err, schema)
 
 	stmt := b.DB.Where("deleted_at IS NULL")
 	for i, preload := range preloads {
 		nokocore.KeepVoid(i)
-
 		stmt = stmt.Preload(preload)
 	}
 
 	tx := stmt.Where(query, args...).Limit(1).Find(&schema)
 	if err = tx.Error; err != nil {
-		return nil, err
+		console.Error(fmt.Sprintf("panic: %s", err.Error()))
+		return nil, errors.New("failed to find table")
 	}
 
-	// the schema was initialized but not updated from the database
-	identity := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
-	if identity != uuid.Nil {
+	if b.isRegis(&schema) {
 		return &schema, nil
 	}
 
@@ -136,23 +136,20 @@ func (b *BaseRepository[T]) SafePreFirst(preloads []string, query string, args .
 func (b *BaseRepository[T]) PreFirst(preloads []string, query string, args ...any) (*T, error) {
 	var err error
 	var schema T
-	nokocore.KeepVoid(err, schema)
 
 	stmt := b.DB.Unscoped()
 	for i, preload := range preloads {
 		nokocore.KeepVoid(i)
-
 		stmt = stmt.Preload(preload)
 	}
 
 	tx := stmt.Where(query, args...).Limit(1).Find(&schema)
 	if err = tx.Error; err != nil {
-		return nil, err
+		console.Error(fmt.Sprintf("panic: %s", err.Error()))
+		return nil, errors.New("failed to find table")
 	}
 
-	// the schema was initialized but not updated from the database
-	identity := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
-	if identity != uuid.Nil {
+	if b.isRegis(&schema) {
 		return &schema, nil
 	}
 
@@ -162,18 +159,17 @@ func (b *BaseRepository[T]) PreFirst(preloads []string, query string, args ...an
 func (b *BaseRepository[T]) SafePreMany(preloads []string, offset int, limit int, query string, args ...any) ([]T, error) {
 	var err error
 	var schemas []T
-	nokocore.KeepVoid(err, schemas)
 
 	stmt := b.DB.Where("deleted_at IS NULL")
 	for i, preload := range preloads {
 		nokocore.KeepVoid(i)
-
 		stmt = stmt.Preload(preload)
 	}
 
 	tx := stmt.Where(query, args...).Offset(offset).Limit(limit).Find(&schemas)
 	if err = tx.Error; err != nil {
-		return nil, err
+		console.Error(fmt.Sprintf("panic: %s", err.Error()))
+		return nil, errors.New("failed to find table")
 	}
 
 	return schemas, nil
@@ -182,18 +178,17 @@ func (b *BaseRepository[T]) SafePreMany(preloads []string, offset int, limit int
 func (b *BaseRepository[T]) PreMany(preloads []string, offset int, limit int, query string, args ...any) ([]T, error) {
 	var err error
 	var schemas []T
-	nokocore.KeepVoid(err, schemas)
 
 	stmt := b.DB.Unscoped()
 	for i, preload := range preloads {
 		nokocore.KeepVoid(i)
-
 		stmt = stmt.Preload(preload)
 	}
 
 	tx := stmt.Where(query, args...).Offset(offset).Limit(limit).Find(&schemas)
 	if err = tx.Error; err != nil {
-		return nil, err
+		console.Error(fmt.Sprintf("panic: %s", err.Error()))
+		return nil, errors.New("failed to find table")
 	}
 
 	return schemas, nil
@@ -208,21 +203,19 @@ func (t CheckHandler[T]) Call(schema *T) error {
 func (b *BaseRepository[T]) SafeCheck(schema *T, checkHandler CheckHandler[T]) error {
 	var err error
 	var check *T
-	nokocore.KeepVoid(err, check)
 
 	if schema != nil {
 		tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(schema))
-		id := nokocore.GetValueWithSuperKey(schema, "BaseModel.id").(int)
-		if id != 0 {
-			if check, err = b.SafeFirst("id = ?", id); err != nil {
-				return errors.New(fmt.Sprintf("failed to search '%s' table", tableNameType))
+
+		if schemaID := nokocore.GetValueWithSuperKey(schema, "BaseModel.id").(uint); schemaID != 0 {
+			if check, err = b.SafeFirst("id = ?", schemaID); err != nil {
+				return errors.New(fmt.Sprintf("failed to find '%s' table", tableNameType))
 			}
 		}
 
-		identity := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
-		if identity != uuid.Nil {
-			if check, err = b.SafeFirst("uuid = ?", identity); err != nil {
-				return errors.New(fmt.Sprintf("failed to search '%s' table", tableNameType))
+		if schemaUUID := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID); schemaUUID != uuid.Nil {
+			if check, err = b.SafeFirst("uuid = ?", schemaUUID); err != nil {
+				return errors.New(fmt.Sprintf("failed to find '%s' table", tableNameType))
 			}
 		}
 
@@ -243,21 +236,19 @@ func (b *BaseRepository[T]) SafeCheck(schema *T, checkHandler CheckHandler[T]) e
 func (b *BaseRepository[T]) Check(schema *T, checkHandler CheckHandler[T]) error {
 	var err error
 	var check *T
-	nokocore.KeepVoid(err, check)
 
 	if schema != nil {
 		tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(schema))
-		id := nokocore.GetValueWithSuperKey(schema, "BaseModel.id").(int)
-		if id != 0 {
-			if check, err = b.First("id = ?", id); err != nil {
-				return errors.New(fmt.Sprintf("failed to search '%s' table", tableNameType))
+
+		if schemaID := nokocore.GetValueWithSuperKey(schema, "BaseModel.id").(uint); schemaID != 0 {
+			if check, err = b.First("id = ?", schemaID); err != nil {
+				return errors.New(fmt.Sprintf("failed to find '%s' table", tableNameType))
 			}
 		}
 
-		identity := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
-		if identity != uuid.Nil {
-			if check, err = b.First("uuid = ?", identity); err != nil {
-				return errors.New(fmt.Sprintf("failed to search '%s' table", tableNameType))
+		if schemaUUID := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID); schemaUUID != uuid.Nil {
+			if check, err = b.First("uuid = ?", schemaUUID); err != nil {
+				return errors.New(fmt.Sprintf("failed to find '%s' table", tableNameType))
 			}
 		}
 
@@ -277,27 +268,20 @@ func (b *BaseRepository[T]) Check(schema *T, checkHandler CheckHandler[T]) error
 
 func (b *BaseRepository[T]) baseInit(schema *T) error {
 	var err error
-	nokocore.KeepVoid(err)
 
 	tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(schema))
 
-	// using mapstructure to inject any values
-	identity := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
-	if identity != uuid.Nil {
+	if b.isRegis(schema) {
 		return nil
-
 	}
-
-	identity = nokocore.NewUUID()
-	deletedAt := gorm.DeletedAt{}
 
 	timeUtcNow := nokocore.GetTimeUtcNow()
 	err = mapstructure.Decode(nokocore.MapAny{
 		"BaseModel": nokocore.MapAny{
-			"uuid":       identity,
+			"uuid":       nokocore.NewUUID(),
 			"created_at": timeUtcNow,
 			"updated_at": timeUtcNow,
-			"deleted_at": deletedAt,
+			"deleted_at": gorm.DeletedAt{},
 		},
 	}, schema)
 
@@ -310,8 +294,6 @@ func (b *BaseRepository[T]) baseInit(schema *T) error {
 
 func (b *BaseRepository[T]) SafeCreate(schema *T) error {
 	var err error
-	var check *T
-	nokocore.KeepVoid(err, check)
 
 	if schema != nil {
 		tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(schema))
@@ -325,14 +307,15 @@ func (b *BaseRepository[T]) SafeCreate(schema *T) error {
 
 		tx := b.DB.Create(schema)
 		if err = tx.Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return errors.New(fmt.Sprintf("failed to create '%s' table", tableNameType))
 		}
 
-		if tx.RowsAffected > 0 {
-			return nil
+		if tx.RowsAffected < 1 {
+			return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
 		}
 
-		return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
+		return nil
 	}
 
 	return errors.New("invalid value")
@@ -340,8 +323,6 @@ func (b *BaseRepository[T]) SafeCreate(schema *T) error {
 
 func (b *BaseRepository[T]) Create(schema *T) error {
 	var err error
-	var check *T
-	nokocore.KeepVoid(err, check)
 
 	if schema != nil {
 		tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(schema))
@@ -355,14 +336,15 @@ func (b *BaseRepository[T]) Create(schema *T) error {
 
 		tx := b.DB.Unscoped().Create(schema)
 		if err = tx.Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return errors.New(fmt.Sprintf("failed to create '%s' table", tableNameType))
 		}
 
-		if tx.RowsAffected > 0 {
-			return nil
+		if tx.RowsAffected < 1 {
+			return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
 		}
 
-		return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
+		return nil
 	}
 
 	return errors.New("invalid value")
@@ -370,10 +352,7 @@ func (b *BaseRepository[T]) Create(schema *T) error {
 
 func (b *BaseRepository[T]) SafeUpdate(schema *T, query string, args ...any) error {
 	var err error
-	var id int
-	var identity uuid.UUID
 	var check *T
-	nokocore.KeepVoid(err, id, identity, check)
 
 	if schema != nil {
 		tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(schema))
@@ -390,20 +369,18 @@ func (b *BaseRepository[T]) SafeUpdate(schema *T, query string, args ...any) err
 			return errors.New(fmt.Sprintf("failed to inject values into '%s' table", tableNameType))
 		}
 
-		id = nokocore.GetValueWithSuperKey(schema, "BaseModel.id").(int)
-		identity = nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
-
-		if id != 0 && identity != uuid.Nil {
+		if b.isRegis(schema) {
 			tx := b.DB.Save(schema)
 			if err = tx.Error; err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return errors.New(fmt.Sprintf("failed to update '%s' table", tableNameType))
 			}
 
-			if tx.RowsAffected > 0 {
-				return nil
+			if tx.RowsAffected < 1 {
+				return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
 			}
 
-			return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
+			return nil
 		}
 
 		if check, err = b.SafeFirst(query, args...); err != nil {
@@ -413,17 +390,18 @@ func (b *BaseRepository[T]) SafeUpdate(schema *T, query string, args ...any) err
 		if check != nil {
 			tx := b.DB.Save(schema)
 			if err = tx.Error; err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return errors.New(fmt.Sprintf("failed to update '%s' table", tableNameType))
 			}
 
-			if tx.RowsAffected > 0 {
-				return nil
+			if tx.RowsAffected < 1 {
+				return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
 			}
 
-			return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
+			return nil
 		}
 
-		return errors.New(fmt.Sprintf("failed to search '%s' table", tableNameType))
+		return errors.New(fmt.Sprintf("failed to find '%s' table", tableNameType))
 	}
 
 	return errors.New("invalid value")
@@ -431,10 +409,7 @@ func (b *BaseRepository[T]) SafeUpdate(schema *T, query string, args ...any) err
 
 func (b *BaseRepository[T]) Update(schema *T, query string, args ...any) error {
 	var err error
-	var id int
-	var identity uuid.UUID
 	var check *T
-	nokocore.KeepVoid(err, id, identity, check)
 
 	if schema != nil {
 		tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(schema))
@@ -451,20 +426,18 @@ func (b *BaseRepository[T]) Update(schema *T, query string, args ...any) error {
 			return errors.New(fmt.Sprintf("failed to inject values into '%s' table", tableNameType))
 		}
 
-		id = nokocore.GetValueWithSuperKey(schema, "BaseModel.id").(int)
-		identity = nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
-
-		if id != 0 && identity != uuid.Nil {
+		if b.isRegis(schema) {
 			tx := b.DB.Unscoped().Save(schema)
 			if err = tx.Error; err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return errors.New(fmt.Sprintf("failed to update '%s' table", tableNameType))
 			}
 
-			if tx.RowsAffected > 0 {
-				return nil
+			if tx.RowsAffected < 1 {
+				return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
 			}
 
-			return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
+			return nil
 		}
 
 		if check, err = b.First(query, args...); err != nil {
@@ -474,17 +447,18 @@ func (b *BaseRepository[T]) Update(schema *T, query string, args ...any) error {
 		if check != nil {
 			tx := b.DB.Unscoped().Save(schema)
 			if err = tx.Error; err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return errors.New(fmt.Sprintf("failed to update '%s' table", tableNameType))
 			}
 
-			if tx.RowsAffected > 0 {
-				return nil
+			if tx.RowsAffected < 1 {
+				return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
 			}
 
-			return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
+			return nil
 		}
 
-		return errors.New(fmt.Sprintf("failed to search '%s' table", tableNameType))
+		return errors.New(fmt.Sprintf("failed to find '%s' table", tableNameType))
 	}
 
 	return errors.New("invalid value")
@@ -492,7 +466,6 @@ func (b *BaseRepository[T]) Update(schema *T, query string, args ...any) error {
 
 func (b *BaseRepository[T]) SafeDelete(schema *T, query string, args ...any) error {
 	var err error
-	nokocore.KeepVoid(err)
 
 	if schema != nil {
 		tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(schema))
@@ -509,9 +482,16 @@ func (b *BaseRepository[T]) SafeDelete(schema *T, query string, args ...any) err
 			return errors.New(fmt.Sprintf("failed to inject values into '%s' table", tableNameType))
 		}
 
-		identity := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID)
-		if identity != uuid.Nil {
-			if err = b.SafeUpdate(schema, "uuid = ?", identity); err != nil {
+		if schemaID := nokocore.GetValueWithSuperKey(schema, "BaseModel.id").(uint); schemaID != 0 {
+			if err = b.SafeUpdate(schema, "id = ?", schemaID); err != nil {
+				return errors.New(fmt.Sprintf("unable to delete '%s' table", tableNameType))
+			}
+
+			return nil
+		}
+
+		if schemaUUID := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID); schemaUUID != uuid.Nil {
+			if err = b.SafeUpdate(schema, "uuid = ?", schemaUUID); err != nil {
 				return errors.New(fmt.Sprintf("unable to delete '%s' table", tableNameType))
 			}
 
@@ -530,20 +510,49 @@ func (b *BaseRepository[T]) SafeDelete(schema *T, query string, args ...any) err
 
 func (b *BaseRepository[T]) Delete(schema *T, query string, args ...any) error {
 	var err error
-	nokocore.KeepVoid(err)
 
 	if schema != nil {
 		tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(schema))
-		tx := b.DB.Unscoped().Where(query, args...).Delete(schema)
-		if err = tx.Error; err != nil {
-			return errors.New(fmt.Sprintf("unable to delete '%s' table", tableNameType))
-		}
 
-		if tx.RowsAffected > 0 {
+		if schemaID := nokocore.GetValueWithSuperKey(schema, "BaseModel.id").(uint); schemaID != 0 {
+			tx := b.DB.Unscoped().Where("id = ?", schemaID).Delete(schema)
+			if err = tx.Error; err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return errors.New(fmt.Sprintf("unable to delete '%s' table", tableNameType))
+			}
+
+			if tx.RowsAffected < 1 {
+				return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
+			}
+
 			return nil
 		}
 
-		return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
+		if schemaUUID := nokocore.GetValueWithSuperKey(schema, "BaseModel.uuid").(uuid.UUID); schemaUUID != uuid.Nil {
+			tx := b.DB.Unscoped().Where("uuid = ?", schemaUUID).Delete(schema)
+			if err = tx.Error; err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return errors.New(fmt.Sprintf("unable to delete '%s' table", tableNameType))
+			}
+
+			if tx.RowsAffected < 1 {
+				return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
+			}
+
+			return nil
+		}
+
+		tx := b.DB.Unscoped().Where(query, args...).Delete(schema)
+		if err = tx.Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return errors.New(fmt.Sprintf("unable to delete '%s' table", tableNameType))
+		}
+
+		if tx.RowsAffected < 1 {
+			return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
+		}
+
+		return nil
 	}
 
 	return errors.New("invalid value")

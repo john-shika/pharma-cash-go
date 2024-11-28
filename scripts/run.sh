@@ -7,36 +7,32 @@ ScriptDir=$(dirname "$0")
 cd "$ScriptDir" || exit 1
 cd ..
 
-APPEXE="exe"
-APPDIR="app"
-DSTEXE="/opt/pharma/exe"
+AppExe="exe"
+AppDir="app"
+DstExe="/opt/pharma/exe"
+DstSqlite="/opt/pharma/migrations/dev.sqlite3"
 
-ZIPFILE="app.zip"
-SERVICE="pharma.service"
+ZipFile="app.zip"
+Service="pharma.service"
 
-# remove app dir cache
-if [ -d "$APPDIR" ]; then
-  rm -rf "$APPDIR"
-
-fi
-
-# unpack app zip
-unzip "$ZIPFILE" -d "$APPDIR"
-
-# build new version
-cd "$APPDIR"
-go build -o "$APPEXE" .
-
-# remove previous version
-if [ -f "$DSTEXE" ]; then
-  sudo rm -f "$DSTEXE"
+if [ -d "$AppDir" ]; then
+  rm -rf "$AppDir"
 
 fi
 
-sudo rm "/opt/pharma/migrations/dev.sqlite3"
+unzip "$ZipFile" -d "$AppDir"
 
-# install
-sudo cp "$APPEXE" "$DSTEXE"
-sudo systemctl restart "$SERVICE"
+cd "$AppDir" || exit 1
+go build -o "$AppExe" .
+
+if [ -f "$DstExe" ]; then
+  sudo rm -f "$DstExe"
+
+fi
+
+sudo rm "$DstSqlite"
+
+sudo cp "$AppExe" "$DstExe"
+sudo systemctl restart "$Service"
 
 cd "$CurrWorkDir" || exit 1

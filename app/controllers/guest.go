@@ -9,6 +9,7 @@ import (
 	"nokowebapi/apis/models"
 	"nokowebapi/apis/repositories"
 	"nokowebapi/apis/schemas"
+	"nokowebapi/apis/utils"
 	"nokowebapi/console"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
@@ -22,6 +23,14 @@ func MessageHandler(DB *gorm.DB) echo.HandlerFunc {
 
 	return func(ctx echo.Context) error {
 		return extras.NewMessageBodyOk(ctx, "Hai\x21", nil)
+	}
+}
+
+func PongHandler(DB *gorm.DB) echo.HandlerFunc {
+	nokocore.KeepVoid(DB)
+
+	return func(ctx echo.Context) error {
+		return extras.NewMessageBodyOk(ctx, "pong", nil)
 	}
 }
 
@@ -62,32 +71,9 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 			return extras.NewMessageBodyUnauthorized(ctx, "Invalid username or password.", nil)
 		}
 
-		// get user roles
-		var roles []string
-		for i, role := range user.Roles {
-			nokocore.KeepVoid(i)
-
-			roles = append(roles, role.RoleName)
-		}
-
-		sessionId := nokocore.NewUUID()
+		jwtClaimsDataAccess := nokocore.NewEmptyJwtClaimsDataAccess()
 		timeUtcNow := nokocore.GetTimeUtcNow()
 		expires := timeUtcNow.Add(expiresIn)
-
-		jwtClaimsDataAccess := nokocore.NewEmptyJwtClaimsDataAccess()
-		jwtClaimsDataAccess.SetSubject("NokoWebApiToken")
-		jwtClaimsDataAccess.SetIssuer(jwtConfig.Issuer)
-		jwtClaimsDataAccess.SetAudience(jwtConfig.Audience)
-		jwtClaimsDataAccess.SetIssuedAt(timeUtcNow)
-		jwtClaimsDataAccess.SetExpiresAt(expires)
-		jwtClaimsDataAccess.SetUser(user.Username)
-		jwtClaimsDataAccess.SetSessionId(sessionId.String())
-		jwtClaimsDataAccess.SetRoles(roles)
-		jwtClaimsDataAccess.SetAdmin(user.Admin)
-		jwtClaimsDataAccess.SetLevel(user.Level)
-
-		jwtClaims := nokocore.ToJwtClaims(jwtClaimsDataAccess, signingMethod)
-		jwtToken := nokocore.GenerateJwtToken(jwtClaims, jwtConfig.SecretKey)
 
 		session := &models.Session{
 			UserID:         user.ID,
@@ -98,16 +84,32 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 			Expires:        expires,
 		}
 
-		session.UUID = sessionId
 		if err = sessionRepository.SafeCreate(session); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to create session.", nil)
 		}
 
+		roles := utils.ToUserRolesArrayString(user.Roles)
+		sessionUUID := session.UUID.String()
+
+		jwtClaimsDataAccess.SetSubject("NokoWebApiToken")
+		jwtClaimsDataAccess.SetIssuer(jwtConfig.Issuer)
+		jwtClaimsDataAccess.SetAudience(jwtConfig.Audience)
+		jwtClaimsDataAccess.SetIssuedAt(timeUtcNow)
+		jwtClaimsDataAccess.SetExpiresAt(expires)
+		jwtClaimsDataAccess.SetUser(user.Username)
+		jwtClaimsDataAccess.SetSessionID(sessionUUID)
+		jwtClaimsDataAccess.SetRoles(roles)
+		jwtClaimsDataAccess.SetAdmin(user.Admin)
+		jwtClaimsDataAccess.SetLevel(user.Level)
+
+		jwtClaims := nokocore.ToJwtClaims(jwtClaimsDataAccess, signingMethod)
+		jwtToken := nokocore.GenerateJwtToken(jwtClaims, jwtConfig.SecretKey)
+
 		preloads := []string{"Shift"}
 		if employee, err = employeeRepository.SafePreFirst(preloads, "user_id = ?", user.ID); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get employee.", nil)
+			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get user.", nil)
 		}
 
 		var shift schemas2.ShiftResult
@@ -115,7 +117,7 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 			shift = schemas2.ToShiftResult(&employee.Shift)
 		}
 
-		userResult := schemas.ToUserResult(user, nil)
+		userResult := schemas.ToUserResult(user)
 		return extras.NewMessageBodyOk(ctx, "Successfully logged in.", &nokocore.MapAny{
 			"accessToken": jwtToken,
 			"user":        userResult,
@@ -126,7 +128,8 @@ func LoginHandler(DB *gorm.DB) echo.HandlerFunc {
 
 func GuestController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
-	group.GET("/message", MessageHandler(DB))
+	group.GET("/", MessageHandler(DB))
+	group.GET("/ping", PongHandler(DB))
 	group.POST("/login", LoginHandler(DB))
 
 	return group

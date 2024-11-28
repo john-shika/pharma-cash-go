@@ -1,8 +1,10 @@
 package schemas
 
 import (
+	"github.com/google/uuid"
 	"nokowebapi/apis/models"
 	"nokowebapi/apis/schemas"
+	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
 	models2 "pharma-cash-go/app/models"
 )
@@ -21,13 +23,16 @@ type EmployeeBody struct {
 }
 
 func ToEmployeeModel(employee *EmployeeBody, user *models.User, shift *models2.Shift) *models2.Employee {
-	return &models2.Employee{
-		UserID:    user.ID,
-		ShiftID:   shift.ID,
-		ShiftDate: sqlx.ParseDateOnly(employee.ShiftDate),
-		User:      *user,
-		Shift:     *shift,
+	if employee != nil {
+		return &models2.Employee{
+			UserID:    user.ID,
+			ShiftID:   shift.ID,
+			ShiftDate: sqlx.ParseDateOnly(employee.ShiftDate),
+			User:      *user,
+			Shift:     *shift,
+		}
 	}
+	return nil
 }
 
 func ToUserBody(employee *EmployeeBody) *schemas.UserBody {
@@ -52,17 +57,50 @@ func ToUserModel(employee *EmployeeBody) *models.User {
 }
 
 type EmployeeResult struct {
-	schemas.UserResult
-	Shift     string        `json:"shift"`
+	UUID      uuid.UUID     `mapstructure:"uuid" json:"uuid"`
+	UserID    uuid.UUID     `mapstructure:"user_id" json:"userId"`
+	FullName  string        `mapstructure:"full_name" json:"fullName"`
+	Username  string        `mapstructure:"username" json:"username"`
+	Email     string        `mapstructure:"email" json:"email"`
+	Phone     string        `mapstructure:"phone" json:"phone"`
+	Admin     bool          `mapstructure:"admin" json:"admin"`
+	Level     int           `mapstructure:"level" json:"level"`
+	CreatedAt string        `mapstructure:"created_at" json:"createdAt"`
+	UpdatedAt string        `mapstructure:"updated_at" json:"updatedAt"`
+	DeletedAt string        `mapstructure:"deleted_at" json:"deletedAt,omitempty"`
+	Roles     []string      `mapstructure:"roles" json:"roles"`
+	Role      string        `mapstructure:"role" json:"role"`
 	ShiftDate sqlx.DateOnly `json:"shiftDate,omitempty"`
+	Shift     ShiftResult   `json:"shift"`
 }
 
 func ToEmployeeResult(employee *models2.Employee) EmployeeResult {
 	if employee != nil {
+		userResult := schemas.ToUserResult(&employee.User)
+		shiftResult := ToShiftResult(&employee.Shift)
+		shiftDate := employee.ShiftDate.DateOnly
+		createdAt := nokocore.ToTimeUtcStringISO8601(employee.CreatedAt)
+		updatedAt := nokocore.ToTimeUtcStringISO8601(employee.UpdatedAt)
+		var deletedAt string
+		if employee.DeletedAt.Valid {
+			deletedAt = nokocore.ToTimeUtcStringISO8601(employee.DeletedAt.Time)
+		}
 		return EmployeeResult{
-			UserResult: schemas.ToUserResult(&employee.User, nil),
-			Shift:      employee.Shift.Name,
-			ShiftDate:  employee.ShiftDate.DateOnly,
+			UUID:      employee.UUID,
+			UserID:    userResult.UUID,
+			FullName:  userResult.FullName,
+			Username:  userResult.Username,
+			Email:     userResult.Email,
+			Phone:     userResult.Phone,
+			Admin:     userResult.Admin,
+			Level:     userResult.Level,
+			CreatedAt: createdAt,
+			UpdatedAt: updatedAt,
+			DeletedAt: deletedAt,
+			Roles:     userResult.Roles,
+			Role:      userResult.Role,
+			ShiftDate: shiftDate,
+			Shift:     shiftResult,
 		}
 	}
 

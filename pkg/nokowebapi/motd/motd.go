@@ -1,12 +1,13 @@
 package motd
 
 import (
+	"bytes"
 	"fmt"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
 )
 
-func Motd() {
+func Motd() string {
 	name := globals.Get("nokowebapi.name").(string)
 	description := globals.Get("nokowebapi.description").(string)
 	version := globals.Get("nokowebapi.version").(string)
@@ -42,13 +43,19 @@ func Motd() {
 			"                                         /_/        \n" +
 			"",
 	}
-	m := nokocore.RandomRangeInt(0, len(banners))
-	fmt.Println(banners[m])
-	fmt.Println("name:", name)
-	fmt.Println("description:", description)
-	fmt.Println("version:", version)
-	fmt.Println("author:", author)
-	fmt.Println("url:", url)
-	fmt.Println("license_url:", licenseUrl)
-	fmt.Println("license:", license)
+
+	size := len(banners)
+	m := nokocore.RandomRangeInt(0, size)
+	buffer := bytes.Buffer{}
+
+	buffer.WriteString(fmt.Sprintf("%s\n", banners[m]))
+	buffer.WriteString(fmt.Sprintf("name: %s\n", name))
+	buffer.WriteString(fmt.Sprintf("description: %s\n", description))
+	buffer.WriteString(fmt.Sprintf("version: %s\n", version))
+	buffer.WriteString(fmt.Sprintf("author: %s\n", author))
+	buffer.WriteString(fmt.Sprintf("url: %s\n", url))
+	buffer.WriteString(fmt.Sprintf("license_url: %s\n", licenseUrl))
+	buffer.WriteString(fmt.Sprintf("license: %s\n", license))
+
+	return buffer.String()
 }

@@ -2,8 +2,10 @@ package models
 
 import (
 	"database/sql"
+	"errors"
 	"gorm.io/gorm"
 	"nokowebapi/nokocore"
+	"strings"
 )
 
 type User struct {
@@ -17,77 +19,133 @@ type User struct {
 	SuperAdmin bool           `db:"super_admin" gorm:"not null;" mapstructure:"super_admin" json:"superAdmin"`
 	Level      int            `db:"level" gorm:"not null;" mapstructure:"level" json:"level"`
 
-	Roles    []Role    `gorm:"many2many:user_roles;" mapstructure:"roles" json:"roles,omitempty"`
 	Sessions []Session `db:"-" mapstructure:"sessions" json:"sessions,omitempty"`
+	Roles    []Role    `db:"-" gorm:"many2many:user_roles;" mapstructure:"roles" json:"roles,omitempty"`
 }
 
-func (u *User) TableName() string {
+func (User) TableName() string {
 	return "users"
 }
 
-func (u *User) SaveRoles(DB *gorm.DB) error {
+func (u *User) CreateRoles(DB *gorm.DB) error {
+	var err error
+	var check Role
+
 	for i, role := range u.Roles {
 		nokocore.KeepVoid(i)
 
-		// find first or create one
-		tx := DB.Where("role_name = ?", role.RoleName).FirstOrCreate(&role)
-		if err := tx.Error; err != nil {
+		// passing
+		if role.ID != 0 {
+			continue
+		}
+
+		// searching
+		tx := DB.Where("role_name = ?", role.RoleName).Find(&check)
+		if err = tx.Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
 
-		// assign new role
+		// passing
+		if check.ID != 0 {
+			u.Roles[i] = check
+			continue
+		}
+
+		// create new
+		role.UUID = nokocore.NewUUID()
+		tx = DB.Create(&role)
+		if err = tx.Error; err != nil {
+			return err
+		}
+
+		// check rows affected
+		if tx.RowsAffected < 1 {
+			return errors.New("no rows affected")
+		}
+
+		// object assign
 		u.Roles[i] = role
 	}
+
 	return nil
 }
 
-func (u *User) BeforeCreate(DB *gorm.DB) (err error) {
+func (u *User) ClearRoles(DB *gorm.DB) error {
+	var err error
+
+	if u.ID != 0 {
+		// store the current user roles
+		roles := u.Roles
+
+		// remove all registered user roles, user roles get empty
+		if err = DB.Model(u).Association("Roles").Clear(); err != nil {
+			return err
+		}
+
+		// get roles without registered
+		u.Roles = roles
+	}
+
+	return nil
+}
+
+func (u *User) RolesAppend(DB *gorm.DB, names ...string) error {
+	for i, name := range names {
+		nokocore.KeepVoid(i)
+		found := false
+		for j, role := range u.Roles {
+			nokocore.KeepVoid(j)
+			if strings.EqualFold(role.RoleName, name) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			roleModel := Role{
+				RoleName: name,
+			}
+			u.Roles = append(u.Roles, roleModel)
+		}
+	}
+
+	return u.CreateRoles(DB)
+}
+
+func (u *User) BeforeSave(DB *gorm.DB) (err error) {
 	nokocore.KeepVoid(DB)
+
+	// create user roles if not exists
+	if err = u.CreateRoles(DB); err != nil {
+		return err
+	}
+
+	// clear previous user roles
+	if err = u.ClearRoles(DB); err != nil {
+		return err
+	}
 
 	password := nokocore.NewPassword(u.Password)
 	if u.Password, err = password.Hash(); err != nil {
 		return err
 	}
 
+	user := nokocore.ToRoleString(nokocore.RoleUser)
+	if err = u.RolesAppend(DB, user); err != nil {
+		return err
+	}
+
 	if u.Admin {
 		admin := nokocore.ToRoleString(nokocore.RoleAdmin)
-		user := nokocore.ToRoleString(nokocore.RoleUser)
-		roles := []Role{
-			NewRole(admin),
-			NewRole(user),
-		}
-
-		u.Roles = roles
-		if err = u.SaveRoles(DB); err != nil {
+		if err = u.RolesAppend(DB, admin); err != nil {
 			return err
 		}
 	}
 
-	return nil
-}
-
-func (u *User) BeforeUpdate(DB *gorm.DB) (err error) {
-	nokocore.KeepVoid(DB)
-
-	if u.Admin {
-		var roles []Role
-		association := DB.Model(u).Association("Roles")
-		if err = association.Find(&roles); err != nil {
+	if u.SuperAdmin {
+		superAdmin := nokocore.ToRoleString(nokocore.RoleSuperAdmin)
+		if err = u.RolesAppend(DB, superAdmin); err != nil {
 			return err
-		}
-
-		var temp []string
-		for i, role := range roles {
-			nokocore.KeepVoid(i)
-			temp = append(temp, role.RoleName)
-		}
-
-		admin := nokocore.ToRoleString(nokocore.RoleAdmin)
-		if found := nokocore.RolesContains(temp, admin); !found {
-			roles = append(roles, Role{RoleName: admin})
-			if err = association.Append(&roles); err != nil {
-				return err
-			}
 		}
 	}
 

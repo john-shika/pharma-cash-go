@@ -30,6 +30,7 @@ func ProfileHandler(DB *gorm.DB) echo.HandlerFunc {
 		nokocore.KeepVoid(err, employee)
 
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+		roles := jwtAuthInfo.GetRoles()
 		user = jwtAuthInfo.User
 
 		preloads := []string{"Shift"}
@@ -43,10 +44,11 @@ func ProfileHandler(DB *gorm.DB) echo.HandlerFunc {
 			shift = schemas2.ToShiftResult(&employee.Shift)
 		}
 
-		userResult := schemas.ToUserResult(user, nil)
+		userResult := schemas.ToUserResult(user)
 		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
 			"user":  userResult,
 			"shift": shift,
+			"roles": roles,
 		})
 	}
 }
@@ -77,8 +79,8 @@ func SessionsHandler(DB *gorm.DB) echo.HandlerFunc {
 			nokocore.KeepVoid(i)
 
 			session.User = *user
-			used := session.ID == sessionId
-			sessionResult := schemas.ToSessionResult(&session, used)
+			sessionResult := schemas.ToSessionResult(&session)
+			sessionResult.Used = session.ID == sessionId
 			sessionResults = append(sessionResults, sessionResult)
 		}
 
@@ -138,7 +140,7 @@ func RefreshTokenHandler(DB *gorm.DB) echo.HandlerFunc {
 		jwtClaimsDataAccess.SetIssuedAt(timeUtcNow)
 		jwtClaimsDataAccess.SetExpiresAt(expires)
 		jwtClaimsDataAccess.SetUser(user.Username)
-		jwtClaimsDataAccess.SetSessionId(sessionId.String())
+		jwtClaimsDataAccess.SetSessionID(sessionId.String())
 		jwtClaimsDataAccess.SetRoles(roles)
 		jwtClaimsDataAccess.SetAdmin(user.Admin)
 		jwtClaimsDataAccess.SetLevel(user.Level)
@@ -177,7 +179,7 @@ func DeleteOwnUserHandler(DB *gorm.DB) echo.HandlerFunc {
 		}
 
 		return extras.NewMessageBodyOk(ctx, "Successfully deleted.", &nokocore.MapAny{
-			"user": schemas.ToUserResult(user, nil),
+			"user": schemas.ToUserResult(user),
 		})
 	}
 }

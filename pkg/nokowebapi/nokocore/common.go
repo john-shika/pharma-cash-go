@@ -337,7 +337,8 @@ func ToString(value any) string {
 			return fmt.Sprintf("%d", value)
 
 		case uintptr:
-			return fmt.Sprintf("0x%016x", value)
+			//return fmt.Sprintf("0x%016x", value)
+			return fmt.Sprintf("%#016x", value)
 
 		case float32, float64:
 			return fmt.Sprintf("%f", value)

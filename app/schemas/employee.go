@@ -12,12 +12,13 @@ import (
 type EmployeeBody struct {
 	FullName  string   `mapstructure:"full_name" json:"fullName" form:"full_name" validate:"ascii,omitempty"`
 	Username  string   `mapstructure:"username" json:"username" form:"username" validate:"ascii"`
-	Password  string   `mapstructure:"password" json:"password" form:"password" validate:"password"`
+	Password  string   `mapstructure:"password" json:"password" form:"password" validate:"password,omitempty"`
 	Email     string   `mapstructure:"email" json:"email" form:"email" validate:"email,omitempty"`
 	Phone     string   `mapstructure:"phone" json:"phone" form:"phone" validate:"phone,omitempty"`
 	Admin     bool     `mapstructure:"admin" json:"admin" form:"admin" validate:"boolean,omitempty"`
 	Roles     []string `mapstructure:"roles" json:"roles" form:"roles" validate:"alphabet,omitempty"`
-	Level     int      `mapstructure:"level" json:"level" form:"level" validate:"number,min=0,max=99,omitempty"` // FUTURE: can handle min=N,max=N
+	Role      string   `mapstructure:"role" json:"role" form:"role" validate:"alphabet,omitempty"`
+	Level     int      `mapstructure:"level" json:"level" form:"level" validate:"number,min=0,max=99,omitempty"`
 	Shift     string   `mapstructure:"shift" json:"shift" form:"shift" validate:"omitempty"`
 	ShiftDate string   `mapstructure:"shift_date" json:"shiftDate" form:"shift_date" validate:"dateOnly,omitempty"`
 }
@@ -45,6 +46,7 @@ func ToUserBody(employee *EmployeeBody) *schemas.UserBody {
 			Phone:    employee.Phone,
 			Admin:    employee.Admin,
 			Roles:    employee.Roles,
+			Role:     employee.Role,
 			Level:    employee.Level,
 		}
 	}
@@ -69,7 +71,7 @@ type EmployeeResult struct {
 	UpdatedAt string        `mapstructure:"updated_at" json:"updatedAt"`
 	DeletedAt string        `mapstructure:"deleted_at" json:"deletedAt,omitempty"`
 	Roles     []string      `mapstructure:"roles" json:"roles"`
-	Role      string        `mapstructure:"role" json:"role"`
+	Role      string        `mapstructure:"role" json:"role"` // MAPPING Officer -> Apoteker / Assistant -> TTK
 	ShiftDate sqlx.DateOnly `json:"shiftDate,omitempty"`
 	Shift     ShiftResult   `json:"shift"`
 }

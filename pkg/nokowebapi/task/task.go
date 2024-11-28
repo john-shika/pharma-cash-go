@@ -231,12 +231,49 @@ func (w *Config) SetDependsOn(dependsOn []*DependsOnTaskConfig[string]) {
 	w.DependsOn = dependsOn
 }
 
+type TasksConfigImpl interface {
+	Size() int
+	Index(i int) ConfigImpl
+	SetIndex(i int, config ConfigImpl)
+	Append(config ConfigImpl)
+	Remove(i int)
+	GetNameType() string
+	GetTaskConfig(name string) ConfigImpl
+	GetDependsOnTaskConfig(task ConfigImpl) []DependsOnTaskConfigImpl[ConfigImpl]
+}
+
 // TasksConfig struct, keep it mind, parsing by viper config file
-type TasksConfig []*Config
+type TasksConfig []Config
 
 func NewTasksConfig() TasksConfig {
 	var temp TasksConfig
 	return temp
+}
+
+func (w *TasksConfig) Size() int {
+	return len(*w)
+}
+
+func (w *TasksConfig) Index(i int) ConfigImpl {
+	return &(*w)[i]
+}
+
+func (w *TasksConfig) SetIndex(i int, config ConfigImpl) {
+	(*w)[i] = *config.(*Config)
+}
+
+func (w *TasksConfig) Append(config ConfigImpl) {
+	*w = append(*w, *config.(*Config))
+}
+
+func (w *TasksConfig) Remove(i int) {
+	j := i + 1
+	if j < len(*w) {
+		*w = append((*w)[:i], (*w)[j:]...)
+		return
+	}
+
+	*w = (*w)[:i]
 }
 
 func (w *TasksConfig) GetNameType() string {
@@ -249,7 +286,7 @@ func (w *TasksConfig) GetTaskConfig(name string) ConfigImpl {
 
 		name = strings.TrimSpace(name)
 		if strings.EqualFold(task.GetName(), name) {
-			return task
+			return &task
 		}
 	}
 
@@ -344,8 +381,8 @@ type ProcessTasksImpl interface {
 	GetProcessTask(name string) ProcessTaskImpl
 	GetDependsOnProcessTask(task ConfigImpl) []ProcessTaskImpl
 	StartProcessTask(pTask ProcessTaskImpl) error
-	ExecuteAsync(tasks *TasksConfig)
-	Execute(tasks *TasksConfig) error
+	ExecuteAsync(tasks TasksConfigImpl)
+	Execute(tasks TasksConfigImpl) error
 	Wait() error
 }
 
@@ -481,36 +518,32 @@ func (p *ProcessTasks) StartProcessTask(pTask ProcessTaskImpl) error {
 	return err
 }
 
-func (p *ProcessTasks) ExecuteAsync(tasksConfig *TasksConfig) {
+func (p *ProcessTasks) ExecuteAsync(tasks TasksConfigImpl) {
 	var err error
 	nokocore.KeepVoid(err)
 
-	tasks := *tasksConfig
-	size := len(tasks)
-
+	size := tasks.Size()
 	waitTasks := NewWaitTasks()
 	waitTasks.Add(size)
 
-	for i, task := range tasks {
-		nokocore.KeepVoid(i)
-
-		// no need goroutine's for a wait run task, already run in goroutine.
+	for i := 0; i < size; i++ {
+		task := tasks.Index(i)
 		waitTasks.Run(func() error {
-			return waitRunTask(tasksConfig, p, task)
+			return waitRunTask(tasks, p, task)
 		})
 	}
 
 	p.regis = waitTasks
 }
 
-func (p *ProcessTasks) Execute(tasksConfig *TasksConfig) error {
+func (p *ProcessTasks) Execute(tasks TasksConfigImpl) error {
 	var err error
 	nokocore.KeepVoid(err)
 
-	tasks := *tasksConfig
-	for i, task := range tasks {
-		nokocore.KeepVoid(i)
-		if err = waitRun(tasksConfig, p, task); err != nil {
+	size := tasks.Size()
+	for i := 0; i < size; i++ {
+		task := tasks.Index(i)
+		if err = waitRun(tasks, p, task); err != nil {
 			return err
 		}
 	}
@@ -574,7 +607,7 @@ func makeProcessFromTaskAsync(pTasks ProcessTasksImpl, task ConfigImpl, err chan
 	err <- makeProcessFromTask(pTasks, task)
 }
 
-func waitRun(tasks *TasksConfig, pTasks ProcessTasksImpl, task ConfigImpl) error {
+func waitRun(tasks TasksConfigImpl, pTasks ProcessTasksImpl, task ConfigImpl) error {
 	var err error
 	nokocore.KeepVoid(err)
 
@@ -617,7 +650,7 @@ func waitRun(tasks *TasksConfig, pTasks ProcessTasksImpl, task ConfigImpl) error
 	return nil
 }
 
-func waitRunTask(tasks *TasksConfig, pTasks ProcessTasksImpl, task ConfigImpl) error {
+func waitRunTask(tasks TasksConfigImpl, pTasks ProcessTasksImpl, task ConfigImpl) error {
 	var ok bool
 	var err error
 	nokocore.KeepVoid(ok, err)

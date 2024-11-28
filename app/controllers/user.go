@@ -168,14 +168,58 @@ func DeleteOwnUserHandler(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	userRepository := repositories.NewUserRepository(DB)
+	employeeRepository := repositories2.NewEmployeeRepository(DB)
 
 	return func(ctx echo.Context) error {
+		var err error
+		var employee *models2.Employee
+		nokocore.KeepVoid(err, employee)
+
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
 		user := jwtAuthInfo.User
 
-		if err := userRepository.SafeDelete(user, "uuid = ?", user.UUID); err != nil {
+		permanent := extras.ParseQueryToBool(ctx, "permanent")
+
+		data := &nokocore.MapAny{
+			"user": schemas.ToUserResult(user),
+		}
+
+		if !permanent && user.DeletedAt.Valid {
+			return extras.NewMessageBodyOk(ctx, "User already deleted.", data)
+		}
+
+		// check di employee juga
+		if employee, err = employeeRepository.SafeFirst("user_id = ?", user.ID); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete user.", nil)
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get employee.", nil)
+		}
+
+		if employee != nil {
+			if permanent {
+				if err = employeeRepository.Delete(employee, "user_id = ?", user.ID); err != nil {
+					console.Error(fmt.Sprintf("panic: %s", err.Error()))
+					return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete employee.", nil)
+				}
+
+			} else {
+				if err = employeeRepository.SafeDelete(employee, "user_id = ?", user.ID); err != nil {
+					console.Error(fmt.Sprintf("panic: %s", err.Error()))
+					return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete employee.", nil)
+				}
+			}
+		}
+
+		if permanent {
+			if err := userRepository.Delete(user, "id = ?", user.ID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete user.", nil)
+			}
+
+		} else {
+			if err := userRepository.SafeDelete(user, "id = ?", user.ID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete user.", nil)
+			}
 		}
 
 		return extras.NewMessageBodyOk(ctx, "Successfully deleted.", &nokocore.MapAny{

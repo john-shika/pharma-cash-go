@@ -200,7 +200,14 @@ func GetConfigGlobals[T any]() *T {
 
 	config := new(T)
 	keyName := getNameKey(config)
-	locals := defaultConfig.Get(keyName)
+
+	var locals any
+
+	localized := false
+	if defaultConfig.HasKey(keyName) {
+		locals = defaultConfig.Get(keyName)
+		localized = true
+	}
 
 	if config, err = ViperConfigUnmarshal[T](); err != nil {
 		panic("failed to unmarshal viper config")
@@ -209,9 +216,17 @@ func GetConfigGlobals[T any]() *T {
 	vConfig := nokocore.PassValueIndirectReflect(config)
 	switch vConfig.Kind() {
 	case reflect.Struct:
-		options := nokocore.NewForEachStructFieldsOptions()
 
+		// no locals config found
+		if !localized {
+			break
+		}
+
+		// read config and set to locals if is necessary
+		options := nokocore.NewForEachStructFieldsOptions()
 		nokocore.NoErr(nokocore.ForEachStructFieldsReflect(config, options, func(name string, sFieldX nokocore.StructFieldExImpl) error {
+
+			// some config has zero value, set from locals
 			if sFieldX.IsZero() && sFieldX.Kind() != reflect.Bool {
 				val := nokocore.PassValueIndirectReflect(nokocore.GetMapValueReflect(locals, name))
 				//nokocore.SetValueReflect(sFieldX.GetValue(), val)
@@ -229,6 +244,10 @@ func GetConfigGlobals[T any]() *T {
 		nokocore.KeepVoid(mapstructure.Decode(config, locals))
 	}
 
-	defaultConfig.Set(keyName, locals)
+	// set back to locals config
+	if localized {
+		defaultConfig.Set(keyName, locals)
+	}
+
 	return config
 }

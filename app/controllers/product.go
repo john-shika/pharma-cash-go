@@ -2,15 +2,17 @@ package controllers
 
 import (
 	"fmt"
-	"github.com/go-playground/validator/v10"
-	"github.com/labstack/echo/v4"
-	"gorm.io/gorm"
 	"nokowebapi/apis/extras"
 	"nokowebapi/console"
 	"nokowebapi/nokocore"
 	models2 "pharma-cash-go/app/models"
 	repositories2 "pharma-cash-go/app/repositories"
 	schemas2 "pharma-cash-go/app/schemas"
+	"strconv"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/labstack/echo/v4"
+	"gorm.io/gorm"
 )
 
 var validate = validator.New()
@@ -68,9 +70,42 @@ func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
+func GetAllProductByName(DB *gorm.DB) echo.HandlerFunc {
+
+	// productRepository := repositories2.NewProductRepository(DB)
+
+	return func(ctx echo.Context) error {
+		var err error
+		nokocore.KeepVoid(err)
+
+		keywords := extras.ParseQueryToString(ctx, "keywords")
+		size, _ := strconv.Atoi(extras.ParseQueryToString(ctx, "size"))
+		page, _ := strconv.Atoi(extras.ParseQueryToString(ctx, "page"))
+
+		offset := (page - 1) * size
+
+		var products []models2.Product
+		if err = DB.Where("brand LIKE ? OR product_name LIKE ? OR barcode LIKE ?", "%"+keywords+"%", "%"+keywords+"%", "%"+keywords+"%").Preload("Package").Preload("Unit").Limit(size).Offset(offset).Find(&products).Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get products.", nil)
+		}
+		fmt.Println("= products", products)
+
+		var productResults []schemas2.ProductResult
+		for _, product := range products {
+			productResults = append(productResults, schemas2.ToProductResult(&product))
+		}
+
+		return extras.NewMessageBodyOk(ctx, "Successfully get products.", &nokocore.MapAny{
+			"products": productResults,
+		})
+	}
+}
+
 func ProductController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
 	group.POST("/products", CreateProduct(DB))
+	group.GET("/products", GetAllProductByName(DB))
 
 	return group
 }

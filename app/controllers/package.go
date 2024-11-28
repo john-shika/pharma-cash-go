@@ -27,7 +27,6 @@ func CreatePackage(DB *gorm.DB) echo.HandlerFunc {
 		if err = ctx.Validate(packageBody); err != nil {
 			return err
 		}
-
 		packageModel := schemas2.ToPackageModel(packageBody)
 		if err = packageRepository.SafeCreate(packageModel); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))

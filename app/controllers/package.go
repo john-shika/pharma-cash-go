@@ -13,7 +13,7 @@ import (
 	schemas2 "pharma-cash-go/app/schemas"
 )
 
-func CreatePackage(DB *gorm.DB) echo.HandlerFunc {
+func CreatePackageHandler(DB *gorm.DB) echo.HandlerFunc {
 
 	packageRepository := repositories2.NewPackageRepository(DB)
 
@@ -67,20 +67,24 @@ func CreatePackage(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
-func GetallPackage(DB *gorm.DB) echo.HandlerFunc {
+func GetAllPackagesHandler(DB *gorm.DB) echo.HandlerFunc {
 
 	return func(ctx echo.Context) error {
 		var err error
 		nokocore.KeepVoid(err)
 
+		pagination := extras.NewURLQueryPaginationFromEchoContext(ctx)
+
 		var packages []models2.Package
-		if err = DB.Find(&packages).Error; err != nil {
+		tx := DB.Offset(pagination.Offset).Limit(pagination.Limit).Find(&packages)
+		if err = tx.Error; err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get packages.", nil)
 		}
 
 		var packageResults []schemas2.PackageResult
-		for _, packageModel := range packages {
+		for i, packageModel := range packages {
+			nokocore.KeepVoid(i)
 			packageResults = append(packageResults, schemas2.ToPackageResult(&packageModel))
 		}
 
@@ -92,8 +96,8 @@ func GetallPackage(DB *gorm.DB) echo.HandlerFunc {
 
 func PackagingController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
-	group.POST("/package", CreatePackage(DB))
-	group.GET("/package", GetallPackage(DB))
+	group.POST("/package", CreatePackageHandler(DB))
+	group.GET("/packages", GetAllPackagesHandler(DB))
 
 	return group
 }

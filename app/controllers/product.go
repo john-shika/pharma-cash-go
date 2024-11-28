@@ -11,10 +11,9 @@ import (
 	models2 "pharma-cash-go/app/models"
 	repositories2 "pharma-cash-go/app/repositories"
 	schemas2 "pharma-cash-go/app/schemas"
-	"strconv"
 )
 
-func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
+func CreateProductHandler(DB *gorm.DB) echo.HandlerFunc {
 
 	packageRepository := repositories2.NewPackageRepository(DB)
 	unitRepository := repositories2.NewUnitRepository(DB)
@@ -121,7 +120,7 @@ func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
-func GetAllProductByName(DB *gorm.DB) echo.HandlerFunc {
+func GetAllProductsHandler(DB *gorm.DB) echo.HandlerFunc {
 
 	// productRepository := repositories2.NewProductRepository(DB)
 
@@ -130,20 +129,21 @@ func GetAllProductByName(DB *gorm.DB) echo.HandlerFunc {
 		nokocore.KeepVoid(err)
 
 		keywords := extras.ParseQueryToString(ctx, "keywords")
-		size, _ := strconv.Atoi(extras.ParseQueryToString(ctx, "size"))
-		page, _ := strconv.Atoi(extras.ParseQueryToString(ctx, "page"))
 
-		offset := (page - 1) * size
+		pagination := extras.NewURLQueryPaginationFromEchoContext(ctx)
 
 		var products []models2.Product
-		if err = DB.Where("brand LIKE ? OR product_name LIKE ? OR barcode LIKE ?", "%"+keywords+"%", "%"+keywords+"%", "%"+keywords+"%").Preload("Package").Preload("Unit").Limit(size).Offset(offset).Find(&products).Error; err != nil {
+		query := "brand LIKE ? OR product_name LIKE ? OR barcode LIKE ?"
+		args := []any{"%" + keywords + "%", "%" + keywords + "%", "%" + keywords + "%"}
+		tx := DB.Preload("Package").Preload("Unit").Where(query, args...).Offset(pagination.Offset).Limit(pagination.Limit).Find(&products)
+		if err = tx.Error; err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get products.", nil)
 		}
-		fmt.Println("= products", products)
 
 		var productResults []schemas2.ProductResult
-		for _, product := range products {
+		for i, product := range products {
+			nokocore.KeepVoid(i)
 			productResults = append(productResults, schemas2.ToProductResult(&product))
 		}
 
@@ -155,8 +155,8 @@ func GetAllProductByName(DB *gorm.DB) echo.HandlerFunc {
 
 func ProductController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
-	group.POST("/products", CreateProduct(DB))
-	group.GET("/products", GetAllProductByName(DB))
+	group.GET("/products", GetAllProductsHandler(DB))
+	group.POST("/product", CreateProductHandler(DB))
 
 	return group
 }

@@ -18,7 +18,7 @@ import (
 	schemas2 "pharma-cash-go/app/schemas"
 )
 
-func ProfileHandler(DB *gorm.DB) echo.HandlerFunc {
+func GetProfileHandler(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	employeeRepository := repositories2.NewEmployeeRepository(DB)
@@ -53,7 +53,7 @@ func ProfileHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
-func SessionsHandler(DB *gorm.DB) echo.HandlerFunc {
+func GetAllSessionsHandler(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	sessionRepository := repositories.NewSessionRepository(DB)
@@ -90,7 +90,7 @@ func SessionsHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
-func LogoutHandler(DB *gorm.DB) echo.HandlerFunc {
+func SetLogoutHandler(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	sessionRepository := repositories.NewSessionRepository(DB)
@@ -109,7 +109,7 @@ func LogoutHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
-func RefreshTokenHandler(DB *gorm.DB) echo.HandlerFunc {
+func GetRefreshTokenHandler(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	jwtConfig := globals.GetJwtConfig()
@@ -186,10 +186,10 @@ func DeleteOwnUserHandler(DB *gorm.DB) echo.HandlerFunc {
 
 func UserController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
-	group.GET("/profile", ProfileHandler(DB))
-	group.GET("/sessions", SessionsHandler(DB))
-	group.POST("/logout", LogoutHandler(DB))
-	group.GET("/refresh-token", RefreshTokenHandler(DB))
+	group.GET("/profile", GetProfileHandler(DB))
+	group.GET("/sessions", GetAllSessionsHandler(DB))
+	group.POST("/logout", SetLogoutHandler(DB))
+	group.GET("/refresh-token", GetRefreshTokenHandler(DB))
 	group.DELETE("/me", DeleteOwnUserHandler(DB))
 
 	return group

@@ -311,7 +311,7 @@ func UpdateEmployeeHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
-func GetUsersHandler(DB *gorm.DB) echo.HandlerFunc {
+func GetAllUsersHandler(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	userRepository := repositories.NewUserRepository(DB)
@@ -350,7 +350,7 @@ func GetUsersHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
-func GetEmployeesHandler(DB *gorm.DB) echo.HandlerFunc {
+func GetAllEmployeesHandler(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	employeeRepository := repositories2.NewEmployeeRepository(DB)
@@ -495,8 +495,8 @@ func AdminController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
 	group.POST("/user", CreateEmployeeHandler(DB))
 	group.PUT("/user", UpdateEmployeeHandler(DB))
-	group.GET("/users", GetUsersHandler(DB))
-	group.GET("/employees", GetEmployeesHandler(DB))
+	group.GET("/users", GetAllUsersHandler(DB))
+	group.GET("/employees", GetAllEmployeesHandler(DB))
 	group.DELETE("/user", DeleteUserHandler(DB))
 
 	return group

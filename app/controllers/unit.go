@@ -13,7 +13,7 @@ import (
 	schemas2 "pharma-cash-go/app/schemas"
 )
 
-func CreateUnit(DB *gorm.DB) echo.HandlerFunc {
+func CreateUnitHandler(DB *gorm.DB) echo.HandlerFunc {
 
 	unitRepository := repositories2.NewUnitRepository(DB)
 
@@ -67,9 +67,37 @@ func CreateUnit(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
+func GetAllUnitsHandler(DB *gorm.DB) echo.HandlerFunc {
+
+	return func(ctx echo.Context) error {
+		var err error
+		nokocore.KeepVoid(err)
+
+		pagination := extras.NewURLQueryPaginationFromEchoContext(ctx)
+
+		var units []models2.Unit
+		tx := DB.Offset(pagination.Offset).Limit(pagination.Limit).Find(&units)
+		if err = tx.Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get units.", nil)
+		}
+
+		var unitResults []schemas2.UnitResult
+		for i, unit := range units {
+			nokocore.KeepVoid(i)
+			unitResults = append(unitResults, schemas2.ToUnitResult(&unit))
+		}
+
+		return extras.NewMessageBodyOk(ctx, "Successfully get units.", &nokocore.MapAny{
+			"units": unitResults,
+		})
+	}
+}
+
 func UnitController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
-	group.POST("/unit", CreateUnit(DB))
+	group.GET("/units", GetAllUnitsHandler(DB))
+	group.POST("/unit", CreateUnitHandler(DB))
 
 	return group
 }

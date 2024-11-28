@@ -13,7 +13,7 @@ import (
 	schemas2 "pharma-cash-go/app/schemas"
 )
 
-func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
+func CreateProductHandler(DB *gorm.DB) echo.HandlerFunc {
 
 	packageRepository := repositories2.NewPackageRepository(DB)
 	unitRepository := repositories2.NewUnitRepository(DB)
@@ -120,9 +120,43 @@ func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
+func GetAllProductsHandler(DB *gorm.DB) echo.HandlerFunc {
+
+	// productRepository := repositories2.NewProductRepository(DB)
+
+	return func(ctx echo.Context) error {
+		var err error
+		nokocore.KeepVoid(err)
+
+		keywords := extras.ParseQueryToString(ctx, "keywords")
+
+		pagination := extras.NewURLQueryPaginationFromEchoContext(ctx)
+
+		var products []models2.Product
+		query := "brand LIKE ? OR product_name LIKE ? OR barcode LIKE ?"
+		args := []any{"%" + keywords + "%", "%" + keywords + "%", "%" + keywords + "%"}
+		tx := DB.Preload("Package").Preload("Unit").Where(query, args...).Offset(pagination.Offset).Limit(pagination.Limit).Find(&products)
+		if err = tx.Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get products.", nil)
+		}
+
+		var productResults []schemas2.ProductResult
+		for i, product := range products {
+			nokocore.KeepVoid(i)
+			productResults = append(productResults, schemas2.ToProductResult(&product))
+		}
+
+		return extras.NewMessageBodyOk(ctx, "Successfully get products.", &nokocore.MapAny{
+			"products": productResults,
+		})
+	}
+}
+
 func ProductController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
-	group.POST("/product", CreateProduct(DB))
+	group.GET("/products", GetAllProductsHandler(DB))
+	group.POST("/product", CreateProductHandler(DB))
 
 	return group
 }

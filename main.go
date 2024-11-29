@@ -3,12 +3,11 @@ package main
 import (
 	"fmt"
 	"nokowebapi/globals"
+	"github.com/spf13/viper"
 	"nokowebapi/nokocore"
 	"nokowebapi/task"
 	"pharma-cash-go/app"
 	// "reporting/reporting"
-
-	"github.com/spf13/viper"
 )
 
 func main() {
@@ -30,7 +29,7 @@ func main() {
 		fmt.Println("Done")
 
 		//hwd.NewService()
-		// reporting.NewService()
+		reporting.NewService()
 	}
 
 	task.EntryPoint(app.Main, pTasksHandler)

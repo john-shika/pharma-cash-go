@@ -22,7 +22,7 @@ func main() {
 	}
 
 	pTasksHandler := func(pTasks task.ProcessTasksImpl) {
-		//tasks := globals.GetTasksConfig()
+		//tasks := globals.GetTasks()
 		//nokocore.NoErr(pTasks.Execute(tasks))
 		//nokocore.NoErr(pTasks.Wait())
 		fmt.Println("Done")

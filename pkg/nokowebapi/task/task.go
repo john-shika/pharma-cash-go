@@ -136,6 +136,10 @@ func NewConfig(name string, exec string, args []string, workdir string, environ 
 	}
 }
 
+func (w *Config) GetNameType() string {
+	return "Task"
+}
+
 func (w *Config) GetName() string {
 	return strings.TrimSpace(w.Name)
 }
@@ -231,7 +235,7 @@ func (w *Config) SetDependsOn(dependsOn []*DependsOnTaskConfig[string]) {
 	w.DependsOn = dependsOn
 }
 
-type TasksConfigImpl interface {
+type TasksImpl interface {
 	Size() int
 	Index(i int) ConfigImpl
 	SetIndex(i int, config ConfigImpl)
@@ -242,31 +246,35 @@ type TasksConfigImpl interface {
 	GetDependsOnTaskConfig(task ConfigImpl) []DependsOnTaskConfigImpl[ConfigImpl]
 }
 
-// TasksConfig struct, keep it mind, parsing by viper config file
-type TasksConfig []Config
+// Tasks struct, keep it mind, parsing by viper config file
+type Tasks []Config
 
-func NewTasksConfig() TasksConfig {
-	var temp TasksConfig
+func NewTasks() Tasks {
+	var temp Tasks
 	return temp
 }
 
-func (w *TasksConfig) Size() int {
+func (w *Tasks) GetNameType() string {
+	return "Tasks"
+}
+
+func (w *Tasks) Size() int {
 	return len(*w)
 }
 
-func (w *TasksConfig) Index(i int) ConfigImpl {
+func (w *Tasks) Index(i int) ConfigImpl {
 	return &(*w)[i]
 }
 
-func (w *TasksConfig) SetIndex(i int, config ConfigImpl) {
+func (w *Tasks) SetIndex(i int, config ConfigImpl) {
 	(*w)[i] = *config.(*Config)
 }
 
-func (w *TasksConfig) Append(config ConfigImpl) {
+func (w *Tasks) Append(config ConfigImpl) {
 	*w = append(*w, *config.(*Config))
 }
 
-func (w *TasksConfig) Remove(i int) {
+func (w *Tasks) Remove(i int) {
 	j := i + 1
 	if j < len(*w) {
 		*w = append((*w)[:i], (*w)[j:]...)
@@ -276,11 +284,7 @@ func (w *TasksConfig) Remove(i int) {
 	*w = (*w)[:i]
 }
 
-func (w *TasksConfig) GetNameType() string {
-	return "Tasks"
-}
-
-func (w *TasksConfig) GetTaskConfig(name string) ConfigImpl {
+func (w *Tasks) GetTaskConfig(name string) ConfigImpl {
 	for i, task := range *w {
 		nokocore.KeepVoid(i)
 
@@ -295,7 +299,7 @@ func (w *TasksConfig) GetTaskConfig(name string) ConfigImpl {
 	return nil
 }
 
-func (w *TasksConfig) GetDependsOnTaskConfig(task ConfigImpl) []DependsOnTaskConfigImpl[ConfigImpl] {
+func (w *Tasks) GetDependsOnTaskConfig(task ConfigImpl) []DependsOnTaskConfigImpl[ConfigImpl] {
 	var temp []DependsOnTaskConfigImpl[ConfigImpl]
 	for i, dependsOn := range task.GetDependsOn() {
 		nokocore.KeepVoid(i)
@@ -381,8 +385,8 @@ type ProcessTasksImpl interface {
 	GetProcessTask(name string) ProcessTaskImpl
 	GetDependsOnProcessTask(task ConfigImpl) []ProcessTaskImpl
 	StartProcessTask(pTask ProcessTaskImpl) error
-	ExecuteAsync(tasks TasksConfigImpl)
-	Execute(tasks TasksConfigImpl) error
+	ExecuteAsync(tasks TasksImpl)
+	Execute(tasks TasksImpl) error
 	Wait() error
 }
 
@@ -518,7 +522,7 @@ func (p *ProcessTasks) StartProcessTask(pTask ProcessTaskImpl) error {
 	return err
 }
 
-func (p *ProcessTasks) ExecuteAsync(tasks TasksConfigImpl) {
+func (p *ProcessTasks) ExecuteAsync(tasks TasksImpl) {
 	var err error
 	nokocore.KeepVoid(err)
 
@@ -536,7 +540,7 @@ func (p *ProcessTasks) ExecuteAsync(tasks TasksConfigImpl) {
 	p.regis = waitTasks
 }
 
-func (p *ProcessTasks) Execute(tasks TasksConfigImpl) error {
+func (p *ProcessTasks) Execute(tasks TasksImpl) error {
 	var err error
 	nokocore.KeepVoid(err)
 
@@ -607,7 +611,7 @@ func makeProcessFromTaskAsync(pTasks ProcessTasksImpl, task ConfigImpl, err chan
 	err <- makeProcessFromTask(pTasks, task)
 }
 
-func waitRun(tasks TasksConfigImpl, pTasks ProcessTasksImpl, task ConfigImpl) error {
+func waitRun(tasks TasksImpl, pTasks ProcessTasksImpl, task ConfigImpl) error {
 	var err error
 	nokocore.KeepVoid(err)
 
@@ -650,7 +654,7 @@ func waitRun(tasks TasksConfigImpl, pTasks ProcessTasksImpl, task ConfigImpl) er
 	return nil
 }
 
-func waitRunTask(tasks TasksConfigImpl, pTasks ProcessTasksImpl, task ConfigImpl) error {
+func waitRunTask(tasks TasksImpl, pTasks ProcessTasksImpl, task ConfigImpl) error {
 	var ok bool
 	var err error
 	nokocore.KeepVoid(ok, err)

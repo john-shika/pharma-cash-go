@@ -58,7 +58,7 @@ type ConfigImpl interface {
 	IsDevelopment() bool
 	GetJwtConfig() *nokocore.JwtConfig
 	GetLoggerConfig() *nokocore.LoggerConfig
-	GetTasksConfig() *task.TasksConfig
+	GetTasks() *task.Tasks
 	Keys() []string
 	Values() []any
 	Get(key string) any
@@ -67,18 +67,18 @@ type ConfigImpl interface {
 }
 
 type Config struct {
-	jwtConfig    *nokocore.JwtConfig
-	loggerConfig *nokocore.LoggerConfig
-	tasksConfig  *task.TasksConfig
-	locker       nokocore.LockerImpl
+	jwt    *nokocore.JwtConfig
+	logger *nokocore.LoggerConfig
+	tasks  *task.Tasks
+	locker nokocore.LockerImpl
 }
 
 func NewConfig() ConfigImpl {
 	return &Config{
-		jwtConfig:    nil,
-		loggerConfig: nil,
-		tasksConfig:  nil,
-		locker:       nokocore.NewLocker(),
+		jwt:    nil,
+		logger: nil,
+		tasks:  nil,
+		locker: nokocore.NewLocker(),
 	}
 }
 
@@ -88,34 +88,34 @@ func (c *Config) IsDevelopment() bool {
 
 func (c *Config) GetJwtConfig() *nokocore.JwtConfig {
 	c.locker.Lock(func() {
-		if c.jwtConfig != nil {
+		if c.jwt != nil {
 			return
 		}
-		//c.jwtConfig = nokocore.Unwrap(ViperConfigUnmarshal[nokocore.JwtConfig]())
-		c.jwtConfig = GetConfigGlobals[nokocore.JwtConfig]()
+		//c.jwt = nokocore.Unwrap(ViperConfigUnmarshal[nokocore.JwtConfig]())
+		c.jwt = GetConfigGlobals[nokocore.JwtConfig]()
 	})
-	return c.jwtConfig
+	return c.jwt
 }
 
 func (c *Config) GetLoggerConfig() *nokocore.LoggerConfig {
 	c.locker.Lock(func() {
-		if c.loggerConfig != nil {
+		if c.logger != nil {
 			return
 		}
-		//c.loggerConfig = nokocore.Unwrap(ViperConfigUnmarshal[nokocore.LoggerConfig]())
-		c.loggerConfig = GetConfigGlobals[nokocore.LoggerConfig]()
+		//c.logger = nokocore.Unwrap(ViperConfigUnmarshal[nokocore.LoggerConfig]())
+		c.logger = GetConfigGlobals[nokocore.LoggerConfig]()
 	})
-	return c.loggerConfig
+	return c.logger
 }
 
-func (c *Config) GetTasksConfig() *task.TasksConfig {
+func (c *Config) GetTasks() *task.Tasks {
 	c.locker.Lock(func() {
-		if c.tasksConfig != nil {
+		if c.tasks != nil {
 			return
 		}
-		c.tasksConfig = GetConfigGlobals[task.TasksConfig]()
+		c.tasks = GetConfigGlobals[task.Tasks]()
 	})
-	return c.tasksConfig
+	return c.tasks
 }
 
 func (c *Config) Keys() []string {
@@ -152,12 +152,12 @@ func GetLoggerConfig() *nokocore.LoggerConfig {
 	return globals.GetLoggerConfig()
 }
 
-func GetTasksConfig() *task.TasksConfig {
-	return globals.GetTasksConfig()
+func GetTasks() *task.Tasks {
+	return globals.GetTasks()
 }
 
 func GetTaskConfig(name string) task.ConfigImpl {
-	return globals.GetTasksConfig().GetTaskConfig(name)
+	return globals.GetTasks().GetTaskConfig(name)
 }
 
 func Keys() []string {

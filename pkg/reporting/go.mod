@@ -7,4 +7,5 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/signintech/gopdf v0.28.1 // indirect
 	github.com/tealeg/xlsx v1.0.5 // indirect
+	golang.org/x/text v0.20.0 // indirect
 )

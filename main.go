@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
+	"nokowebapi/globals"
 	"nokowebapi/nokocore"
 	"nokowebapi/task"
 	"pharma-cash-go/app"
-	"reporting/reporting"
+	// "reporting/reporting"
+
+	"github.com/spf13/viper"
 )
 
 func main() {
@@ -22,13 +24,13 @@ func main() {
 	}
 
 	pTasksHandler := func(pTasks task.ProcessTasksImpl) {
-		//tasks := globals.GetTasksConfig()
-		//nokocore.NoErr(pTasks.Execute(tasks))
-		//nokocore.NoErr(pTasks.Wait())
+		tasks := globals.GetTasksConfig()
+		nokocore.NoErr(pTasks.Execute(tasks))
+		nokocore.NoErr(pTasks.Wait())
 		fmt.Println("Done")
 
 		//hwd.NewService()
-		reporting.NewService()
+		// reporting.NewService()
 	}
 
 	task.EntryPoint(app.Main, pTasksHandler)

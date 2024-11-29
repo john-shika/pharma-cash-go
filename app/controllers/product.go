@@ -2,18 +2,21 @@ package controllers
 
 import (
 	"fmt"
-	"github.com/labstack/echo/v4"
-	"gorm.io/gorm"
 	"nokowebapi/apis/extras"
 	"nokowebapi/apis/utils"
 	"nokowebapi/console"
 	"nokowebapi/nokocore"
 	models2 "pharma-cash-go/app/models"
+	"pharma-cash-go/app/repositories"
 	repositories2 "pharma-cash-go/app/repositories"
 	schemas2 "pharma-cash-go/app/schemas"
+	"strconv"
+
+	"github.com/labstack/echo/v4"
+	"gorm.io/gorm"
 )
 
-func CreateProductHandler(DB *gorm.DB) echo.HandlerFunc {
+func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
 
 	packageRepository := repositories2.NewPackageRepository(DB)
 	unitRepository := repositories2.NewUnitRepository(DB)
@@ -110,7 +113,7 @@ func CreateProductHandler(DB *gorm.DB) echo.HandlerFunc {
 
 		if err = productRepository.SafeCreate(product); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyInternalServerError(ctx, "Failed to create product.", nil)
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to create product.", err.Error())
 		}
 
 		productResult := schemas2.ToProductResult(product)
@@ -120,7 +123,7 @@ func CreateProductHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
-func GetAllProductsHandler(DB *gorm.DB) echo.HandlerFunc {
+func GetAllProductByName(DB *gorm.DB) echo.HandlerFunc {
 
 	// productRepository := repositories2.NewProductRepository(DB)
 
@@ -129,21 +132,20 @@ func GetAllProductsHandler(DB *gorm.DB) echo.HandlerFunc {
 		nokocore.KeepVoid(err)
 
 		keywords := extras.ParseQueryToString(ctx, "keywords")
+		size, _ := strconv.Atoi(extras.ParseQueryToString(ctx, "size"))
+		page, _ := strconv.Atoi(extras.ParseQueryToString(ctx, "page"))
 
-		pagination := extras.NewURLQueryPaginationFromEchoContext(ctx)
+		offset := (page - 1) * size
 
 		var products []models2.Product
-		query := "brand LIKE ? OR product_name LIKE ? OR barcode LIKE ?"
-		args := []any{"%" + keywords + "%", "%" + keywords + "%", "%" + keywords + "%"}
-		tx := DB.Preload("Package").Preload("Unit").Where(query, args...).Offset(pagination.Offset).Limit(pagination.Limit).Find(&products)
-		if err = tx.Error; err != nil {
+		if err = DB.Where("brand LIKE ? OR product_name LIKE ? OR barcode LIKE ?", "%"+keywords+"%", "%"+keywords+"%", "%"+keywords+"%").Preload("Package").Preload("Unit").Limit(size).Offset(offset).Find(&products).Error; err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get products.", nil)
 		}
+		fmt.Println("= products", products)
 
 		var productResults []schemas2.ProductResult
-		for i, product := range products {
-			nokocore.KeepVoid(i)
+		for _, product := range products {
 			productResults = append(productResults, schemas2.ToProductResult(&product))
 		}
 
@@ -153,10 +155,123 @@ func GetAllProductsHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
+func GetProductDetailByProductId(DB *gorm.DB) echo.HandlerFunc {
+
+	return func(ctx echo.Context) error {
+		paramProductId := ctx.Param("productId")
+
+		// product, err := productRepository.SafeFirst("uuid = ?", paramProductId)
+		var product models2.Product
+		if err := DB.Where("uuid = ?", paramProductId).Preload("Categories").Preload("Package").Preload("Unit").First(&product).Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get product detail.", nil)
+		}
+
+		productResult := schemas2.ToProductResult(&product)
+		return extras.NewMessageBodyOk(ctx, "Successfully get product.", &nokocore.MapAny{
+			"product": productResult,
+		})
+	}
+}
+
+func UpdateProduct(DB *gorm.DB) echo.HandlerFunc {
+
+	productRepository := repositories.NewProductRepository(DB)
+	packageRepository := repositories.NewPackageRepository(DB)
+	unitRepository := repositories.NewUnitRepository(DB)
+
+	return func(ctx echo.Context) error {
+		paramProductId := ctx.Param("productId")
+
+		productBody := new(schemas2.ProductBody)
+		if err := ctx.Bind(productBody); err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Failed to bind product.", err.Error())
+		}
+
+		var err error
+		nokocore.KeepVoid(err)
+
+		product, err := productRepository.SafeFirst("uuid = ?", paramProductId)
+		if err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get product.", err.Error())
+		}
+		fmt.Println("= productBody", productBody)
+
+		packages, err := packageRepository.SafeFirst("uuid = ?", productBody.PackageID)
+		if err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get package.", err.Error())
+		}
+
+		unit, err := unitRepository.SafeFirst("uuid = ?", productBody.UnitID)
+		if err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get unit.", err.Error())
+		}
+
+		newProductBody := schemas2.ToProductModel(productBody)
+		newProductBody.PackageID = packages.ID
+		newProductBody.UnitID = unit.ID
+		fmt.Println("= newProductBody", newProductBody)
+
+		product.Barcode = newProductBody.Barcode
+		product.Brand = newProductBody.Brand
+		product.ProductName = newProductBody.ProductName
+		product.Supplier = newProductBody.Supplier
+		product.Description = newProductBody.Description
+		product.Categories = newProductBody.Categories
+		product.Expires = newProductBody.Expires
+		product.PurchasePrice = newProductBody.PurchasePrice
+		product.SupplierDiscount = newProductBody.SupplierDiscount
+		product.VAT = newProductBody.VAT
+		product.ProfitMargin = newProductBody.ProfitMargin
+		product.PackageID = newProductBody.PackageID
+		product.PackageTotal = newProductBody.PackageTotal
+		product.UnitID = newProductBody.UnitID
+		product.UnitAmount = newProductBody.UnitAmount
+		product.UnitExtra = newProductBody.UnitExtra
+
+		fmt.Println("= product", product)
+		if err := productRepository.SafeUpdate(product, "uuid = ?", paramProductId); err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to update product.", err.Error())
+		}
+
+		return extras.NewMessageBodyOk(ctx, "Successfully update product.", &nokocore.MapAny{
+			"product": schemas2.ToProductResult(product),
+		})
+	}
+}
+
+func DeleteProduct(DB *gorm.DB) echo.HandlerFunc {
+
+	return func(ctx echo.Context) error {
+		paramProductId := ctx.Param("productId")
+		// productId, _ := strconv.Atoi(paramProductId)
+
+		result := DB.Model(models2.Product{}).Where("uuid = ?", paramProductId).Delete(&models2.Product{})
+		if result.Error != nil {
+			console.Error(fmt.Sprintf("panic: %s", result.Error.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to delete product.", nil)
+		}
+
+		if result.RowsAffected < 1 {
+			return extras.NewMessageBodyNotFound(ctx, "Product not found.", nil)
+		}
+
+		return extras.NewMessageBodyOk(ctx, "Successfully delete product.", nil)
+	}
+}
+
 func ProductController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
-	group.GET("/products", GetAllProductsHandler(DB))
-	group.POST("/product", CreateProductHandler(DB))
+	group.POST("/product", CreateProduct(DB))
+	group.GET("/products", GetAllProductByName(DB))
+	group.GET("/product/:productId", GetProductDetailByProductId(DB))
+	group.PUT("/product/:productId", UpdateProduct(DB))
+	group.DELETE("/product/:productId", DeleteProduct(DB))
 
 	return group
 }

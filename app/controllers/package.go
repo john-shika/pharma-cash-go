@@ -13,7 +13,7 @@ import (
 	schemas2 "pharma-cash-go/app/schemas"
 )
 
-func CreatePackageHandler(DB *gorm.DB) echo.HandlerFunc {
+func CreatePackage(DB *gorm.DB) echo.HandlerFunc {
 
 	packageRepository := repositories2.NewPackageRepository(DB)
 
@@ -67,7 +67,7 @@ func CreatePackageHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
-func GetAllPackagesHandler(DB *gorm.DB) echo.HandlerFunc {
+func GetAllPackages(DB *gorm.DB) echo.HandlerFunc {
 
 	return func(ctx echo.Context) error {
 		var err error
@@ -96,8 +96,8 @@ func GetAllPackagesHandler(DB *gorm.DB) echo.HandlerFunc {
 
 func PackagingController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
-	group.POST("/package", CreatePackageHandler(DB))
-	group.GET("/packages", GetAllPackagesHandler(DB))
+	group.POST("/package", CreatePackage(DB))
+	group.GET("/packages", GetAllPackages(DB))
 
 	return group
 }

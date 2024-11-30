@@ -182,7 +182,7 @@ func XlsxService(config *XlsxConfig) {
 
 	style.Font = xlsx.Font{
 		Size: 11,
-		Name: "Calibri",
+		Name: "Arial",
 	}
 
 	var cell *xlsx.Cell

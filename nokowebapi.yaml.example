@@ -5,13 +5,36 @@ app:
   version: 1.0.0
   author: ahmadasysyafiq@proton.me
 hwd:
+  db: './migrations/dev.sqlite3'
   exec: './bin/NokoHwd.exe'
+reporting:
+  pdf:
+    assets: './assets'
+    templates:
+      - page_file: 'templates/template1.pdf'
+        page_layout: 'portrait'
+        page_size: 'A4'
+      - page_file: 'templates/template2.pdf'
+        page_layout: 'landscape'
+        page_size: 'A4'
+    output_dir: './outputs'
+    output_name: 'Report-{index}-{date}.pdf'
+    font_family: 'Iosevka'
+    font_type: 'Regular'
+    font_size: 12
+  xlsx:
+    assets: './assets'
+    templates:
+      - sheet_file: 'templates/template1.xlsx'
+        sheet_name: 'Sheet1'
+    output_dir: './outputs'
+    output_name: 'Report-{index}-{date}.xlsx'
 jwt:
   algorithm: HS256
   secret_key: 'im-secret-key'
   audience: ['im-audience']
   issuer: 'im-issuer'
-  expires_in: 16m
+  expires_in: 10h
 logger:
   level: debug
   encoding: text/plain

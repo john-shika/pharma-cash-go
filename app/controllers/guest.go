@@ -18,7 +18,7 @@ import (
 	schemas2 "pharma-cash-go/app/schemas"
 )
 
-func GetMessageHandler(DB *gorm.DB) echo.HandlerFunc {
+func GetMessage(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	return func(ctx echo.Context) error {
@@ -26,7 +26,7 @@ func GetMessageHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
-func GetPongHandler(DB *gorm.DB) echo.HandlerFunc {
+func GetPong(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	return func(ctx echo.Context) error {
@@ -34,7 +34,7 @@ func GetPongHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
-func SetLoginHandler(DB *gorm.DB) echo.HandlerFunc {
+func SetLogin(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	jwtConfig := globals.GetJwtConfig()
@@ -128,9 +128,9 @@ func SetLoginHandler(DB *gorm.DB) echo.HandlerFunc {
 
 func GuestController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
-	group.GET("/", GetMessageHandler(DB))
-	group.GET("/ping", GetPongHandler(DB))
-	group.POST("/login", SetLoginHandler(DB))
+	group.GET("/", GetMessage(DB))
+	group.GET("/ping", GetPong(DB))
+	group.POST("/login", SetLogin(DB))
 
 	return group
 }

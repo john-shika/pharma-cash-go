@@ -20,7 +20,7 @@ import (
 	"strings"
 )
 
-func CreateEmployeeHandler(DB *gorm.DB) echo.HandlerFunc {
+func CreateEmployee(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	userRepository := repositories.NewUserRepository(DB)
@@ -158,7 +158,7 @@ func CreateEmployeeHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
-func UpdateEmployeeHandler(DB *gorm.DB) echo.HandlerFunc {
+func UpdateEmployee(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	userRepository := repositories.NewUserRepository(DB)
@@ -311,7 +311,7 @@ func UpdateEmployeeHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
-func GetAllUsersHandler(DB *gorm.DB) echo.HandlerFunc {
+func GetAllUsers(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	userRepository := repositories.NewUserRepository(DB)
@@ -350,7 +350,7 @@ func GetAllUsersHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
-func GetAllEmployeesHandler(DB *gorm.DB) echo.HandlerFunc {
+func GetAllEmployees(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	employeeRepository := repositories2.NewEmployeeRepository(DB)
@@ -389,7 +389,7 @@ func GetAllEmployeesHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
-func DeleteUserHandler(DB *gorm.DB) echo.HandlerFunc {
+func DeleteUser(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	userRepository := repositories.NewUserRepository(DB)
@@ -493,11 +493,11 @@ func DeleteUserHandler(DB *gorm.DB) echo.HandlerFunc {
 
 func AdminController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
-	group.POST("/user", CreateEmployeeHandler(DB))
-	group.PUT("/user", UpdateEmployeeHandler(DB))
-	group.GET("/users", GetAllUsersHandler(DB))
-	group.GET("/employees", GetAllEmployeesHandler(DB))
-	group.DELETE("/user", DeleteUserHandler(DB))
+	group.POST("/user", CreateEmployee(DB))
+	group.PUT("/user", UpdateEmployee(DB))
+	group.GET("/users", GetAllUsers(DB))
+	group.GET("/employees", GetAllEmployees(DB))
+	group.DELETE("/user", DeleteUser(DB))
 
 	return group
 }

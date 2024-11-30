@@ -6,10 +6,11 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"nokowebapi/apis/models"
+	"nokowebapi/apis/repositories"
 	"nokowebapi/console"
+	"nokowebapi/console/zapgorm"
 	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
-	"pharma-cash-go/app/repositories"
 	"testing"
 )
 
@@ -25,7 +26,7 @@ func TestDB(t *testing.T) {
 	nokocore.KeepVoid(err, DB, user, users)
 
 	config := &gorm.Config{
-		Logger: console.GetLogger("App").GORMLogger(),
+		Logger: zapgorm.New(console.GetLogger("GORM")),
 	}
 
 	sqliteFilePath := "migrations/dev.sqlite3"

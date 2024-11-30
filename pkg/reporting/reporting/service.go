@@ -9,6 +9,7 @@ import (
 	"nokowebapi/nokocore"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 func PdfService(config *PdfConfig) {
@@ -169,7 +170,8 @@ func XlsxService(config *XlsxConfig) {
 		panic(fmt.Errorf("failed to open file, %w", err))
 	}
 
-	format := "_-[$Rp-en-ID]* #,##0.00_-;-[$Rp-en-ID]* #,##0.00_-;_-[$Rp-en-ID]* \"-\"??_-;_-@_-"
+	xlsxDateFormat := "[$-en-ID,2]mmmm dd, yyyy;@"
+	xlsxCurrencyFormat := "_-[$Rp-en-ID]* #,##0.00_-;-[$Rp-en-ID]* #,##0.00_-;_-[$Rp-en-ID]* \"-\"??_-;_-@_-"
 	sheet := file.Sheet[template.SheetName]
 
 	style := xlsx.NewStyle()
@@ -188,23 +190,30 @@ func XlsxService(config *XlsxConfig) {
 	var cell *xlsx.Cell
 
 	cell = sheet.Cell(1, 2)
-	cell.SetFloatWithFormat(10000, format)
+	cell.SetFloatWithFormat(10000, xlsxCurrencyFormat)
 	cell.SetStyle(style)
 
 	cell = sheet.Cell(1, 3)
-	cell.SetFloatWithFormat(2000, format)
+	cell.SetFloatWithFormat(2000, xlsxCurrencyFormat)
 	cell.SetStyle(style)
 
 	cell = sheet.Cell(1, 4)
-	cell.SetFloatWithFormat(1200, format)
+	cell.SetFloatWithFormat(1200, xlsxCurrencyFormat)
 	cell.SetStyle(style)
 
 	cell = sheet.Cell(1, 5)
-	cell.SetFloatWithFormat(13200, format)
+	cell.SetFloatWithFormat(13200, xlsxCurrencyFormat)
 	cell.SetStyle(style)
 
 	cell = sheet.Cell(1, 6)
 	cell.SetInt(32)
+	cell.SetStyle(style)
+
+	cell = sheet.Cell(1, 7)
+	cell.SetDateWithOptions(timeUtcNow, xlsx.DateTimeOptions{
+		Location:        time.UTC,
+		ExcelTimeFormat: xlsxDateFormat,
+	})
 	cell.SetStyle(style)
 
 	file.Save(outputFilePath)

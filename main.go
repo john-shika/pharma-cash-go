@@ -2,19 +2,11 @@ package main
 
 import (
 	"fmt"
-<<<<<<< HEAD
-=======
-	"nokowebapi/globals"
->>>>>>> 1768c40f376afcea7e1c17a8c506cda94716f99c
 	"github.com/spf13/viper"
 	"nokowebapi/nokocore"
 	"nokowebapi/task"
 	"pharma-cash-go/app"
-<<<<<<< HEAD
 	"reporting/reporting"
-=======
-	// "reporting/reporting"
->>>>>>> 1768c40f376afcea7e1c17a8c506cda94716f99c
 )
 
 func main() {

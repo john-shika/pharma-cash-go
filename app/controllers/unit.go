@@ -13,7 +13,7 @@ import (
 	schemas2 "pharma-cash-go/app/schemas"
 )
 
-func CreateUnitHandler(DB *gorm.DB) echo.HandlerFunc {
+func CreateUnit(DB *gorm.DB) echo.HandlerFunc {
 
 	unitRepository := repositories2.NewUnitRepository(DB)
 
@@ -67,7 +67,7 @@ func CreateUnitHandler(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
-func GetAllUnitsHandler(DB *gorm.DB) echo.HandlerFunc {
+func GetAllUnits(DB *gorm.DB) echo.HandlerFunc {
 
 	return func(ctx echo.Context) error {
 		var err error
@@ -96,8 +96,8 @@ func GetAllUnitsHandler(DB *gorm.DB) echo.HandlerFunc {
 
 func UnitController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
-	group.POST("/unit", CreateUnitHandler(DB))
-	group.GET("/units", GetAllUnitsHandler(DB))
+	group.GET("/units", GetAllUnits(DB))
+	group.POST("/unit", CreateUnit(DB))
 
 	return group
 }

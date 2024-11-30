@@ -546,13 +546,13 @@ type MapImpl[T any] interface {
 	Keys() []string
 	Values() []T
 	HasKey(key string) bool
-	ContainKeys(keys ...string) bool
-	GetVal(key string) T
-	Get(key string) any
-	SetVal(key string, value T) bool
-	Set(key string, value any) bool
-	DelVal(key string) bool
+	ContainsKey(keys ...string) bool
+	Get(key string) T
+	Set(key string, value T) bool
 	Del(key string) bool
+	QueryGet(key string) any
+	QuerySet(key string, value any) bool
+	QueryDel(key string) bool
 }
 
 type MapAnyImpl interface {
@@ -612,7 +612,7 @@ func (m Map[T]) HasKey(key string) bool {
 	return true
 }
 
-func (m Map[T]) ContainKeys(keys ...string) bool {
+func (m Map[T]) ContainsKey(keys ...string) bool {
 	for i, key := range keys {
 		KeepVoid(i, key)
 
@@ -623,31 +623,109 @@ func (m Map[T]) ContainKeys(keys ...string) bool {
 	return true
 }
 
-func (m Map[T]) GetVal(key string) T {
+func (m Map[T]) Get(key string) T {
 	return GetMapValue(m, key)
 }
 
-func (m Map[T]) Get(key string) any {
+func (m Map[T]) QueryGet(key string) any {
 	return GetMapValueWithSuperKeyReflect(m, key)
 }
 
-func (m Map[T]) SetVal(key string, value T) bool {
+func (m Map[T]) Set(key string, value T) bool {
 	return SetMapValue(m, key, value)
 }
 
-func (m Map[T]) Set(key string, value any) bool {
+func (m Map[T]) QuerySet(key string, value any) bool {
 	return SetMapValueWithSuperKeyReflect(m, key, value)
 }
 
-func (m Map[T]) DelVal(key string) bool {
+func (m Map[T]) Del(key string) bool {
 	return DeleteMapValue(m, key)
 }
 
-func (m Map[T]) Del(key string) bool {
+func (m Map[T]) QueryDel(key string) bool {
 	return DeleteMapValueWithSuperKeyReflect(m, key)
 }
 
-// TODO: not implemented yet
+// TODO: MapLock
+
+type MapLock[T any] struct {
+	mutex sync.RWMutex
+	data  Map[T]
+}
+
+func NewMapLock[T any]() MapImpl[T] {
+	return &MapLock[T]{
+		mutex: sync.RWMutex{},
+		data:  make(Map[T]),
+	}
+}
+
+func (m *MapLock[T]) Len() int {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return len(m.data)
+}
+
+func (m *MapLock[T]) Keys() []string {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return m.data.Keys()
+}
+
+func (m *MapLock[T]) Values() []T {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return m.data.Values()
+}
+
+func (m *MapLock[T]) HasKey(key string) bool {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return m.data.HasKey(key)
+}
+
+func (m *MapLock[T]) ContainsKey(keys ...string) bool {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return m.data.ContainsKey(keys...)
+}
+
+func (m *MapLock[T]) Get(key string) T {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return m.data.Get(key)
+}
+
+func (m *MapLock[T]) QueryGet(key string) any {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return m.data.QueryGet(key)
+}
+
+func (m *MapLock[T]) Set(key string, value T) bool {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	return m.data.Set(key, value)
+}
+
+func (m *MapLock[T]) QuerySet(key string, value any) bool {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	return m.data.QuerySet(key, value)
+}
+
+func (m *MapLock[T]) Del(key string) bool {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	return m.data.Del(key)
+}
+
+func (m *MapLock[T]) QueryDel(key string) bool {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	return m.data.QueryDel(key)
+}
 
 type ArrayImpl[T any] interface {
 	At(index int) T

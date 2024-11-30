@@ -76,19 +76,27 @@ func NewURLQueryPagination(size int, page int) *URLQueryPagination {
 	var offset int
 	var limit int
 	nokocore.KeepVoid(offset, limit)
-	if page < 1 {
-		page = 1
-	}
 
-	if size > 0 {
-		offset = (page - 1) * size
-		limit = size
-
-	} else {
+	switch {
+	// FIXME: this call lots of resources
+	case size < 0:
 		size = -1
 		page = 1
 		offset = 0
 		limit = -1
+		break
+
+	case size > 0 && page > 0:
+		offset = (page - 1) * size
+		limit = size
+		break
+
+	default:
+		size = 0
+		page = 1
+		offset = 0
+		limit = 0
+		break
 	}
 
 	return &URLQueryPagination{

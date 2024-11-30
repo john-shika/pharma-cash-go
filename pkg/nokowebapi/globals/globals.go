@@ -127,15 +127,15 @@ func (c *Config) Values() []any {
 }
 
 func (c *Config) Get(key string) any {
-	return defaultConfig.Get(key)
+	return defaultConfig.QueryGet(key)
 }
 
 func (c *Config) Set(key string, value any) bool {
-	return defaultConfig.Set(key, value)
+	return defaultConfig.QuerySet(key, value)
 }
 
 func (c *Config) Del(key string) bool {
-	return defaultConfig.Del(key)
+	return defaultConfig.QueryDel(key)
 }
 
 var globals = NewConfig()
@@ -205,7 +205,7 @@ func GetConfigGlobals[T any]() *T {
 
 	localized := false
 	if defaultConfig.HasKey(keyName) {
-		locals = defaultConfig.Get(keyName)
+		locals = defaultConfig.QueryGet(keyName)
 		localized = true
 	}
 
@@ -246,7 +246,7 @@ func GetConfigGlobals[T any]() *T {
 
 	// set back to locals config
 	if localized {
-		defaultConfig.Set(keyName, locals)
+		defaultConfig.QuerySet(keyName, locals)
 	}
 
 	return config

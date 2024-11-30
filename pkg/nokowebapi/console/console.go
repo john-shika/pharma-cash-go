@@ -209,19 +209,20 @@ func makeLogger(name string) LoggerImpl {
 	return NewLogger(stdout, stderr)
 }
 
-var cachesLogger = make(map[string]LoggerImpl)
+var cachesLogger = nokocore.NewMapLock[LoggerImpl]()
 
 func GetLogger(name string) LoggerImpl {
 	var ok bool
 	var logger LoggerImpl
 	nokocore.KeepVoid(ok, logger)
 
-	if logger, ok = cachesLogger[name]; !ok {
+	if !cachesLogger.HasKey(name) {
 		logger = makeLogger(name)
-		cachesLogger[name] = logger
+		cachesLogger.Set(name, logger)
 		return logger
 	}
 
+	logger = cachesLogger.Get(name)
 	return logger
 }
 

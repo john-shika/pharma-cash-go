@@ -74,7 +74,7 @@ type RegexpImpl interface {
 	UnmarshalText(text []byte) error
 }
 
-var cachesRegex = make(map[string]RegexpImpl)
+var cachesRegex = NewMapLock[RegexpImpl]()
 
 type RegexOrStringImpl interface {
 	string | *regexp.Regexp
@@ -86,21 +86,22 @@ func GetRegexPattern[T RegexOrStringImpl](pattern T) RegexpImpl {
 	var temp string
 	KeepVoid(ok, re, temp)
 
-	// check pattern is regex pointer or string
-	if re, ok = Cast[RegexpImpl](pattern); !ok {
-		if temp, ok = Cast[string](pattern); !ok {
-			panic("pattern must be 'regexp.Regexp' or string type")
-		}
-
-		// register new regex and store in cachesRegex
-		if re, ok = cachesRegex[temp]; !ok {
-			re = regexp.MustCompile(temp)
-			cachesRegex[temp] = re
-			return re
-		}
-
+	if re, ok = Cast[RegexpImpl](pattern); ok {
 		return re
 	}
+
+	if temp, ok = Cast[string](pattern); !ok {
+		panic("invalid pattern type")
+	}
+
+	if !cachesRegex.HasKey(temp) {
+		re = regexp.MustCompile(temp)
+		cachesRegex.Set(temp, re)
+		return re
+	}
+
+	re = cachesRegex.Get(temp)
+	return re
 
 	return nil
 }

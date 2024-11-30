@@ -593,7 +593,7 @@ func SetArrayItemReflect(array any, index int, value any) bool {
 	}
 
 	if index >= 0 && index < val.Len() {
-		//ref.Index(index).Set(GetValueReflect(value))
+		//ref.Index(index).QuerySet(GetValueReflect(value))
 		val.Index(index).Set(GetValueReflect(value))
 		return true
 	}
@@ -1385,7 +1385,7 @@ func SetValueWithSuperKeyReflect(data any, key string, value any) bool {
 	// TODO: implement it
 
 	// super key -> parent key + base key
-	// using SetIndex, SetMapIndex, Field.Set
+	// using SetIndex, SetMapIndex, Field.QuerySet
 
 	panic("not implemented yet")
 }

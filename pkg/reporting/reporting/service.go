@@ -3,13 +3,13 @@ package reporting
 import (
 	"fmt"
 	"github.com/signintech/gopdf"
-	"github.com/tealeg/xlsx"
+	"github.com/xuri/excelize/v2"
 	"nokowebapi/console"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
 	"path/filepath"
+	"reporting/reporting/xlsx"
 	"strings"
-	"time"
 )
 
 func PdfService(config *PdfConfig) {
@@ -147,7 +147,7 @@ func PdfService(config *PdfConfig) {
 
 func XlsxService(config *XlsxConfig) {
 	var err error
-	var file *xlsx.File
+	var file *excelize.File
 
 	nokocore.KeepVoid(config)
 
@@ -156,8 +156,9 @@ func XlsxService(config *XlsxConfig) {
 	index := 0
 	template := config.Templates[index]
 	timeUtcNow := nokocore.GetTimeUtcNow()
-	dateFormat := "2006-01-02-15-04-05"
+	timeNow := timeUtcNow.Local()
 
+	dateFormat := "2006-01-02-15-04-05"
 	outputName := strings.ReplaceAll(config.OutputName, "{index}", fmt.Sprintf("%d", index))
 	outputName = strings.ReplaceAll(outputName, "{date}", timeUtcNow.Local().Format(dateFormat))
 	outputFilePath := filepath.Join(config.OutputDir, outputName)
@@ -166,62 +167,57 @@ func XlsxService(config *XlsxConfig) {
 	sheetFilePath := filepath.Join(config.Assets, template.SheetFile)
 	fmt.Println(sheetFilePath)
 
-	if file, err = xlsx.OpenFile(sheetFilePath); err != nil {
+	if file, err = excelize.OpenFile(sheetFilePath); err != nil {
 		panic(fmt.Errorf("failed to open file, %w", err))
 	}
 
-	xlsxDateFormat := "[$-en-ID,2]mmmm dd, yyyy;@"
-	xlsxCurrencyFormat := "_-[$Rp-en-ID]* #,##0.00_-;-[$Rp-en-ID]* #,##0.00_-;_-[$Rp-en-ID]* \"-\"??_-;_-@_-"
-	sheet := file.Sheet[template.SheetName]
+	sheet1 := "Sheet1"
+	sheet2 := "Sheet2"
+	i := 1
+	j := i + 1
 
-	style := xlsx.NewStyle()
-	style.Border = xlsx.Border{
-		Top:    "thin",
-		Bottom: "thin",
-		Right:  "thin",
-		Left:   "thin",
-	}
+	xlsx.SetFormTitleXlsx(file, sheet1, "Pharma Cash App")
+	xlsx.SetFormNameXlsx(file, sheet1, "John, Doe")
+	xlsx.SetFormRoleXlsx(file, sheet1, "Administrator")
+	xlsx.SetFormDateXlsx(file, sheet1, timeNow)
 
-	style.Font = xlsx.Font{
-		Size: 11,
-		Name: "Arial",
-	}
+	xlsx.SetSheet1TableNumberXlsx(file, sheet1, i, j)
+	xlsx.SetSheet1TableNameXlsx(file, sheet1, i, "Dragon Fruit")
+	xlsx.SetSheet1TableBuyXlsx(file, sheet1, i, 10000)
+	xlsx.SetSheet1TableMarginXlsx(file, sheet1, i, 2000)
+	xlsx.SetSheet1TableTaxXlsx(file, sheet1, i, 1200)
+	xlsx.SetSheet1TableSaleXlsx(file, sheet1, i, 13200)
+	xlsx.SetSheet1TableStockInXlsx(file, sheet1, i, 10)
+	xlsx.SetSheet1TableStockOutXlsx(file, sheet1, i, 10)
+	xlsx.SetSheet1TableDateXlsx(file, sheet1, i, timeNow)
 
-	var cell *xlsx.Cell
+	xlsx.SetFormTitleXlsx(file, sheet2, "Pharma Cash App")
+	xlsx.SetFormNameXlsx(file, sheet2, "John, Doe")
+	xlsx.SetFormRoleXlsx(file, sheet2, "Administrator")
+	xlsx.SetFormDateXlsx(file, sheet2, timeNow)
 
-	cell = sheet.Cell(1, 2)
-	cell.SetFloatWithFormat(10000, xlsxCurrencyFormat)
-	cell.SetStyle(style)
+	xlsx.SetSheet1TableNumberXlsx(file, sheet2, i, j)
+	xlsx.SetSheet1TableNameXlsx(file, sheet2, i, "Dragon Fruit")
+	xlsx.SetSheet2TableOfficerNameXlsx(file, sheet2, i, "Angeline, Rose")
+	xlsx.SetSheet2TableOfficerShiftXlsx(file, sheet2, i, "Day")
+	xlsx.SetSheet2TableStockInXlsx(file, sheet2, i, 12)
+	xlsx.SetSheet2TableStockOutXlsx(file, sheet2, i, 2)
+	xlsx.SetSheet2TableSubtotalBuyXlsx(file, sheet2, i, 10000)
+	xlsx.SetSheet2TableSubtotalMarginXlsx(file, sheet2, i, 2000)
+	xlsx.SetSheet2TableSubtotalTaxXlsx(file, sheet2, i, 1200)
+	xlsx.SetSheet2TableSubtotalSaleXlsx(file, sheet2, i, 13200)
+	xlsx.SetSheet2TableTotalBuyXlsx(file, sheet2, i, 10000)
+	xlsx.SetSheet2TableTotalMarginXlsx(file, sheet2, i, 2000)
+	xlsx.SetSheet2TableTotalTaxXlsx(file, sheet2, i, 1200)
+	xlsx.SetSheet2TableTotalSaleXlsx(file, sheet2, i, 13200)
+	xlsx.SetSheet2TableDateXlsx(file, sheet2, i, timeNow)
 
-	cell = sheet.Cell(1, 3)
-	cell.SetFloatWithFormat(2000, xlsxCurrencyFormat)
-	cell.SetStyle(style)
-
-	cell = sheet.Cell(1, 4)
-	cell.SetFloatWithFormat(1200, xlsxCurrencyFormat)
-	cell.SetStyle(style)
-
-	cell = sheet.Cell(1, 5)
-	cell.SetFloatWithFormat(13200, xlsxCurrencyFormat)
-	cell.SetStyle(style)
-
-	cell = sheet.Cell(1, 6)
-	cell.SetInt(32)
-	cell.SetStyle(style)
-
-	cell = sheet.Cell(1, 7)
-	cell.SetDateWithOptions(timeUtcNow, xlsx.DateTimeOptions{
-		Location:        time.UTC,
-		ExcelTimeFormat: xlsxDateFormat,
-	})
-	cell.SetStyle(style)
-
-	file.Save(outputFilePath)
+	file.SaveAs(outputFilePath)
 	fmt.Println(outputFilePath)
 }
 
 func NewService() {
 	config := globals.GetConfigGlobals[Config]()
-	XlsxService(&config.Xlsx)
 	//PdfService(&config.Pdf)
+	XlsxService(&config.Xlsx)
 }

@@ -570,7 +570,7 @@ func NewMapAny() MapAnyImpl {
 	return NewMap[any]()
 }
 
-func (m Map[T]) GetNameType() string {
+func (Map[T]) GetNameType() string {
 	return "Map"
 }
 
@@ -661,6 +661,10 @@ func NewMapLock[T any]() MapImpl[T] {
 	}
 }
 
+func (MapLock[T]) GetNameType() string {
+	return "MapLock"
+}
+
 func (m *MapLock[T]) Len() int {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
@@ -744,7 +748,7 @@ func NewArray[T any](size int) ArrayImpl[T] {
 	return make(Array[T], size)
 }
 
-func (a Array[T]) GetNameType() string {
+func (Array[T]) GetNameType() string {
 	return "Array"
 }
 

@@ -136,7 +136,7 @@ func NewConfig(name string, exec string, args []string, workdir string, environ 
 	}
 }
 
-func (w *Config) GetNameType() string {
+func (Config) GetNameType() string {
 	return "Task"
 }
 
@@ -254,7 +254,7 @@ func NewTasks() Tasks {
 	return temp
 }
 
-func (w *Tasks) GetNameType() string {
+func (Tasks) GetNameType() string {
 	return "Tasks"
 }
 

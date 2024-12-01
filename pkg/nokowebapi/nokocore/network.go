@@ -32,7 +32,7 @@ func NewNetworkConfig() NetworkConfigImpl {
 	}
 }
 
-func (n *NetworkConfig) GetNameType() string {
+func (NetworkConfig) GetNameType() string {
 	return "network"
 }
 

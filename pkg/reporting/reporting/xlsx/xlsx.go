@@ -4,802 +4,196 @@ import (
 	"fmt"
 	"github.com/xuri/excelize/v2"
 	"nokowebapi/nokocore"
+	"path/filepath"
 	"time"
 )
 
-var xlsxNumberFormat = "0"
-var xlsxDateFormat = "[$-en-ID,1]dddd, dd mmmm yyyy;@"
-var xlsxCurrencyFormat = "_-[$Rp-en-ID]* #,##0.00_-;-[$Rp-en-ID]* #,##0.00_-;_-[$Rp-en-ID]* \"-\"??_-;_-@_-"
-
-var styleCodes = nokocore.NewMapLock[int]()
-
-var border = []excelize.Border{
-	{
-		Type:  "top",
-		Color: "#000000",
-		Style: 2,
-	},
-	{
-		Type:  "left",
-		Color: "#000000",
-		Style: 2,
-	},
-	{
-		Type:  "right",
-		Color: "#000000",
-		Style: 2,
-	},
-	{
-		Type:  "bottom",
-		Color: "#000000",
-		Style: 2,
-	},
+type DocXlsxImpl interface {
+	Sheet1Print(sheetName string, formDataXlsx *FormDataXlsx, rows Sheet1TableRowsXlsx) error
+	Sheet2Print(sheetName string, formDataXlsx *FormDataXlsx, rows Sheet2TableRowsXlsx) error
+	Save() error
 }
 
-func StyleCached(name string, fn func() int) int {
-	if !styleCodes.HasKey(name) {
-		if fn == nil {
-			panic("fn is nil")
+type DocXlsx struct {
+	Config *XlsxConfig
+	File   *excelize.File
+	Date   time.Time
+	Sheet  int
+}
+
+func NewDocXlsx(config *XlsxConfig) DocXlsxImpl {
+	var err error
+	var file *excelize.File
+	nokocore.KeepVoid(err, file)
+
+	index := 0
+	template := config.Templates[index]
+	sheetFilePath := filepath.Join(config.Assets, template.SheetFile)
+	fmt.Println(sheetFilePath)
+
+	if file, err = excelize.OpenFile(sheetFilePath); err != nil {
+		panic(fmt.Errorf("failed to open file, %w", err))
+	}
+
+	return &DocXlsx{
+		Config: config,
+		File:   file,
+		Date:   time.Now(),
+		Sheet:  index,
+	}
+}
+
+func (d *DocXlsx) Sheet1Print(sheetName string, formDataXlsx *FormDataXlsx, rows Sheet1TableRowsXlsx) (err error) {
+	if err = SetFormTitleXlsx(d.File, sheetName, "Pharma Cash App"); err != nil {
+		return err
+	}
+
+	if err = SetFormNameXlsx(d.File, sheetName, "John, Doe"); err != nil {
+		return err
+	}
+
+	if err = SetFormRoleXlsx(d.File, sheetName, "Administrator"); err != nil {
+		return err
+	}
+
+	if err = SetFormDateXlsx(d.File, sheetName, d.Date); err != nil {
+		return err
+	}
+
+	for i, row := range rows {
+		nokocore.KeepVoid(i)
+		j := i + 1
+
+		if err = SetSheet1TableNumberXlsx(d.File, sheetName, i, j); err != nil {
+			return err
 		}
 
-		temp := fn()
-		styleCodes.Set(name, temp)
-		return temp
-	}
+		if err = SetSheet1TableNameXlsx(d.File, sheetName, i, row.Name); err != nil {
+			return err
+		}
 
-	return styleCodes.Get(name)
-}
+		if err = SetSheet1TableBuyXlsx(d.File, sheetName, i, row.Buy.InexactFloat64()); err != nil {
+			return err
+		}
 
-func SetFormTitleXlsx(file *excelize.File, sheet string, title string) (err error) {
-	style := StyleCached("Arial-16-Center-Center", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "center",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   16,
-			},
-		}))
-	})
+		if err = SetSheet1TableMarginXlsx(d.File, sheetName, i, row.Margin.InexactFloat64()); err != nil {
+			return err
+		}
 
-	if err = file.SetCellValue(sheet, "D4", title); err != nil {
-		return err
-	}
+		if err = SetSheet1TableTaxXlsx(d.File, sheetName, i, row.Tax.InexactFloat64()); err != nil {
+			return err
+		}
 
-	if err = file.SetCellStyle(sheet, "D4", "G5", style); err != nil {
-		return err
-	}
+		if err = SetSheet1TableSaleXlsx(d.File, sheetName, i, row.Sale.InexactFloat64()); err != nil {
+			return err
+		}
 
-	if err = file.MergeCell(sheet, "D4", "G5"); err != nil {
-		return err
-	}
+		if err = SetSheet1TableStockInXlsx(d.File, sheetName, i, row.StockIn); err != nil {
+			return err
+		}
 
-	return nil
-}
+		if err = SetSheet1TableStockOutXlsx(d.File, sheetName, i, row.StockOut); err != nil {
+			return err
+		}
 
-func SetFormNameXlsx(file *excelize.File, sheet string, name string) (err error) {
-	style := StyleCached("Arial-12-Left-Center", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "left",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-		}))
-	})
+		if err = SetSheet1TableDateXlsx(d.File, sheetName, i, row.Date); err != nil {
+			return err
+		}
 
-	if err = file.SetCellValue(sheet, "I3", name); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, "I3", "J3", style); err != nil {
-		return err
-	}
-
-	if err = file.MergeCell(sheet, "I3", "J3"); err != nil {
-		return err
 	}
 
 	return nil
 }
 
-func SetFormRoleXlsx(file *excelize.File, sheet string, role string) (err error) {
-	style := StyleCached("Arial-12-Left-Center", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "left",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-		}))
-	})
-
-	if err = file.SetCellValue(sheet, "I4", role); err != nil {
+func (d *DocXlsx) Sheet2Print(sheetName string, formDataXlsx *FormDataXlsx, rows Sheet2TableRowsXlsx) (err error) {
+	if err = SetFormTitleXlsx(d.File, sheetName, "Pharma Cash App"); err != nil {
 		return err
 	}
 
-	if err = file.SetCellStyle(sheet, "I4", "J4", style); err != nil {
+	if err = SetFormNameXlsx(d.File, sheetName, "John, Doe"); err != nil {
 		return err
 	}
 
-	if err = file.MergeCell(sheet, "I4", "J4"); err != nil {
+	if err = SetFormRoleXlsx(d.File, sheetName, "Administrator"); err != nil {
 		return err
 	}
 
-	return nil
-}
-
-func SetFormDateXlsx(file *excelize.File, sheet string, date time.Time) (err error) {
-	style := StyleCached("Arial-12-Left-Center-Date-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "left",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxDateFormat,
-		}))
-	})
-
-	if err = file.SetCellValue(sheet, "I5", date); err != nil {
+	if err = SetFormDateXlsx(d.File, sheetName, d.Date); err != nil {
 		return err
 	}
 
-	if err = file.SetCellStyle(sheet, "I5", "J5", style); err != nil {
-		return err
-	}
+	for i, row := range rows {
+		nokocore.KeepVoid(i)
+		j := i + 1
 
-	if err = file.MergeCell(sheet, "I5", "J5"); err != nil {
-		return err
-	}
+		if err = SetSheet1TableNumberXlsx(d.File, sheetName, i, j); err != nil {
+			return err
+		}
 
-	return nil
-}
+		if err = SetSheet1TableNameXlsx(d.File, sheetName, i, row.Name); err != nil {
+			return err
+		}
 
-func SetSheet1TableNumberXlsx(file *excelize.File, sheet string, index int, value int) (err error) {
-	style := StyleCached("Arial-12-Center-Center-Number-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "center",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxNumberFormat,
-		}))
-	})
+		if err = SetSheet2TableOfficerNameXlsx(d.File, sheetName, i, row.OfficerName); err != nil {
+			return err
+		}
 
-	index += 10
-	cell := fmt.Sprintf("B%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
+		if err = SetSheet2TableOfficerShiftXlsx(d.File, sheetName, i, row.OfficerShift); err != nil {
+			return err
+		}
 
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
+		if err = SetSheet2TableStockInXlsx(d.File, sheetName, i, row.StockIn); err != nil {
+			return err
+		}
+
+		if err = SetSheet2TableStockOutXlsx(d.File, sheetName, i, row.StockOut); err != nil {
+			return err
+		}
+
+		if err = SetSheet2TableSubtotalBuyXlsx(d.File, sheetName, i, row.SubtotalBuy.InexactFloat64()); err != nil {
+			return err
+		}
+
+		if err = SetSheet2TableSubtotalMarginXlsx(d.File, sheetName, i, row.SubtotalMargin.InexactFloat64()); err != nil {
+			return err
+		}
+
+		if err = SetSheet2TableSubtotalTaxXlsx(d.File, sheetName, i, row.SubtotalTax.InexactFloat64()); err != nil {
+			return err
+		}
+
+		if err = SetSheet2TableSubtotalSaleXlsx(d.File, sheetName, i, row.SubtotalSale.InexactFloat64()); err != nil {
+			return err
+		}
+
+		if err = SetSheet2TableTotalBuyXlsx(d.File, sheetName, i, row.TotalBuy.InexactFloat64()); err != nil {
+			return err
+		}
+
+		if err = SetSheet2TableTotalMarginXlsx(d.File, sheetName, i, row.TotalMargin.InexactFloat64()); err != nil {
+			return err
+		}
+
+		if err = SetSheet2TableTotalTaxXlsx(d.File, sheetName, i, row.TotalTax.InexactFloat64()); err != nil {
+			return err
+		}
+
+		if err = SetSheet2TableTotalSaleXlsx(d.File, sheetName, i, row.TotalSale.InexactFloat64()); err != nil {
+			return err
+		}
+
+		if err = SetSheet2TableDateXlsx(d.File, sheetName, i, row.Date); err != nil {
+			return err
+		}
+
 	}
 
 	return nil
 }
 
-func SetSheet1TableNameXlsx(file *excelize.File, sheet string, index int, value string) (err error) {
-	style := StyleCached("Arial-12-Left-Center", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "left",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("C%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet1TableBuyXlsx(file *excelize.File, sheet string, index int, value float64) (err error) {
-	style := StyleCached("Arial-12-Right-Center-Currency-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "right",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxCurrencyFormat,
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("D%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet1TableMarginXlsx(file *excelize.File, sheet string, index int, value float64) (err error) {
-	style := StyleCached("Arial-12-Right-Center-Currency-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "right",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxCurrencyFormat,
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("E%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet1TableTaxXlsx(file *excelize.File, sheet string, index int, value float64) (err error) {
-	style := StyleCached("Arial-12-Right-Center-Currency-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "right",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxCurrencyFormat,
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("F%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet1TableSaleXlsx(file *excelize.File, sheet string, index int, value float64) (err error) {
-	style := StyleCached("Arial-12-Right-Center-Currency-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "right",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxCurrencyFormat,
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("G%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet1TableStockInXlsx(file *excelize.File, sheet string, index int, value int) (err error) {
-	style := StyleCached("Arial-12-Right-Center-Number-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "right",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxNumberFormat,
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("H%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet1TableStockOutXlsx(file *excelize.File, sheet string, index int, value int) (err error) {
-	style := StyleCached("Arial-12-Right-Center-Number-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "right",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxNumberFormat,
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("I%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet1TableDateXlsx(file *excelize.File, sheet string, index int, value time.Time) (err error) {
-	style := StyleCached("Arial-12-Right-Center-Date-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "right",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxDateFormat,
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("J%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet2TableOfficerNameXlsx(file *excelize.File, sheet string, index int, value string) (err error) {
-	style := StyleCached("Arial-12-Left-Center", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "left",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("D%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet2TableOfficerShiftXlsx(file *excelize.File, sheet string, index int, value string) (err error) {
-	style := StyleCached("Arial-12-Center-Center", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "center",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("E%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet2TableStockInXlsx(file *excelize.File, sheet string, index int, value int) (err error) {
-	style := StyleCached("Arial-12-Right-Center-Number-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "right",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxNumberFormat,
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("F%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet2TableStockOutXlsx(file *excelize.File, sheet string, index int, value int) (err error) {
-	style := StyleCached("Arial-12-Right-Center-Number-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "right",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxNumberFormat,
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("G%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet2TableSubtotalBuyXlsx(file *excelize.File, sheet string, index int, value float64) (err error) {
-	style := StyleCached("Arial-12-Right-Center-Currency-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "right",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxCurrencyFormat,
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("H%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet2TableSubtotalMarginXlsx(file *excelize.File, sheet string, index int, value float64) (err error) {
-	style := StyleCached("Arial-12-Right-Center-Currency-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "right",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxCurrencyFormat,
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("I%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet2TableSubtotalTaxXlsx(file *excelize.File, sheet string, index int, value float64) (err error) {
-	style := StyleCached("Arial-12-Right-Center-Currency-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "right",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxCurrencyFormat,
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("J%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet2TableSubtotalSaleXlsx(file *excelize.File, sheet string, index int, value float64) (err error) {
-	style := StyleCached("Arial-12-Right-Center-Currency-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "right",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxCurrencyFormat,
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("K%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet2TableTotalBuyXlsx(file *excelize.File, sheet string, index int, value float64) (err error) {
-	style := StyleCached("Arial-12-Right-Center-Currency-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "right",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxCurrencyFormat,
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("L%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet2TableTotalMarginXlsx(file *excelize.File, sheet string, index int, value float64) (err error) {
-	style := StyleCached("Arial-12-Right-Center-Currency-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "right",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxCurrencyFormat,
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("M%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet2TableTotalTaxXlsx(file *excelize.File, sheet string, index int, value float64) (err error) {
-	style := StyleCached("Arial-12-Right-Center-Currency-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "right",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxCurrencyFormat,
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("N%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet2TableTotalSaleXlsx(file *excelize.File, sheet string, index int, value float64) (err error) {
-	style := StyleCached("Arial-12-Right-Center-Currency-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "right",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxCurrencyFormat,
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("O%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetSheet2TableDateXlsx(file *excelize.File, sheet string, index int, value time.Time) (err error) {
-	style := StyleCached("Arial-12-Right-Center-Date-Format", func() int {
-		return nokocore.Unwrap(file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "right",
-				Vertical:   "center",
-			},
-			Border: border,
-			Font: &excelize.Font{
-				Family: "Arial",
-				Size:   12,
-			},
-			CustomNumFmt: &xlsxDateFormat,
-		}))
-	})
-
-	index += 10
-	cell := fmt.Sprintf("P%d", index)
-	if err = file.SetCellValue(sheet, cell, value); err != nil {
-		return err
-	}
-
-	if err = file.SetCellStyle(sheet, cell, cell, style); err != nil {
+func (d *DocXlsx) Save() (err error) {
+	outputFilePath := GetOutputNameForDocXlsx(d.Config, d.Sheet, d.Date)
+	if err = d.File.SaveAs(outputFilePath); err != nil {
 		return err
 	}
 

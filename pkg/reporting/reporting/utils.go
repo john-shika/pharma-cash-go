@@ -7,10 +7,11 @@ import (
 	"golang.org/x/text/message"
 	"golang.org/x/text/number"
 	"nokowebapi/nokocore"
+	"reporting/reporting/pdf"
 	"strings"
 )
 
-func GetTemplatePageSize(templateConfig PdfTemplateConfig) gopdf.Rect {
+func GetTemplatePageSize(templateConfig pdf.PdfTemplateConfig) gopdf.Rect {
 	switch strings.ToUpper(templateConfig.PageSize) {
 	case "LETTER":
 		return gopdf.Rect{W: 612, H: 792}
@@ -47,7 +48,7 @@ func GetTemplatePageSize(templateConfig PdfTemplateConfig) gopdf.Rect {
 	}
 }
 
-func IsTemplateLayoutLandscape(templateConfig PdfTemplateConfig) bool {
+func IsTemplateLayoutLandscape(templateConfig pdf.PdfTemplateConfig) bool {
 	switch strings.ToUpper(templateConfig.PageLayout) {
 	case "LANDSCAPE":
 		return true
@@ -57,7 +58,7 @@ func IsTemplateLayoutLandscape(templateConfig PdfTemplateConfig) bool {
 	}
 }
 
-func IsTemplateLayoutPortrait(templateConfig PdfTemplateConfig) bool {
+func IsTemplateLayoutPortrait(templateConfig pdf.PdfTemplateConfig) bool {
 	switch strings.ToUpper(templateConfig.PageLayout) {
 	case "PORTRAIT":
 		return true
@@ -69,12 +70,12 @@ func IsTemplateLayoutPortrait(templateConfig PdfTemplateConfig) bool {
 
 type ReportPdf struct {
 	*gopdf.GoPdf
-	TemplateConfig PdfTemplateConfig
-	Config         PdfConfig
+	TemplateConfig pdf.PdfTemplateConfig
+	Config         pdf.PdfConfig
 	PageSize       gopdf.Rect
 }
 
-func NewReportPdf(config PdfConfig, templateIndex int) *ReportPdf {
+func NewReportPdf(config pdf.PdfConfig, templateIndex int) *ReportPdf {
 	templateConfig := config.Templates[templateIndex]
 	pageSize := GetTemplatePageSize(templateConfig)
 	if IsTemplateLayoutLandscape(templateConfig) {

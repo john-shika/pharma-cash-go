@@ -5,6 +5,6 @@ type Config struct {
 	DB   string `mapstructure:"db" json:"db" yaml:"db"`
 }
 
-func (w *Config) GetNameType() string {
+func (Config) GetNameType() string {
 	return "Hwd"
 }

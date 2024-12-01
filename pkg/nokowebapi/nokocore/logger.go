@@ -15,7 +15,7 @@ func NewLoggerConfig() *LoggerConfig {
 	return &LoggerConfig{}
 }
 
-func (w *LoggerConfig) GetNameType() string {
+func (LoggerConfig) GetNameType() string {
 	return "Logger"
 }
 

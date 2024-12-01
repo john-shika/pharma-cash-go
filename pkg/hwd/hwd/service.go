@@ -40,11 +40,11 @@ func NewService() {
 	defer nokocore.NoErr(file.Close())
 
 	if header, ok := file.OptionalHeader.(*pe.OptionalHeader32); ok {
-		fmt.Printf("File: PE32\nMagic (Hex): %#04x\n", header.Magic)
+		fmt.Printf("Excel: PE32\nMagic (Hex): %#04x\n", header.Magic)
 	}
 
 	if header, ok := file.OptionalHeader.(*pe.OptionalHeader64); ok {
-		fmt.Printf("File: PE32+\nMagic (Hex): %#04x\n", header.Magic)
+		fmt.Printf("Excel: PE32+\nMagic (Hex): %#04x\n", header.Magic)
 	}
 
 	if DB, err = apis.SqliteOpenFile(config.DB, &gorm.Config{}); err != nil {

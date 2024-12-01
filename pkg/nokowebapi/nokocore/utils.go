@@ -3,6 +3,7 @@ package nokocore
 import (
 	"crypto/sha256"
 	"crypto/sha512"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"os"
@@ -103,11 +104,11 @@ func CreateEmptyFile(path string) error {
 			return fmt.Errorf("[OS] Failed to create file: %s, %w", filePath, err)
 		}
 
-		fmt.Printf("[OS] File %s has been created.\n", filePath)
+		fmt.Printf("[OS] Excel %s has been created.\n", filePath)
 		NoErr(file.Close())
 
 	} else {
-		fmt.Printf("[OS] File %s already exists.\n", filePath)
+		fmt.Printf("[OS] Excel %s already exists.\n", filePath)
 
 	}
 
@@ -250,4 +251,26 @@ func ToFileSizeFormat(size int64) string {
 	default:
 		return fmt.Sprintf("%d B", size)
 	}
+}
+
+func Int64ToHexCodes(value int64) string {
+	buff := make([]byte, 8)
+	for i := 0; i < 8; i++ {
+		j := 8 - i - 1
+		buff[j] = byte(value & 0xff)
+		value >>= 8
+	}
+
+	return fmt.Sprintf("%016x", buff)
+}
+
+func Int64ToBase64RawURL(value int64) string {
+	buff := make([]byte, 8)
+	for i := 0; i < 8; i++ {
+		j := 8 - i - 1
+		buff[j] = byte(value & 0xff)
+		value >>= 8
+	}
+
+	return base64.RawURLEncoding.EncodeToString(buff)
 }

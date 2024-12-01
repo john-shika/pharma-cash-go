@@ -3,19 +3,27 @@ package pdf
 import (
 	"fmt"
 	"github.com/signintech/gopdf"
+	"golang.org/x/text/currency"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
+	"golang.org/x/text/number"
+	"nokowebapi/nokocore"
 	"path/filepath"
 	"strings"
 	"time"
 )
 
-func GetOutputNameForDocPdf(config *PdfConfig, index int, date time.Time) string {
+func GetOutputNameForDocPdf(config *Config, index int, date time.Time) string {
 	dateFormat := "2006-01-02-15-04-05"
-	outputName := strings.ReplaceAll(config.OutputName, "{index}", fmt.Sprintf("%d", index))
-	outputName = strings.ReplaceAll(outputName, "{date}", date.Local().Format(dateFormat))
+	dateExtend := nokocore.Int64ToBase64RawURL(date.UnixMilli())
+	dateOutput := fmt.Sprintf("%s-%s", date.Local().Format(dateFormat), dateExtend)
+	indexOutput := fmt.Sprintf("%d", index)
+	outputName := strings.ReplaceAll(config.OutputName, "{index}", indexOutput)
+	outputName = strings.ReplaceAll(outputName, "{date}", dateOutput)
 	return filepath.Join(config.OutputDir, outputName)
 }
 
-func GetTemplatePageSize(templateConfig PdfTemplateConfig) gopdf.Rect {
+func GetTemplatePageSize(templateConfig TemplateConfig) gopdf.Rect {
 	switch strings.ToUpper(templateConfig.PageSize) {
 	case "LETTER":
 		return gopdf.Rect{W: 612, H: 792}
@@ -52,7 +60,7 @@ func GetTemplatePageSize(templateConfig PdfTemplateConfig) gopdf.Rect {
 	}
 }
 
-func IsTemplateLayoutLandscape(templateConfig PdfTemplateConfig) bool {
+func IsTemplateLayoutLandscape(templateConfig TemplateConfig) bool {
 	switch strings.ToUpper(templateConfig.PageLayout) {
 	case "LANDSCAPE":
 		return true
@@ -62,7 +70,7 @@ func IsTemplateLayoutLandscape(templateConfig PdfTemplateConfig) bool {
 	}
 }
 
-func IsTemplateLayoutPortrait(templateConfig PdfTemplateConfig) bool {
+func IsTemplateLayoutPortrait(templateConfig TemplateConfig) bool {
 	switch strings.ToUpper(templateConfig.PageLayout) {
 	case "PORTRAIT":
 		return true
@@ -70,4 +78,19 @@ func IsTemplateLayoutPortrait(templateConfig PdfTemplateConfig) bool {
 	default:
 		return false
 	}
+}
+
+func CurrencyFormat(s string, value any) string {
+	//lang := language.MustParse(s)
+	//cur, unit := currency.FromTag(lang)
+	//nokocore.KeepVoid(lang, cur, unit)
+	cur := currency.MustParseISO(s)
+	scale, inc := currency.Cash.Rounding(cur)
+	nokocore.KeepVoid(scale, inc)
+	dec := number.Decimal(value, number.Scale(scale))
+	//p := message.NewPrinter(lang)
+	p := message.NewPrinter(language.English)
+	//n := display.Tags(language.English)
+	//p.Printf("%24v (%v): %v%v\n", n.Name(lang), cur, currency.Symbol(cur), dec)
+	return p.Sprintf("%v", dec)
 }

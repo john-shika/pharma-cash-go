@@ -6,8 +6,8 @@ import (
 )
 
 type Config struct {
-	Pdf  pdf.PdfConfig   `mapstructure:"pdf" json:"pdf" yaml:"pdf"`
-	Xlsx xlsx.XlsxConfig `mapstructure:"xlsx" json:"xlsx" yaml:"xlsx"`
+	Pdf  pdf.Config  `mapstructure:"pdf" json:"pdf" yaml:"pdf"`
+	Xlsx xlsx.Config `mapstructure:"xlsx" json:"xlsx" yaml:"xlsx"`
 }
 
 func (Config) GetNameType() string {

@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func GetTemplatePageSize(templateConfig pdf.PdfTemplateConfig) gopdf.Rect {
+func GetTemplatePageSize(templateConfig pdf.TemplateConfig) gopdf.Rect {
 	switch strings.ToUpper(templateConfig.PageSize) {
 	case "LETTER":
 		return gopdf.Rect{W: 612, H: 792}
@@ -48,7 +48,7 @@ func GetTemplatePageSize(templateConfig pdf.PdfTemplateConfig) gopdf.Rect {
 	}
 }
 
-func IsTemplateLayoutLandscape(templateConfig pdf.PdfTemplateConfig) bool {
+func IsTemplateLayoutLandscape(templateConfig pdf.TemplateConfig) bool {
 	switch strings.ToUpper(templateConfig.PageLayout) {
 	case "LANDSCAPE":
 		return true
@@ -58,7 +58,7 @@ func IsTemplateLayoutLandscape(templateConfig pdf.PdfTemplateConfig) bool {
 	}
 }
 
-func IsTemplateLayoutPortrait(templateConfig pdf.PdfTemplateConfig) bool {
+func IsTemplateLayoutPortrait(templateConfig pdf.TemplateConfig) bool {
 	switch strings.ToUpper(templateConfig.PageLayout) {
 	case "PORTRAIT":
 		return true
@@ -70,12 +70,12 @@ func IsTemplateLayoutPortrait(templateConfig pdf.PdfTemplateConfig) bool {
 
 type ReportPdf struct {
 	*gopdf.GoPdf
-	TemplateConfig pdf.PdfTemplateConfig
-	Config         pdf.PdfConfig
+	TemplateConfig pdf.TemplateConfig
+	Config         pdf.Config
 	PageSize       gopdf.Rect
 }
 
-func NewReportPdf(config pdf.PdfConfig, templateIndex int) *ReportPdf {
+func NewReportPdf(config pdf.Config, templateIndex int) *ReportPdf {
 	templateConfig := config.Templates[templateIndex]
 	pageSize := GetTemplatePageSize(templateConfig)
 	if IsTemplateLayoutLandscape(templateConfig) {
@@ -101,7 +101,7 @@ func NewReportPdf(config pdf.PdfConfig, templateIndex int) *ReportPdf {
 func CurrencyFormat(s string, value any) string {
 	//lang := language.MustParse(s)
 	//cur, unit := currency.FromTag(lang)
-	//nokocore.KeepVoid(cur, unit)
+	//nokocore.KeepVoid(lang, cur, unit)
 	cur := currency.MustParseISO(s)
 	scale, inc := currency.Cash.Rounding(cur)
 	nokocore.KeepVoid(scale, inc)
@@ -110,6 +110,5 @@ func CurrencyFormat(s string, value any) string {
 	p := message.NewPrinter(language.English)
 	//n := display.Tags(language.English)
 	//p.Printf("%24v (%v): %v%v\n", n.Name(lang), cur, currency.Symbol(cur), dec)
-	//return p.Sprintf("%v %v", currency.Symbol(cur), dec)
 	return p.Sprintf("%v", dec)
 }

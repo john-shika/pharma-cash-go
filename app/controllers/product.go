@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"github.com/labstack/echo/v4"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"nokowebapi/apis/extras"
 	"nokowebapi/apis/utils"
@@ -107,6 +108,17 @@ func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
 
 		product.UnitID = unit.ID
 		product.Unit = *unit
+
+		// tax product price and income
+		//margin := product.PurchasePrice.Mul(decimal.NewFromFloat(product.ProfitMargin))
+		//result := product.PurchasePrice.Add(margin)
+		//tax := result.Mul(decimal.NewFromFloat(product.VAT))
+		//product.SalePrice = result.Add(tax)
+
+		// only tax product price
+		margin := product.PurchasePrice.Mul(decimal.NewFromFloat(product.ProfitMargin))
+		tax := product.PurchasePrice.Mul(decimal.NewFromFloat(product.VAT))
+		product.SalePrice = product.PurchasePrice.Add(margin).Add(tax)
 
 		if err = productRepository.SafeCreate(product); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))

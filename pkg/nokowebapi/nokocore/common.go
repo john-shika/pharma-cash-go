@@ -29,12 +29,11 @@ func NoErr(err error) {
 	}
 }
 
-func Copy[T any](values []T) []T {
-	size := len(values)
-	temp := make([]T, size)
-	copy(temp, values)
-	return temp
-}
+//func Copy[T any](values []T, size int) []T {
+//	temp := make([]T, size)
+//	copy(temp, values)
+//	return temp
+//}
 
 func ToInt(value any) int64 {
 	if value != nil {

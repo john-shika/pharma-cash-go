@@ -17,14 +17,14 @@ func (FormDataXlsx) GetNameType() string {
 }
 
 type Sheet1TableColsXlsx struct {
-	Name     string          `mapstructure:"name" json:"name"`
-	Buy      decimal.Decimal `mapstructure:"buy" json:"buy"`
-	Margin   decimal.Decimal `mapstructure:"margin" json:"margin"`
-	Tax      decimal.Decimal `mapstructure:"tax" json:"tax"`
-	Sale     decimal.Decimal `mapstructure:"sale" json:"sale"`
-	StockIn  int             `mapstructure:"stock_in" json:"stockIn"`
-	StockOut int             `mapstructure:"stock_out" json:"stockOut"`
-	Date     time.Time       `mapstructure:"date" json:"date"`
+	Name   string          `mapstructure:"name" json:"name"`
+	Buy    decimal.Decimal `mapstructure:"buy" json:"buy"`
+	Margin decimal.Decimal `mapstructure:"margin" json:"margin"`
+	Tax    decimal.Decimal `mapstructure:"tax" json:"tax"`
+	Sale   decimal.Decimal `mapstructure:"sale" json:"sale"`
+	Stock  int             `mapstructure:"stock" json:"stock"`
+	Sold   int             `mapstructure:"sold" json:"sold"`
+	Date   time.Time       `mapstructure:"date" json:"date"`
 }
 
 func (Sheet1TableColsXlsx) GetNameType() string {
@@ -38,20 +38,11 @@ func (Sheet1TableRowsXlsx) GetNameType() string {
 }
 
 type Sheet2TableColsXlsx struct {
-	Name           string          `mapstructure:"name" json:"name"`
-	OfficerName    string          `mapstructure:"officer_name" json:"officerName"`
-	OfficerShift   string          `mapstructure:"officer_shift" json:"officerShift"`
-	StockIn        int             `mapstructure:"stock_in" json:"stockIn"`
-	StockOut       int             `mapstructure:"stock_out" json:"stockOut"`
-	SubtotalBuy    decimal.Decimal `mapstructure:"subtotal_buy" json:"subtotalBuy"`
-	SubtotalMargin decimal.Decimal `mapstructure:"subtotal_margin" json:"subtotalMargin"`
-	SubtotalTax    decimal.Decimal `mapstructure:"subtotal_tax" json:"subtotalTax"`
-	SubtotalSale   decimal.Decimal `mapstructure:"subtotal_sale" json:"subtotalSale"`
-	TotalBuy       decimal.Decimal `mapstructure:"total_buy" json:"totalBuy"`
-	TotalMargin    decimal.Decimal `mapstructure:"total_margin" json:"totalMargin"`
-	TotalTax       decimal.Decimal `mapstructure:"total_tax" json:"totalTax"`
-	TotalSale      decimal.Decimal `mapstructure:"total_sale" json:"totalSale"`
-	Date           time.Time       `mapstructure:"date" json:"date"`
+	Name     string    `mapstructure:"name" json:"name"`
+	Brand    string    `mapstructure:"brand" json:"brand"`
+	Supplier string    `mapstructure:"supplier" json:"supplier"`
+	Stock    int       `mapstructure:"stock" json:"stock"`
+	Expires  time.Time `mapstructure:"expires" json:"expires"`
 }
 
 func (Sheet2TableColsXlsx) GetNameType() string {
@@ -62,4 +53,25 @@ type Sheet2TableRowsXlsx []Sheet2TableColsXlsx
 
 func (Sheet2TableRowsXlsx) GetNameType() string {
 	return "Sheet2TableRows"
+}
+
+type Sheet3TableColsXlsx struct {
+	Name     string          `mapstructure:"name" json:"name"`
+	Officer  string          `mapstructure:"officer" json:"officer"`
+	Shift    string          `mapstructure:"shift" json:"shift"`
+	Quantity int             `mapstructure:"quantity" json:"quantity"`
+	Subtotal decimal.Decimal `mapstructure:"subtotal" json:"subtotal"`
+	Total    decimal.Decimal `mapstructure:"total" json:"total"`
+	Income   decimal.Decimal `mapstructure:"income" json:"income"`
+	Date     time.Time       `mapstructure:"date" json:"date"`
+}
+
+func (Sheet3TableColsXlsx) GetNameType() string {
+	return "Sheet3TableCols"
+}
+
+type Sheet3TableRowsXlsx []Sheet3TableColsXlsx
+
+func (Sheet3TableRowsXlsx) GetNameType() string {
+	return "Sheet3TableRows"
 }

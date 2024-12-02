@@ -412,7 +412,7 @@ func (p *ProcessTasks) startTaskHelper(task ConfigImpl) error {
 	// try to dial url it-self
 	if network := task.GetNetwork(); network != nil {
 		if nokocore.TryFetchUrl(network.GetURL()) {
-			fmt.Printf("[FETCH] URL '%s' is alive.\n", network.GetURL().String())
+			fmt.Printf("[Fetch] URL '%s' is alive.\n", network.GetURL().String())
 			return nil
 		}
 	}

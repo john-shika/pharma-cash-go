@@ -19,14 +19,15 @@ type Product struct {
 	Description      string          `db:"description" gorm:"index;not null;" mapstructure:"description" json:"description"`
 	Expires          sqlx.DateOnly   `db:"expires" gorm:"index;not null;" mapstructure:"expires" json:"expires"`
 	PurchasePrice    decimal.Decimal `db:"purchase_price" gorm:"index;not null;" mapstructure:"purchase_price" json:"purchasePrice"`
-	SupplierDiscount float32         `db:"supplier_discount" gorm:"index;not null;" mapstructure:"supplier_discount" json:"supplierDiscount"`
-	VAT              float32         `db:"vat" gorm:"index;not null;" mapstructure:"vat" json:"vat"`
-	ProfitMargin     float32         `db:"profit_margin" gorm:"index;not null;" mapstructure:"profit_margin" json:"profitMargin"`
+	SalePrice        decimal.Decimal `db:"sale_price" gorm:"index;not null;" mapstructure:"sale_price" json:"salePrice"`
+	SupplierDiscount float64         `db:"supplier_discount" gorm:"index;not null;" mapstructure:"supplier_discount" json:"supplierDiscount"`
+	VAT              float64         `db:"vat" gorm:"index;not null;" mapstructure:"vat" json:"vat"`
+	ProfitMargin     float64         `db:"profit_margin" gorm:"index;not null;" mapstructure:"profit_margin" json:"profitMargin"`
 	PackageID        uint            `db:"package_id" gorm:"index;not null;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;" mapstructure:"package_id" json:"packageId"`
-	PackageTotal     float32         `db:"package_total" gorm:"index;not null;" mapstructure:"package_total" json:"packageTotal"`
+	PackageTotal     int             `db:"package_total" gorm:"index;not null;" mapstructure:"package_total" json:"packageTotal"`
 	UnitID           uint            `db:"unit_id" gorm:"index;not null;" mapstructure:"unit_id" json:"unitId"`
-	UnitAmount       float32         `db:"unit_amount" gorm:"index;not null;" mapstructure:"unit_amount" json:"unitAmount"`
-	UnitExtra        float32         `db:"unit_extra" gorm:"index;not null;" mapstructure:"unit_extra" json:"unitExtra"`
+	UnitAmount       int             `db:"unit_amount" gorm:"index;not null;" mapstructure:"unit_amount" json:"unitAmount"`
+	UnitExtra        int             `db:"unit_extra" gorm:"index;not null;" mapstructure:"unit_extra" json:"unitExtra"`
 
 	Package    Package    `db:"-" gorm:"foreignKey:PackageID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;" mapstructure:"package" json:"package"`
 	Unit       Unit       `db:"-" gorm:"foreignKey:UnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;" mapstructure:"unit" json:"unit"`

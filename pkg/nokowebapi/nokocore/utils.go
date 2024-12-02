@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"github.com/shopspring/decimal"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -104,11 +105,11 @@ func CreateEmptyFile(path string) error {
 			return fmt.Errorf("[OS] Failed to create file: %s, %w", filePath, err)
 		}
 
-		fmt.Printf("[OS] Excel %s has been created.\n", filePath)
+		fmt.Printf("[OS] File %s has been created.\n", filePath)
 		NoErr(file.Close())
 
 	} else {
-		fmt.Printf("[OS] Excel %s already exists.\n", filePath)
+		fmt.Printf("[OS] File %s already exists.\n", filePath)
 
 	}
 
@@ -273,4 +274,44 @@ func Int64ToBase64RawURL(value int64) string {
 	}
 
 	return base64.RawURLEncoding.EncodeToString(buff)
+}
+
+func DecimalCurrencyFormat(d decimal.Decimal) string {
+	temp := d.StringFixed(0)
+	size := len(temp)
+
+	var result []rune
+	for i, character := range temp {
+		KeepVoid(i)
+		k := (size - i) % 3
+		if i != 0 && k == 0 {
+			result = append(result, ',')
+		}
+
+		result = append(result, character)
+	}
+
+	return string(result)
+}
+
+func LimitTextContent(s string, length int) string {
+	if len(s) > length {
+		temp := s[:length]
+		size := len(temp)
+		switch {
+		case size > 3:
+			return temp[:size-3] + "..."
+
+		case size > 2:
+			return temp[:size-2] + ".."
+
+		case size > 1:
+			return temp[:size-1] + "."
+
+		default:
+			return temp
+		}
+	}
+
+	return s
 }

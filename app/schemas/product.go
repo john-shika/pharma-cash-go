@@ -16,16 +16,16 @@ type ProductBody struct {
 	Description      string   `mapstructure:"description" json:"description" form:"description"`
 	Expires          string   `mapstructure:"expires" json:"expires" form:"expires" validate:"dateOnly"`
 	PurchasePrice    string   `mapstructure:"purchase_price" json:"purchasePrice" form:"purchase_price" validate:"decimal,min=0"`
-	SupplierDiscount float32  `mapstructure:"supplier_discount" json:"supplierDiscount" form:"supplier_discount" validate:"numeric,min=0"`
-	VAT              float32  `mapstructure:"vat" json:"tax" form:"vat" validate:"numeric,min=0"` // input "tax"
-	ProfitMargin     float32  `mapstructure:"profit_margin" json:"profitMargin" form:"profit_margin" validate:"numeric,min=0"`
+	SupplierDiscount int      `mapstructure:"supplier_discount" json:"supplierDiscount" form:"supplier_discount" validate:"numeric,min=0"`
+	VAT              int      `mapstructure:"vat" json:"tax" form:"vat" validate:"numeric,min=0"` // input "tax"
+	ProfitMargin     int      `mapstructure:"profit_margin" json:"profitMargin" form:"profit_margin" validate:"numeric,min=0"`
 	PackageID        string   `mapstructure:"package_id" json:"packageId" form:"package_id" validate:"uuid,omitempty"`
 	PackageType      string   `mapstructure:"package_type" json:"packageType" form:"package_type" validate:"omitempty"`
-	PackageTotal     float32  `mapstructure:"package_total" json:"packageTotal" form:"package_total" validate:"number,min=0"`
+	PackageTotal     int      `mapstructure:"package_total" json:"packageTotal" form:"package_total" validate:"number,min=0"`
 	UnitID           string   `mapstructure:"unit_id" json:"unitId" form:"unit_id" validate:"uuid,omitempty"`
 	UnitType         string   `mapstructure:"unit_type" json:"unitType" form:"unit_type" validate:"omitempty"`
-	UnitAmount       float32  `mapstructure:"unit_amount" json:"unitAmount" form:"unit_amount" validate:"number,min=0"`
-	UnitExtra        float32  `mapstructure:"unit_extra" json:"unitExtra" form:"unit_extra" validate:"omitempty"`
+	UnitAmount       int      `mapstructure:"unit_amount" json:"unitAmount" form:"unit_amount" validate:"number,min=0"`
+	UnitExtra        int      `mapstructure:"unit_extra" json:"unitExtra" form:"unit_extra" validate:"omitempty"`
 	Categories       []string `mapstructure:"categories" json:"categories" form:"categories" validate:"ascii,min=1,omitempty"`
 	Category         string   `mapstructure:"category" json:"category" form:"category" validate:"ascii,omitempty"`
 }
@@ -48,6 +48,9 @@ func ToProductModel(product *ProductBody) *models2.Product {
 			}
 			categories = append(categories, categoryModel)
 		}
+		discount := float64(product.SupplierDiscount) / 100
+		vat := float64(product.VAT) / 100
+		margin := float64(product.ProfitMargin) / 100
 		return &models2.Product{
 			Barcode:          product.Barcode,
 			Brand:            product.Brand,
@@ -56,9 +59,9 @@ func ToProductModel(product *ProductBody) *models2.Product {
 			Description:      product.Description,
 			Expires:          sqlx.ParseDateOnlyNotNull(product.Expires),
 			PurchasePrice:    decimal.RequireFromString(product.PurchasePrice),
-			SupplierDiscount: product.SupplierDiscount,
-			VAT:              product.VAT,
-			ProfitMargin:     product.ProfitMargin,
+			SupplierDiscount: discount,
+			VAT:              vat,
+			ProfitMargin:     margin,
 			PackageTotal:     product.PackageTotal,
 			UnitAmount:       product.UnitAmount,
 			UnitExtra:        product.UnitExtra,
@@ -78,16 +81,17 @@ type ProductResult struct {
 	Description      string          `mapstructure:"description" json:"description"`
 	Expires          string          `mapstructure:"expires" json:"expires"`
 	PurchasePrice    decimal.Decimal `mapstructure:"purchase_price" json:"purchasePrice"`
-	SupplierDiscount float32         `mapstructure:"supplier_discount" json:"supplierDiscount"`
-	VAT              float32         `mapstructure:"vat" json:"tax"` // output "tax"
-	ProfitMargin     float32         `mapstructure:"profit_margin" json:"profitMargin"`
+	SalePrice        decimal.Decimal `mapstructure:"sale_price" json:"salePrice"`
+	SupplierDiscount int             `mapstructure:"supplier_discount" json:"supplierDiscount"`
+	VAT              int             `mapstructure:"vat" json:"tax"` // output "tax"
+	ProfitMargin     int             `mapstructure:"profit_margin" json:"profitMargin"`
 	PackageId        uuid.UUID       `mapstructure:"package_id" json:"packageId"`
 	PackageType      string          `mapstructure:"package_type" json:"packageType"`
-	PackageTotal     float32         `mapstructure:"package_total" json:"packageTotal"`
+	PackageTotal     int             `mapstructure:"package_total" json:"packageTotal"`
 	UnitID           uuid.UUID       `mapstructure:"unit_id" json:"unitId"`
 	UnitType         string          `mapstructure:"unit_type" json:"unitType"`
-	UnitAmount       float32         `mapstructure:"unit_amount" json:"unitAmount"`
-	UnitExtra        float32         `mapstructure:"unit_extra" json:"unitExtra"`
+	UnitAmount       int             `mapstructure:"unit_amount" json:"unitAmount"`
+	UnitExtra        int             `mapstructure:"unit_extra" json:"unitExtra"`
 	CreatedAt        string          `mapstructure:"created_at" json:"createdAt"`
 	UpdatedAt        string          `mapstructure:"updated_at" json:"updatedAt"`
 	DeletedAt        string          `mapstructure:"deleted_at" json:"deletedAt,omitempty"`
@@ -112,6 +116,9 @@ func ToProductResult(product *models2.Product) ProductResult {
 		if product.DeletedAt.Valid {
 			deletedAt = nokocore.ToTimeUtcStringISO8601(product.DeletedAt.Time)
 		}
+		discount := product.SupplierDiscount * 100
+		vat := product.VAT * 100
+		margin := product.ProfitMargin * 100
 		return ProductResult{
 			UUID:             product.UUID,
 			Barcode:          product.Barcode,
@@ -121,9 +128,10 @@ func ToProductResult(product *models2.Product) ProductResult {
 			Description:      product.Description,
 			Expires:          product.Expires.Format(nokocore.DateOnlyFormat),
 			PurchasePrice:    product.PurchasePrice,
-			SupplierDiscount: product.SupplierDiscount,
-			VAT:              product.VAT,
-			ProfitMargin:     product.ProfitMargin,
+			SalePrice:        product.SalePrice,
+			SupplierDiscount: int(discount),
+			VAT:              int(vat),
+			ProfitMargin:     int(margin),
 			PackageId:        product.Package.UUID,
 			PackageType:      product.Package.PackageType,
 			PackageTotal:     product.PackageTotal,

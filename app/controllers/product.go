@@ -153,10 +153,12 @@ func GetAllProductsByName(DB *gorm.DB) echo.HandlerFunc {
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get products.", nil)
 		}
 
-		var productResults []schemas2.ProductResult
+		size := len(products)
+		productResults := make([]schemas2.ProductResult, size)
 		for i, product := range products {
 			nokocore.KeepVoid(i)
-			productResults = append(productResults, schemas2.ToProductResult(&product))
+			productResult := schemas2.ToProductResult(&product)
+			productResults[i] = productResult
 		}
 
 		return extras.NewMessageBodyOk(ctx, "Successfully get products.", &nokocore.MapAny{

@@ -10,6 +10,7 @@ import (
 	"nokowebapi/nokocore"
 	models2 "pharma-cash-go/app/models"
 	repositories2 "pharma-cash-go/app/repositories"
+	schemas2 "pharma-cash-go/app/schemas"
 )
 
 func GetAllCarts(DB *gorm.DB) echo.HandlerFunc {
@@ -30,13 +31,23 @@ func GetAllCarts(DB *gorm.DB) echo.HandlerFunc {
 
 		user := jwtAuthInfo.User
 		pagination := extras.NewURLQueryPaginationFromEchoContext(ctx)
-		preloads := []string{"Product"}
+		preloads := []string{"Product", "Product.Categories", "Product.Package", "Product.Unit"}
 		if carts, err = cartRepository.SafePreMany(preloads, pagination.Offset, pagination.Limit, "user_id = ?", user.ID); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get carts.", nil)
 		}
 
-		return nil
+		size := len(carts)
+		cartResults := make([]schemas2.CartResult, size)
+		for i, cart := range carts {
+			nokocore.KeepVoid(i)
+			cartResult := schemas2.ToCartResult(&cart)
+			cartResults[i] = cartResult
+		}
+
+		return extras.NewMessageBodyOk(ctx, "Successfully get carts.", &nokocore.MapAny{
+			"carts": cartResults,
+		})
 	}
 }
 

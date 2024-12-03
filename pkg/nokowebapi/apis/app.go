@@ -5,7 +5,6 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"nokowebapi/apis/models"
-	"nokowebapi/console"
 	"nokowebapi/nokocore"
 )
 
@@ -25,7 +24,29 @@ func SqliteOpenFile(path string, config *gorm.Config) (*gorm.DB, error) {
 	return DB, nil
 }
 
-func DBAutoMigrations(DB *gorm.DB, tables []any) {
+type FactoryData map[int][]any
+
+func (FactoryData) GetNameType() string {
+	return "FactoryData"
+}
+
+type FactoryHook func(tx *gorm.DB) []any
+
+func (FactoryHook) GetNameType() string {
+	return "FactoryHook"
+}
+
+func Factories(DB *gorm.DB, factories []FactoryHook) FactoryData {
+	temp := make(FactoryData)
+	for i, factory := range factories {
+		nokocore.KeepVoid(i)
+		temp[i] = factory(DB)
+	}
+
+	return temp
+}
+
+func Migrations(DB *gorm.DB, tables []any) error {
 	var err error
 	nokocore.KeepVoid(err)
 
@@ -37,10 +58,12 @@ func DBAutoMigrations(DB *gorm.DB, tables []any) {
 	}
 
 	if err = DB.AutoMigrate(defaults...); err != nil {
-		console.Fatal(fmt.Sprintf("failed to migrate database: %s\n", err.Error()))
+		return err
 	}
 
 	if err = DB.AutoMigrate(tables...); err != nil {
-		console.Fatal(fmt.Sprintf("failed to migrate database: %s\n", err.Error()))
+		return err
 	}
+
+	return err
 }

@@ -8,6 +8,6 @@ type Barcode struct {
 	Closed bool   `db:"closed" gorm:"index;not null;" mapstructure:"closed" json:"closed"`
 }
 
-func (b *Barcode) TableName() string {
+func (Barcode) TableName() string {
 	return "barcodes"
 }

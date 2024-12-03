@@ -112,7 +112,9 @@ func Main(args []string) nokocore.ExitCode {
 
 	// START DATABASE Auto Migrations
 
-	DBAutoMigrations(DB)
+	if err = Migrations(DB); err != nil {
+		console.Fatal(fmt.Sprintf("failed to migrate database: %s\n", err.Error()))
+	}
 
 	// END DATABASE Auto Migrations
 

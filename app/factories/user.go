@@ -4,12 +4,13 @@ import (
 	"gorm.io/gorm"
 	"nokowebapi/apis/factories"
 	"nokowebapi/apis/models"
+	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
 )
 
-func UserFactory(DB *gorm.DB) []models.User {
-	users := []models.User{
-		{
+func UserFactory(DB *gorm.DB) []any {
+	users := []any{
+		models.User{
 			Username: "admin",
 			Password: "Admin@1234",
 			FullName: sqlx.NewString("John, Doe"),
@@ -18,7 +19,7 @@ func UserFactory(DB *gorm.DB) []models.User {
 			Admin:    true,
 			Level:    1,
 		},
-		{
+		models.User{
 			Username: "user",
 			Password: "User@1234",
 			FullName: sqlx.NewString("Angeline, Rose"),
@@ -29,9 +30,9 @@ func UserFactory(DB *gorm.DB) []models.User {
 		},
 	}
 
-	return factories.BaseFactory[models.User](DB, users, "username = ?", func(user models.User) []any {
+	return factories.BaseFactory(DB, users, "username = ?", func(user any) []any {
 		return []any{
-			user.Username,
+			nokocore.GetValueWithSuperKey(user, "username"),
 		}
 	})
 }

@@ -304,18 +304,37 @@ func UpdateProduct(DB *gorm.DB) echo.HandlerFunc {
 
 func DeleteProduct(DB *gorm.DB) echo.HandlerFunc {
 
-	return func(ctx echo.Context) error {
-		paramProductId := ctx.Param("productId")
-		// productId, _ := strconv.Atoi(paramProductId)
+	productRepository := repositories2.NewProductRepository(DB)
 
-		result := DB.Model(models2.Product{}).Where("uuid = ?", paramProductId).Delete(&models2.Product{})
-		if result.Error != nil {
-			console.Error(fmt.Sprintf("panic: %s", result.Error.Error()))
-			return extras.NewMessageBodyInternalServerError(ctx, "Failed to delete product.", nil)
+	return func(ctx echo.Context) error {
+		var err error
+		var product *models2.Product
+		nokocore.KeepVoid(err, product)
+
+		productId := ctx.Param("productId")
+		permanent := extras.ParseQueryToBool(ctx, "permanent")
+
+		if product, err = productRepository.First("uuid = ?", productId); err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get product.", nil)
 		}
 
-		if result.RowsAffected < 1 {
-			return extras.NewMessageBodyNotFound(ctx, "Product not found.", nil)
+		if !permanent && product.DeletedAt.Valid {
+			return extras.NewMessageBodyOk(ctx, "Product already deleted.", nil)
+		}
+
+		if product != nil {
+			if !permanent {
+				if err = productRepository.SafeDelete(product, "uuid = ?", productId); err != nil {
+					console.Error(fmt.Sprintf("panic: %s", err.Error()))
+					return extras.NewMessageBodyInternalServerError(ctx, "Failed to delete product.", nil)
+				}
+			} else {
+				if err = productRepository.Delete(product, "uuid = ?", productId); err != nil {
+					console.Error(fmt.Sprintf("panic: %s", err.Error()))
+					return extras.NewMessageBodyInternalServerError(ctx, "Failed to delete product.", nil)
+				}
+			}
 		}
 
 		return extras.NewMessageBodyOk(ctx, "Successfully delete product.", nil)

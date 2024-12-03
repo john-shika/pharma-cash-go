@@ -180,12 +180,8 @@ func DeleteOwnUser(DB *gorm.DB) echo.HandlerFunc {
 
 		permanent := extras.ParseQueryToBool(ctx, "permanent")
 
-		data := &nokocore.MapAny{
-			"user": schemas.ToUserResult(user),
-		}
-
 		if !permanent && user.DeletedAt.Valid {
-			return extras.NewMessageBodyOk(ctx, "User already deleted.", data)
+			return extras.NewMessageBodyOk(ctx, "User already deleted.", nil)
 		}
 
 		// check di employee juga

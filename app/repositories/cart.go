@@ -16,6 +16,6 @@ type CartRepository struct {
 
 func NewCartRepository(DB *gorm.DB) CartRepositoryImpl {
 	return &CartRepository{
-		BaseRepositoryImpl: repositories.NewBaseRepository[models2.Cart](DB),
+		repositories.NewBaseRepository[models2.Cart](DB),
 	}
 }

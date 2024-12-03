@@ -16,6 +16,6 @@ type ProductRepository struct {
 
 func NewProductRepository(DB *gorm.DB) ProductRepositoryImpl {
 	return &ProductRepository{
-		BaseRepositoryImpl: repositories.NewBaseRepository[models2.Product](DB),
+		repositories.NewBaseRepository[models2.Product](DB),
 	}
 }

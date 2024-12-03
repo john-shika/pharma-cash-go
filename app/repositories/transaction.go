@@ -16,6 +16,6 @@ type TransactionRepository struct {
 
 func NewTransactionRepository(DB *gorm.DB) TransactionRepositoryImpl {
 	return &TransactionRepository{
-		BaseRepositoryImpl: repositories.NewBaseRepository[models2.Transaction](DB),
+		repositories.NewBaseRepository[models2.Transaction](DB),
 	}
 }

@@ -14,12 +14,12 @@ type UserRepositoryImpl interface {
 }
 
 type UserRepository struct {
-	BaseRepository[models.User]
+	BaseRepositoryImpl[models.User]
 }
 
 func NewUserRepository(DB *gorm.DB) UserRepositoryImpl {
 	return &UserRepository{
-		BaseRepository: NewBaseRepository[models.User](DB),
+		NewBaseRepository[models.User](DB),
 	}
 }
 

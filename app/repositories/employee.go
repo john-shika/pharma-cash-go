@@ -16,6 +16,6 @@ type EmployeeRepository struct {
 
 func NewEmployeeRepository(DB *gorm.DB) EmployeeRepositoryImpl {
 	return &EmployeeRepository{
-		BaseRepositoryImpl: repositories.NewBaseRepository[models2.Employee](DB),
+		repositories.NewBaseRepository[models2.Employee](DB),
 	}
 }

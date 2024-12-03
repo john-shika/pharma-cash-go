@@ -16,6 +16,6 @@ type UnitRepository struct {
 
 func NewUnitRepository(DB *gorm.DB) UnitRepositoryImpl {
 	return &UnitRepository{
-		BaseRepositoryImpl: repositories.NewBaseRepository[models2.Unit](DB),
+		repositories.NewBaseRepository[models2.Unit](DB),
 	}
 }

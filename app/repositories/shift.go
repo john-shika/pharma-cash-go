@@ -16,6 +16,6 @@ type ShiftRepository struct {
 
 func NewShiftRepository(DB *gorm.DB) ShiftRepositoryImpl {
 	return &ShiftRepository{
-		BaseRepositoryImpl: repositories.NewBaseRepository[models2.Shift](DB),
+		repositories.NewBaseRepository[models2.Shift](DB),
 	}
 }

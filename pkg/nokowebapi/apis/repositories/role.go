@@ -10,11 +10,11 @@ type RoleRepositoryImpl interface {
 }
 
 type RoleRepository struct {
-	BaseRepository[models.Role]
+	BaseRepositoryImpl[models.Role]
 }
 
 func NewRoleRepository(DB *gorm.DB) RoleRepositoryImpl {
 	return &RoleRepository{
-		BaseRepository: NewBaseRepository[models.Role](DB),
+		NewBaseRepository[models.Role](DB),
 	}
 }

@@ -10,11 +10,11 @@ type SessionRepositoryImpl interface {
 }
 
 type SessionRepository struct {
-	BaseRepository[models.Session]
+	BaseRepositoryImpl[models.Session]
 }
 
 func NewSessionRepository(DB *gorm.DB) SessionRepositoryImpl {
 	return &SessionRepository{
-		BaseRepository: NewBaseRepository[models.Session](DB),
+		NewBaseRepository[models.Session](DB),
 	}
 }

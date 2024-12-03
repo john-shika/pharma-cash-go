@@ -8,6 +8,7 @@ type Cart struct {
 	ProductId     uint `db:"product_id" gorm:"index;not null;" mapstructure:"product_id" json:"productId"`
 	TransactionId uint `db:"transaction_id" gorm:"index;null;" mapstructure:"transaction_id" json:"transactionId"`
 	Quantity      int  `db:"quantity" gorm:"index;not null;" mapstructure:"quantity" json:"quantity"`
+	Closed        bool `db:"closed" gorm:"index;not null;" mapstructure:"closed" json:"closed"`
 
 	User        models.User `db:"-" gorm:"foreignKey:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" mapstructure:"user" json:"user"`
 	Product     Product     `db:"-" gorm:"foreignKey:ProductId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" mapstructure:"product" json:"product"`

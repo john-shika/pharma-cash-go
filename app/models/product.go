@@ -10,6 +10,17 @@ import (
 	"strings"
 )
 
+type ProductCategory struct {
+	ProductID  uint     `db:"product_id" gorm:"index" mapstructure:"product_id" json:"productId"`
+	CategoryID uint     `db:"category_id" gorm:"index" mapstructure:"category_id" json:"categoryId"`
+	Product    Product  `db:"-" gorm:"foreignKey:ProductID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" mapstructure:"product" json:"product"`
+	Category   Category `db:"-" gorm:"foreignKey:CategoryID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" mapstructure:"category" json:"category"`
+}
+
+func (ProductCategory) TableName() string {
+	return "product_categories"
+}
+
 type Product struct {
 	models.BaseModel
 	Barcode          string          `db:"barcode" gorm:"unique;index;not null;" mapstructure:"barcode" json:"barcode"`
@@ -29,9 +40,9 @@ type Product struct {
 	UnitAmount       int             `db:"unit_amount" gorm:"index;not null;" mapstructure:"unit_amount" json:"unitAmount"`
 	UnitExtra        int             `db:"unit_extra" gorm:"index;not null;" mapstructure:"unit_extra" json:"unitExtra"`
 
+	Categories []Category `db:"-" gorm:"many2many:product_categories;" mapstructure:"categories" json:"categories"`
 	Package    Package    `db:"-" gorm:"foreignKey:PackageID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;" mapstructure:"package" json:"package"`
 	Unit       Unit       `db:"-" gorm:"foreignKey:UnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;" mapstructure:"unit" json:"unit"`
-	Categories []Category `db:"-" gorm:"many2many:product_categories;" mapstructure:"categories" json:"categories"`
 }
 
 func (Product) TableName() string {
@@ -88,7 +99,8 @@ func (p *Product) ClearCategories(DB *gorm.DB) error {
 		// pseudo product
 		product := Product{
 			BaseModel: models.BaseModel{
-				ID: p.ID,
+				ID:   p.ID,
+				UUID: p.UUID,
 			},
 		}
 

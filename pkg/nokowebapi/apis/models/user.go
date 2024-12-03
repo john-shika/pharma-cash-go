@@ -78,7 +78,8 @@ func (u *User) ClearRoles(DB *gorm.DB) error {
 		// pseudo user
 		user := User{
 			BaseModel: BaseModel{
-				ID: u.ID,
+				ID:   u.ID,
+				UUID: u.UUID,
 			},
 		}
 

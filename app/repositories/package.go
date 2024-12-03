@@ -16,6 +16,6 @@ type PackageRepository struct {
 
 func NewPackageRepository(DB *gorm.DB) PackageRepositoryImpl {
 	return &PackageRepository{
-		BaseRepositoryImpl: repositories.NewBaseRepository[models2.Package](DB),
+		repositories.NewBaseRepository[models2.Package](DB),
 	}
 }

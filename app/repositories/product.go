@@ -11,11 +11,11 @@ type ProductRepositoryImpl interface {
 }
 
 type ProductRepository struct {
-	repositories.BaseRepository[models2.Product]
+	repositories.BaseRepositoryImpl[models2.Product]
 }
 
 func NewProductRepository(DB *gorm.DB) ProductRepositoryImpl {
 	return &ProductRepository{
-		BaseRepository: repositories.NewBaseRepository[models2.Product](DB),
+		BaseRepositoryImpl: repositories.NewBaseRepository[models2.Product](DB),
 	}
 }

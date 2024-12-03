@@ -11,11 +11,11 @@ type ShiftRepositoryImpl interface {
 }
 
 type ShiftRepository struct {
-	repositories.BaseRepository[models2.Shift]
+	repositories.BaseRepositoryImpl[models2.Shift]
 }
 
 func NewShiftRepository(DB *gorm.DB) ShiftRepositoryImpl {
 	return &ShiftRepository{
-		BaseRepository: repositories.NewBaseRepository[models2.Shift](DB),
+		BaseRepositoryImpl: repositories.NewBaseRepository[models2.Shift](DB),
 	}
 }

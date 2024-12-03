@@ -11,11 +11,11 @@ type EmployeeRepositoryImpl interface {
 }
 
 type EmployeeRepository struct {
-	repositories.BaseRepository[models2.Employee]
+	repositories.BaseRepositoryImpl[models2.Employee]
 }
 
 func NewEmployeeRepository(DB *gorm.DB) EmployeeRepositoryImpl {
 	return &EmployeeRepository{
-		BaseRepository: repositories.NewBaseRepository[models2.Employee](DB),
+		BaseRepositoryImpl: repositories.NewBaseRepository[models2.Employee](DB),
 	}
 }

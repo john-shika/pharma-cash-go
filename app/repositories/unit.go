@@ -11,11 +11,11 @@ type UnitRepositoryImpl interface {
 }
 
 type UnitRepository struct {
-	repositories.BaseRepository[models2.Unit]
+	repositories.BaseRepositoryImpl[models2.Unit]
 }
 
 func NewUnitRepository(DB *gorm.DB) UnitRepositoryImpl {
 	return &UnitRepository{
-		BaseRepository: repositories.NewBaseRepository[models2.Unit](DB),
+		BaseRepositoryImpl: repositories.NewBaseRepository[models2.Unit](DB),
 	}
 }

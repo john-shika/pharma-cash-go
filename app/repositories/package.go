@@ -11,11 +11,11 @@ type PackageRepositoryImpl interface {
 }
 
 type PackageRepository struct {
-	repositories.BaseRepository[models2.Package]
+	repositories.BaseRepositoryImpl[models2.Package]
 }
 
 func NewPackageRepository(DB *gorm.DB) PackageRepositoryImpl {
 	return &PackageRepository{
-		BaseRepository: repositories.NewBaseRepository[models2.Package](DB),
+		BaseRepositoryImpl: repositories.NewBaseRepository[models2.Package](DB),
 	}
 }

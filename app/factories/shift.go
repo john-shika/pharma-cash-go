@@ -3,28 +3,35 @@ package factories
 import (
 	"gorm.io/gorm"
 	"nokowebapi/apis/factories"
-	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
 	"pharma-cash-go/app/models"
 )
 
 func ShiftFactory(DB *gorm.DB) []any {
-	shifts := []any{
-		models.Shift{
+	shifts := []models.Shift{
+		{
 			Name:      "Day Shift",
 			StartDate: sqlx.ParseTimeOnly("07:00:00"),
 			EndDate:   sqlx.ParseTimeOnly("14:00:00"),
 		},
-		models.Shift{
+		{
 			Name:      "Night Shift",
 			StartDate: sqlx.ParseTimeOnly("14:00:00"),
 			EndDate:   sqlx.ParseTimeOnly("21:00:00"),
 		},
 	}
 
-	return factories.BaseFactory(DB, shifts, "name = ?", func(shift any) []any {
+	temp := factories.BaseFactory[models.Shift](DB, shifts, "name = ?", func(shift models.Shift) []any {
 		return []any{
-			nokocore.GetValueWithSuperKey(shift, "name"),
+			shift.Name,
 		}
 	})
+
+	size := len(temp)
+	result := make([]any, size)
+	for i := 0; i < size; i++ {
+		result[i] = temp[i]
+	}
+
+	return result
 }

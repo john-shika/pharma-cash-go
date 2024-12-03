@@ -20,6 +20,8 @@ func BaseFactory[T any](DB *gorm.DB, dummies []T, query string, cb func(dummy T)
 		tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(dummy))
 		args := cb(dummy)
 
+		fmt.Println(args)
+
 		if cb != nil {
 			if check, err = repository.First(query, args...); err != nil {
 				console.Warn(err.Error())

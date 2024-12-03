@@ -39,25 +39,34 @@ func CreateCheckpointOpnameCart(DB *gorm.DB) echo.HandlerFunc {
 		// 	return err
 		// }
 
-		if stockOpname, err = stokOpnameRepository.SafeFirst("is_verified = ?", false); err != nil {
+		preloads := []string{"User"}
+
+		if stockOpname, err = stokOpnameRepository.SafePreFirst(preloads, "is_verified = ?", false); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get stcok_opname.", nil)
 		}
 
 		if stockOpname != nil {
 			stockOpnameResult := schemas2.ToStockOpnameResult(stockOpname)
-			return extras.NewMessageBodyOk(ctx, "Data has not been verified.", &nokocore.MapAny{
+			return extras.NewMessageBodyBadRequest(ctx, "Data has not been verified.", &nokocore.MapAny{
 				"stockOpname": stockOpnameResult,
 			})
 		}
 
-		stockOpnameNew := new(models2.StockOpname)
-		stockOpnameNew.IsVerified = false
-		stockOpnameNew.UserID = uint(jwtAuthInfo.User.ID)
+		stockOpnameNew := &models2.StockOpname{
+			IsVerified: false,
+			UserID:     uint(jwtAuthInfo.User.ID),
+		}
 
-		if err = stokOpnameRepository.SafeCreate(stockOpnameNew); err != nil {
+		if err := DB.Create(stockOpnameNew).Error; err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to create unit.", nil)
+		}
+
+		// Preload tabel User setelah data dibuat
+		if err := DB.Preload("User").First(stockOpnameNew, stockOpnameNew.ID).Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to load related user.", nil)
 		}
 
 		stockOpnameResult := schemas2.ToStockOpnameResult(stockOpnameNew)
@@ -66,4 +75,11 @@ func CreateCheckpointOpnameCart(DB *gorm.DB) echo.HandlerFunc {
 		})
 	}
 
+}
+
+func StokOpnameController(group *echo.Group, DB *gorm.DB) *echo.Group {
+
+	group.POST("/warehouse/checkpoint", CreateCheckpointOpnameCart(DB))
+
+	return group
 }

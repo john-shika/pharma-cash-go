@@ -20,6 +20,7 @@ func Controllers(group *echo.Group, DB *gorm.DB) {
 	controllers2.ProductController(auth, DB)
 	controllers2.UnitController(auth, DB)
 	controllers2.PackagingController(auth, DB)
+	controllers2.ShopController(auth, DB)
 }
 
 func Factories(DB *gorm.DB) apis.FactoryData {

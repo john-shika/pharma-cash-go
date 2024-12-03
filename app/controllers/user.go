@@ -74,14 +74,16 @@ func GetAllSessions(DB *gorm.DB) echo.HandlerFunc {
 		}
 
 		sessionId := session.ID
-		var sessionResults []schemas.SessionResult
+		
+		size := len(sessions)
+		sessionResults := make([]schemas.SessionResult, size)
 		for i, session := range sessions {
 			nokocore.KeepVoid(i)
 
 			session.User = *user
 			sessionResult := schemas.ToSessionResult(&session)
 			sessionResult.Used = session.ID == sessionId
-			sessionResults = append(sessionResults, sessionResult)
+			sessionResults[i] = sessionResult
 		}
 
 		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
@@ -180,12 +182,8 @@ func DeleteOwnUser(DB *gorm.DB) echo.HandlerFunc {
 
 		permanent := extras.ParseQueryToBool(ctx, "permanent")
 
-		data := &nokocore.MapAny{
-			"user": schemas.ToUserResult(user),
-		}
-
 		if !permanent && user.DeletedAt.Valid {
-			return extras.NewMessageBodyOk(ctx, "User already deleted.", data)
+			return extras.NewMessageBodyOk(ctx, "User already deleted.", nil)
 		}
 
 		// check di employee juga

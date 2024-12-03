@@ -134,29 +134,31 @@ func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
 
 func GetAllProductsByName(DB *gorm.DB) echo.HandlerFunc {
 
-	// productRepository := repositories2.NewProductRepository(DB)
+	productRepository := repositories2.NewProductRepository(DB)
 
 	return func(ctx echo.Context) error {
 		var err error
-		nokocore.KeepVoid(err)
+		var products []models2.Product
+		nokocore.KeepVoid(err, products)
 
 		keywords := extras.ParseQueryToString(ctx, "keywords")
 
 		pagination := extras.NewURLQueryPaginationFromEchoContext(ctx)
 
-		var products []models2.Product
+		preloads := []string{"Categories", "Package", "Unit"}
 		query := "brand LIKE ? OR product_name LIKE ? OR barcode LIKE ?"
 		args := []any{"%" + keywords + "%", "%" + keywords + "%", "%" + keywords + "%"}
-		tx := DB.Preload("Package").Preload("Unit").Where(query, args...).Offset(pagination.Offset).Limit(pagination.Limit).Find(&products)
-		if err = tx.Error; err != nil {
+		if products, err = productRepository.SafePreMany(preloads, pagination.Offset, pagination.Limit, query, args...); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get products.", nil)
 		}
 
-		var productResults []schemas2.ProductResult
+		size := len(products)
+		productResults := make([]schemas2.ProductResult, size)
 		for i, product := range products {
 			nokocore.KeepVoid(i)
-			productResults = append(productResults, schemas2.ToProductResult(&product))
+			productResult := schemas2.ToProductResult(&product)
+			productResults[i] = productResult
 		}
 
 		return extras.NewMessageBodyOk(ctx, "Successfully get products.", &nokocore.MapAny{
@@ -167,17 +169,22 @@ func GetAllProductsByName(DB *gorm.DB) echo.HandlerFunc {
 
 func GetProductDetailByProductId(DB *gorm.DB) echo.HandlerFunc {
 
-	return func(ctx echo.Context) error {
-		paramProductId := ctx.Param("productId")
+	productRepository := repositories2.NewProductRepository(DB)
 
-		// product, err := productRepository.SafeFirst("uuid = ?", paramProductId)
-		var product models2.Product
-		if err := DB.Where("uuid = ?", paramProductId).Preload("Categories").Preload("Package").Preload("Unit").First(&product).Error; err != nil {
+	return func(ctx echo.Context) error {
+		var err error
+		var product *models2.Product
+		nokocore.KeepVoid(err, product)
+
+		productID := ctx.Param("productId")
+
+		preloads := []string{"Categories", "Package", "Unit"}
+		if product, err = productRepository.SafePreFirst(preloads, "uuid = ?", productID); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get product detail.", nil)
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get product.", nil)
 		}
 
-		productResult := schemas2.ToProductResult(&product)
+		productResult := schemas2.ToProductResult(product)
 		return extras.NewMessageBodyOk(ctx, "Successfully get product.", &nokocore.MapAny{
 			"product": productResult,
 		})
@@ -191,60 +198,102 @@ func UpdateProduct(DB *gorm.DB) echo.HandlerFunc {
 	unitRepository := repositories2.NewUnitRepository(DB)
 
 	return func(ctx echo.Context) error {
-		paramProductId := ctx.Param("productId")
+		var err error
+		var product *models2.Product
+		var newProduct *models2.Product
+		var packageModel *models2.Package
+		var unit *models2.Unit
+		nokocore.KeepVoid(err, product, packageModel, unit)
+
+		productID := ctx.Param("productId")
 
 		productBody := new(schemas2.ProductBody)
-		if err := ctx.Bind(productBody); err != nil {
+		if err = ctx.Bind(productBody); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyUnprocessableEntity(ctx, "Failed to bind product.", err.Error())
 		}
 
-		var err error
-		nokocore.KeepVoid(err)
+		if err = ctx.Validate(productBody); err != nil {
+			return err
+		}
 
-		product, err := productRepository.SafeFirst("uuid = ?", paramProductId)
-		if err != nil {
+		newProduct = schemas2.ToProductModel(productBody)
+
+		preloads := []string{"Categories", "Package", "Unit"}
+		if product, err = productRepository.SafePreFirst(preloads, "uuid = ?", productID); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get product.", err.Error())
 		}
-		fmt.Println("= productBody", productBody)
 
-		packages, err := packageRepository.SafeFirst("uuid = ?", productBody.PackageID)
-		if err != nil {
-			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get package.", err.Error())
+		if packageID := productBody.PackageID; packageID != "" {
+			if packageModel, err = packageRepository.SafeFirst("uuid = ?", packageID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyInternalServerError(ctx, "Failed to get package.", err.Error())
+			}
 		}
 
-		unit, err := unitRepository.SafeFirst("uuid = ?", productBody.UnitID)
-		if err != nil {
-			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get unit.", err.Error())
+		if packageModel == nil {
+			if packageType := nokocore.ToTitleCase(productBody.PackageType); packageType != "" {
+				if packageModel, err = packageRepository.SafeFirst("package_type = ?", packageType); err != nil {
+					console.Error(fmt.Sprintf("panic: %s", err.Error()))
+					return extras.NewMessageBodyInternalServerError(ctx, "Failed to get package.", err.Error())
+				}
+
+				if packageModel == nil {
+					packageModel = &models2.Package{
+						PackageType: packageType,
+					}
+
+					if err = packageRepository.SafeCreate(packageModel); err != nil {
+						console.Error(fmt.Sprintf("panic: %s", err.Error()))
+						return extras.NewMessageBodyInternalServerError(ctx, "Failed to create package.", err.Error())
+					}
+				}
+			} else {
+				return extras.NewMessageBodyNotFound(ctx, "Package not found.", nil)
+			}
 		}
 
-		newProductBody := schemas2.ToProductModel(productBody)
-		newProductBody.PackageID = packages.ID
-		newProductBody.UnitID = unit.ID
-		fmt.Println("= newProductBody", newProductBody)
+		newProduct.PackageID = packageModel.ID
+		newProduct.Package = *packageModel
 
-		product.Barcode = newProductBody.Barcode
-		product.Brand = newProductBody.Brand
-		product.ProductName = newProductBody.ProductName
-		product.Supplier = newProductBody.Supplier
-		product.Description = newProductBody.Description
-		product.Categories = newProductBody.Categories
-		product.Expires = newProductBody.Expires
-		product.PurchasePrice = newProductBody.PurchasePrice
-		product.SupplierDiscount = newProductBody.SupplierDiscount
-		product.VAT = newProductBody.VAT
-		product.ProfitMargin = newProductBody.ProfitMargin
-		product.PackageID = newProductBody.PackageID
-		product.PackageTotal = newProductBody.PackageTotal
-		product.UnitID = newProductBody.UnitID
-		product.UnitAmount = newProductBody.UnitAmount
-		product.UnitExtra = newProductBody.UnitExtra
+		if unitID := productBody.UnitID; unitID != "" {
+			if unit, err = unitRepository.SafeFirst("uuid = ?", unitID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyInternalServerError(ctx, "Failed to get unit.", err.Error())
+			}
+		}
 
-		fmt.Println("= product", product)
-		if err := productRepository.SafeUpdate(product, "uuid = ?", paramProductId); err != nil {
+		if unit == nil {
+			if unitType := nokocore.ToTitleCase(productBody.UnitType); unitType != "" {
+				if unit, err = unitRepository.SafeFirst("unit_type = ?", unitType); err != nil {
+					console.Error(fmt.Sprintf("panic: %s", err.Error()))
+					return extras.NewMessageBodyInternalServerError(ctx, "Failed to get unit.", err.Error())
+				}
+
+				if unit == nil {
+					unit = &models2.Unit{
+						UnitType: productBody.UnitType,
+					}
+
+					if err = unitRepository.SafeCreate(unit); err != nil {
+						console.Error(fmt.Sprintf("panic: %s", err.Error()))
+						return extras.NewMessageBodyInternalServerError(ctx, "Failed to create unit.", err.Error())
+					}
+				}
+			} else {
+				return extras.NewMessageBodyNotFound(ctx, "Unit not found.", nil)
+			}
+		}
+
+		newProduct.UnitID = unit.ID
+		newProduct.Unit = *unit
+
+		newProduct.ID = product.ID
+		newProduct.UUID = product.UUID
+		newProduct.CreatedAt = product.CreatedAt
+
+		if err = productRepository.SafeUpdate(newProduct, "id = ?", product.ID); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to update product.", err.Error())
 		}
@@ -257,18 +306,37 @@ func UpdateProduct(DB *gorm.DB) echo.HandlerFunc {
 
 func DeleteProduct(DB *gorm.DB) echo.HandlerFunc {
 
-	return func(ctx echo.Context) error {
-		paramProductId := ctx.Param("productId")
-		// productId, _ := strconv.Atoi(paramProductId)
+	productRepository := repositories2.NewProductRepository(DB)
 
-		result := DB.Model(models2.Product{}).Where("uuid = ?", paramProductId).Delete(&models2.Product{})
-		if result.Error != nil {
-			console.Error(fmt.Sprintf("panic: %s", result.Error.Error()))
-			return extras.NewMessageBodyInternalServerError(ctx, "Failed to delete product.", nil)
+	return func(ctx echo.Context) error {
+		var err error
+		var product *models2.Product
+		nokocore.KeepVoid(err, product)
+
+		productId := ctx.Param("productId")
+		permanent := extras.ParseQueryToBool(ctx, "permanent")
+
+		if product, err = productRepository.First("uuid = ?", productId); err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get product.", nil)
 		}
 
-		if result.RowsAffected < 1 {
-			return extras.NewMessageBodyNotFound(ctx, "Product not found.", nil)
+		if !permanent && product.DeletedAt.Valid {
+			return extras.NewMessageBodyOk(ctx, "Product already deleted.", nil)
+		}
+
+		if product != nil {
+			if !permanent {
+				if err = productRepository.SafeDelete(product, "uuid = ?", productId); err != nil {
+					console.Error(fmt.Sprintf("panic: %s", err.Error()))
+					return extras.NewMessageBodyInternalServerError(ctx, "Failed to delete product.", nil)
+				}
+			} else {
+				if err = productRepository.Delete(product, "uuid = ?", productId); err != nil {
+					console.Error(fmt.Sprintf("panic: %s", err.Error()))
+					return extras.NewMessageBodyInternalServerError(ctx, "Failed to delete product.", nil)
+				}
+			}
 		}
 
 		return extras.NewMessageBodyOk(ctx, "Successfully delete product.", nil)

@@ -337,11 +337,12 @@ func GetAllUsers(DB *gorm.DB) echo.HandlerFunc {
 		}
 
 		size := len(users)
-		userResults := make([]schemas.UserResult, 0, size)
+		userResults := make([]schemas.UserResult, size)
 		for i, user := range users {
 			nokocore.KeepVoid(i)
 
-			userResults = append(userResults, schemas.ToUserResult(&user))
+			userResult := schemas.ToUserResult(&user)
+			userResults[i] = userResult
 		}
 
 		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
@@ -376,15 +377,16 @@ func GetAllEmployees(DB *gorm.DB) echo.HandlerFunc {
 		}
 
 		size := len(employees)
-		employeesResult := make([]schemas2.EmployeeResult, 0, size)
+		employeeResults := make([]schemas2.EmployeeResult, size)
 		for i, employee := range employees {
 			nokocore.KeepVoid(i)
 
-			employeesResult = append(employeesResult, schemas2.ToEmployeeResult(&employee))
+			employeeResult := schemas2.ToEmployeeResult(&employee)
+			employeeResults[i] = employeeResult
 		}
 
 		return extras.NewMessageBodyOk(ctx, "Successfully retrieved.", &nokocore.MapAny{
-			"employees": employeesResult,
+			"employees": employeeResults,
 		})
 	}
 }

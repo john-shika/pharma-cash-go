@@ -205,6 +205,12 @@ func ProductCheckout(DB *gorm.DB) echo.HandlerFunc {
 		qty := decimal.NewFromInt(int64(unitTotal))
 		pay := product.SalePrice.Mul(qty)
 
+		transaction.Pay = pay
+		if err = transactionRepository.SafeUpdate(transaction, "id = ?", transaction.ID); err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to update transaction.", nil)
+		}
+
 		cartResult := schemas2.ToCartResult(cart)
 		transactionResult := schemas2.ToTransactionResult(transaction)
 		return extras.NewMessageBodyOk(ctx, fmt.Sprintf("Successfully %s cart.", status), &nokocore.MapAny{

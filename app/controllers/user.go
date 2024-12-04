@@ -180,9 +180,9 @@ func DeleteOwnUser(DB *gorm.DB) echo.HandlerFunc {
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
 		user := jwtAuthInfo.User
 
-		permanent := extras.ParseQueryToBool(ctx, "permanent")
+		forced := extras.ParseQueryToBool(ctx, "forced")
 
-		if !permanent && user.DeletedAt.Valid {
+		if !forced && user.DeletedAt.Valid {
 			return extras.NewMessageBodyOk(ctx, "User already deleted.", nil)
 		}
 
@@ -193,7 +193,7 @@ func DeleteOwnUser(DB *gorm.DB) echo.HandlerFunc {
 		}
 
 		if employee != nil {
-			if permanent {
+			if forced {
 				if err = employeeRepository.Delete(employee, "user_id = ?", user.ID); err != nil {
 					console.Error(fmt.Sprintf("panic: %s", err.Error()))
 					return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete employee.", nil)
@@ -207,7 +207,7 @@ func DeleteOwnUser(DB *gorm.DB) echo.HandlerFunc {
 			}
 		}
 
-		if permanent {
+		if forced {
 			if err := userRepository.Delete(user, "id = ?", user.ID); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete user.", nil)

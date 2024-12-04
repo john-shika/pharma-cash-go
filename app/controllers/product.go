@@ -178,7 +178,7 @@ func GetProductDetailByProductId(DB *gorm.DB) echo.HandlerFunc {
 		var product *models2.Product
 		nokocore.KeepVoid(err, productID, product)
 
-		productID = extras.ParseQueryToString(ctx, "product_id")
+		productID = ctx.Param("productId")
 		if err = sqlx.ValidateUUID(productID); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyUnprocessableEntity(ctx, "Invalid parameter 'product_id'.", nil)
@@ -212,7 +212,7 @@ func UpdateProduct(DB *gorm.DB) echo.HandlerFunc {
 		var unit *models2.Unit
 		nokocore.KeepVoid(err, productID, product, packageModel, unit)
 
-		productID = extras.ParseQueryToString(ctx, "product_id")
+		productID = ctx.Param("productId")
 		if err = sqlx.ValidateUUID(productID); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyUnprocessableEntity(ctx, "Invalid parameter 'product_id'.", nil)
@@ -328,7 +328,7 @@ func DeleteProduct(DB *gorm.DB) echo.HandlerFunc {
 
 		forced := extras.ParseQueryToBool(ctx, "forced")
 
-		productID = extras.ParseQueryToString(ctx, "product_id")
+		productID = ctx.Param("productId")
 		if err = sqlx.ValidateUUID(productID); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyUnprocessableEntity(ctx, "Invalid parameter 'product_id'.", nil)

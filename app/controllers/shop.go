@@ -202,9 +202,8 @@ func ProductCheckout(DB *gorm.DB) echo.HandlerFunc {
 			}
 		}
 
-		pay := decimal.NewFromInt(0)
 		qty := decimal.NewFromInt(int64(unitTotal))
-		pay = product.SalePrice.Mul(qty)
+		pay := product.SalePrice.Mul(qty)
 
 		cartResult := schemas2.ToCartResult(cart)
 		transactionResult := schemas2.ToTransactionResult(transaction)

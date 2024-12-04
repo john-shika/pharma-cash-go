@@ -7,10 +7,23 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
+	"nokowebapi/apis/utils"
 	"nokowebapi/console"
 	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
+	"strings"
 )
+
+type checkHandler[T any] func(schema *T) error
+
+func (t checkHandler[T]) Call(schema *T) error {
+	return t(schema)
+}
+
+type stmtConstraintFields struct {
+	Query  string
+	Values []any
+}
 
 type HookFunc func(tx *gorm.DB) (*gorm.DB, error)
 
@@ -27,9 +40,12 @@ type BaseRepositoryImpl[T any] interface {
 	PreFirst(preloads []string, query string, args ...any) (*T, error)
 	SafePreMany(preloads []string, offset int, limit int, query string, args ...any) ([]T, error)
 	PreMany(preloads []string, offset int, limit int, query string, args ...any) ([]T, error)
-	SafeCheck(model *T, checkHandler CheckHandler[T]) error
-	Check(model *T, checkHandler CheckHandler[T]) error
-	SafeCreate(model *T) error
+	TrySafeFind(model *T) (*T, error)
+	TryFind(model *T) (*T, error)
+	SafeTryManyFind(models []T) ([]T, error)
+	TryManyFind(models []T) ([]T, error)
+	SafeCheck(model *T, handler checkHandler[T]) error
+	Check(model *T, handler checkHandler[T]) error
 	Create(model *T) error
 	SafeUpdate(model *T, query string, args ...any) error
 	SafeUpdateHook(model *T, hook HookFunc) error
@@ -39,6 +55,7 @@ type BaseRepositoryImpl[T any] interface {
 	SafeDeleteHook(model *T, hook HookFunc) error
 	Delete(model *T, query string, args ...any) error
 	DeleteHook(model *T, hook HookFunc) error
+	Fields() ([]schema.Field, error)
 }
 
 type BaseRepository[T any] struct {
@@ -205,77 +222,175 @@ func (b *BaseRepository[T]) PreMany(preloads []string, offset int, limit int, qu
 	})
 }
 
-type CheckHandler[T any] func(schema *T) error
-
-func (t CheckHandler[T]) Call(schema *T) error {
-	return t(schema)
-}
-
-func (b *BaseRepository[T]) SafeCheck(model *T, checkHandler CheckHandler[T]) error {
+func (b *BaseRepository[T]) TrySafeFind(model *T) (*T, error) {
 	var err error
 	var check *T
+	var stmt *stmtConstraintFields
+	nokocore.KeepVoid(err, check, stmt)
 
 	if model != nil {
 		tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(model))
 
-		// TODO: check with any constraint values or using primary key or uuid
-
 		if schemaID := nokocore.GetValueWithSuperKey(model, "BaseModel.id").(uint); schemaID != 0 {
 			if check, err = b.SafeFirst("id = ?", schemaID); err != nil {
-				return errors.New(fmt.Sprintf("failed to find '%s' table", tableNameType))
+				return nil, errors.New(fmt.Sprintf("failed to find '%s' table", tableNameType))
 			}
 		}
 
-		if schemaUUID := nokocore.GetValueWithSuperKey(model, "BaseModel.uuid").(uuid.UUID); schemaUUID != uuid.Nil {
-			if check, err = b.SafeFirst("uuid = ?", schemaUUID); err != nil {
-				return errors.New(fmt.Sprintf("failed to find '%s' table", tableNameType))
+		if check == nil {
+			if schemaUUID := nokocore.GetValueWithSuperKey(model, "BaseModel.uuid").(uuid.UUID); schemaUUID != uuid.Nil {
+				if check, err = b.SafeFirst("uuid = ?", schemaUUID); err != nil {
+					return nil, errors.New(fmt.Sprintf("failed to find '%s' table", tableNameType))
+				}
 			}
 		}
 
-		if check != nil {
-			if checkHandler != nil {
-				return checkHandler.Call(check)
+		if check == nil {
+			if stmt, err = b.makeStmtWithConstraintFields(model); err != nil {
+				return nil, fmt.Errorf("failed to find '%s' table, %w", tableNameType, err)
 			}
 
-			return errors.New(fmt.Sprintf("'%s' table already exists", tableNameType))
+			if stmt != nil {
+				if check, err = b.SafeFirst(stmt.Query, stmt.Values...); err != nil {
+					return nil, errors.New(fmt.Sprintf("failed to find '%s' table", tableNameType))
+				}
+			}
 		}
 
-		return nil
+		// pass away
+		return check, nil
+	}
+
+	return nil, errors.New("invalid value")
+}
+
+func (b *BaseRepository[T]) TryFind(model *T) (*T, error) {
+	var err error
+	var check *T
+	var stmt *stmtConstraintFields
+	nokocore.KeepVoid(err, check, stmt)
+
+	if model != nil {
+		tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(model))
+
+		if schemaID := nokocore.GetValueWithSuperKey(model, "BaseModel.id").(uint); schemaID != 0 {
+			if check, err = b.First("id = ?", schemaID); err != nil {
+				return nil, errors.New(fmt.Sprintf("failed to find '%s' table", tableNameType))
+			}
+		}
+
+		if check == nil {
+			if schemaUUID := nokocore.GetValueWithSuperKey(model, "BaseModel.uuid").(uuid.UUID); schemaUUID != uuid.Nil {
+				if check, err = b.First("uuid = ?", schemaUUID); err != nil {
+					return nil, errors.New(fmt.Sprintf("failed to find '%s' table", tableNameType))
+				}
+			}
+		}
+
+		if check == nil {
+			if stmt, err = b.makeStmtWithConstraintFields(model); err != nil {
+				return nil, fmt.Errorf("failed to find '%s' table, %w", tableNameType, err)
+			}
+
+			if stmt != nil {
+				if check, err = b.First(stmt.Query, stmt.Values...); err != nil {
+					return nil, errors.New(fmt.Sprintf("failed to find '%s' table", tableNameType))
+				}
+			}
+		}
+
+		// pass away
+		return check, nil
+	}
+
+	return nil, errors.New("invalid value")
+}
+
+func (b *BaseRepository[T]) SafeTryManyFind(models []T) ([]T, error) {
+	var err error
+	var check *T
+	var checks []T
+	nokocore.KeepVoid(err, check, checks)
+
+	if models != nil {
+		for i, model := range models {
+			nokocore.KeepVoid(i)
+			if check, err = b.TrySafeFind(&model); err != nil {
+				return nil, err
+			}
+
+			if check != nil {
+				checks = append(checks, *check)
+			}
+		}
+
+		return checks, nil
+	}
+
+	return nil, errors.New("invalid value")
+}
+
+func (b *BaseRepository[T]) TryManyFind(models []T) ([]T, error) {
+	var err error
+	var check *T
+	var checks []T
+	nokocore.KeepVoid(err, check, checks)
+
+	if models != nil {
+		for i, model := range models {
+			nokocore.KeepVoid(i)
+			if check, err = b.TryFind(&model); err != nil {
+				return nil, err
+			}
+
+			if check != nil {
+				checks = append(checks, *check)
+			}
+		}
+
+		return checks, nil
+	}
+
+	return nil, errors.New("invalid value")
+}
+
+func (b *BaseRepository[T]) SafeCheck(model *T, handler checkHandler[T]) error {
+	var err error
+	var check *T
+	nokocore.KeepVoid(err, check)
+
+	if model != nil {
+		tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(model))
+		if check, err = b.TrySafeFind(model); err != nil {
+			return err
+		}
+
+		if check != nil && handler != nil {
+			return handler(check)
+		}
+
+		return errors.New(fmt.Sprintf("failed to find '%s' table", tableNameType))
 	}
 
 	return errors.New("invalid value")
 }
 
-func (b *BaseRepository[T]) Check(model *T, checkHandler CheckHandler[T]) error {
+func (b *BaseRepository[T]) Check(model *T, handler checkHandler[T]) error {
 	var err error
 	var check *T
+	nokocore.KeepVoid(err, check)
 
 	if model != nil {
 		tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(model))
-
-		// TODO: check with any constraint values or using primary key or uuid
-
-		if schemaID := nokocore.GetValueWithSuperKey(model, "BaseModel.id").(uint); schemaID != 0 {
-			if check, err = b.First("id = ?", schemaID); err != nil {
-				return errors.New(fmt.Sprintf("failed to find '%s' table", tableNameType))
-			}
+		if check, err = b.TryFind(model); err != nil {
+			return err
 		}
 
-		if schemaUUID := nokocore.GetValueWithSuperKey(model, "BaseModel.uuid").(uuid.UUID); schemaUUID != uuid.Nil {
-			if check, err = b.First("uuid = ?", schemaUUID); err != nil {
-				return errors.New(fmt.Sprintf("failed to find '%s' table", tableNameType))
-			}
+		if check != nil && handler != nil {
+			return handler(check)
 		}
 
-		if check != nil {
-			if checkHandler != nil {
-				return checkHandler.Call(check)
-			}
-
-			return errors.New(fmt.Sprintf("'%s' table already exists", tableNameType))
-		}
-
-		return nil
+		return errors.New(fmt.Sprintf("failed to find '%s' table", tableNameType))
 	}
 
 	return errors.New("invalid value")
@@ -283,56 +398,27 @@ func (b *BaseRepository[T]) Check(model *T, checkHandler CheckHandler[T]) error 
 
 func (b *BaseRepository[T]) baseInit(model *T) error {
 	var err error
-
-	tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(model))
-
-	if b.isRegis(model) {
-		return nil
-	}
-
-	timeUtcNow := nokocore.GetTimeUtcNow()
-	err = mapstructure.Decode(nokocore.MapAny{
-		"BaseModel": nokocore.MapAny{
-			"uuid":       nokocore.NewUUID(),
-			"created_at": timeUtcNow,
-			"updated_at": timeUtcNow,
-			"deleted_at": gorm.DeletedAt{},
-		},
-	}, model)
-
-	if err != nil {
-		return errors.New(fmt.Sprintf("failed to inject values into '%s' table", tableNameType))
-	}
-
-	return nil
-}
-
-func (b *BaseRepository[T]) SafeCreate(model *T) error {
-	var err error
+	nokocore.KeepVoid(err)
 
 	if model != nil {
 		tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(model))
 
-		// TODO: or using unsafe check
-		if err = b.SafeCheck(model, nil); err != nil {
-
-			// TODO: remove existing model in a database if is already safe deleted
-
-			return err
+		if b.isRegis(model) {
+			return nil
 		}
 
-		if err = b.baseInit(model); err != nil {
-			return err
-		}
+		timeUtcNow := nokocore.GetTimeUtcNow()
+		err = mapstructure.Decode(nokocore.MapAny{
+			"BaseModel": nokocore.MapAny{
+				"uuid":       nokocore.NewUUID(),
+				"created_at": timeUtcNow,
+				"updated_at": timeUtcNow,
+				"deleted_at": gorm.DeletedAt{},
+			},
+		}, model)
 
-		tx := b.DB.Create(model)
-		if err = tx.Error; err != nil {
-			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return errors.New(fmt.Sprintf("failed to create '%s' table", tableNameType))
-		}
-
-		if tx.RowsAffected < 1 {
-			return errors.New(fmt.Sprintf("no rows affected in '%s' table", tableNameType))
+		if err != nil {
+			return errors.New(fmt.Sprintf("failed to inject values into '%s' table", tableNameType))
 		}
 
 		return nil
@@ -343,21 +429,43 @@ func (b *BaseRepository[T]) SafeCreate(model *T) error {
 
 func (b *BaseRepository[T]) Create(model *T) error {
 	var err error
+	var check *T
+	nokocore.KeepVoid(err, check)
 
 	if model != nil {
 		tableNameType := nokocore.ToSnakeCase(nokocore.GetNameType(model))
-		if err = b.Check(model, nil); err != nil {
 
-			// TODO: remove existing model in a database if is already safe deleted
-
+		if check, err = b.TryFind(model); err != nil {
 			return err
+		}
+
+		if check != nil {
+
+			// restore and replace schema existing
+			timeUtcNow := nokocore.GetTimeUtcNow()
+			err = mapstructure.Decode(nokocore.MapAny{
+				"BaseModel": nokocore.MapAny{
+					"created_at": timeUtcNow,
+					"updated_at": timeUtcNow,
+				},
+			}, check)
+			if err != nil {
+				return errors.New(fmt.Sprintf("failed to inject values into '%s' table", tableNameType))
+			}
+
+			schemaID := nokocore.GetValueWithSuperKey(check, "BaseModel.id").(uint)
+			if err = b.Update(check, "id = ?", schemaID); err != nil {
+				return err
+			}
+
+			return nil
 		}
 
 		if err = b.baseInit(model); err != nil {
 			return err
 		}
 
-		tx := b.DB.Unscoped().Create(model)
+		tx := b.DB.Create(model)
 		if err = tx.Error; err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return errors.New(fmt.Sprintf("failed to create '%s' table", tableNameType))
@@ -693,24 +801,76 @@ func (b *BaseRepository[T]) DeleteHook(model *T, hook HookFunc) error {
 	return errors.New("invalid value")
 }
 
-func (b *BaseRepository[T]) Fields() (fields []schema.Field, err error) {
+func (b *BaseRepository[T]) makeStmtWithConstraintFields(model *T) (*stmtConstraintFields, error) {
+	var err error
+	var fields []schema.Field
+	nokocore.KeepVoid(err, fields)
+
+	if model != nil {
+		if fields, err = b.Fields(); err != nil {
+			return nil, err
+		}
+
+		size := 0
+		values := make([]any, 0)
+		queries := make([]string, 0)
+		for i, field := range fields {
+			nokocore.KeepVoid(i)
+
+			dbName := field.DBName
+			fieldName := field.Name
+			isConstraint := field.PrimaryKey || field.Unique
+			if isConstraint && dbName != "id" && dbName != "uuid" {
+				value := nokocore.GetValueWithSuperKey(model, nokocore.ToSnakeCase(fieldName))
+				if utils.SqlValueIsNull(value) {
+					if field.NotNull {
+						return nil, errors.New(fmt.Sprintf("field '%s' is required", fieldName))
+					}
+
+					continue
+				}
+
+				values = append(values, value)
+				queries = append(queries, fmt.Sprintf("%s = ?", dbName))
+				size += 1
+			}
+		}
+
+		if size > 0 {
+			query := strings.Join(queries, " OR ")
+			stmt := &stmtConstraintFields{
+				Query:  query,
+				Values: values,
+			}
+
+			return stmt, nil
+		}
+
+		// pass away
+		return nil, nil
+	}
+
+	return nil, errors.New("invalid value")
+}
+
+func (b *BaseRepository[T]) Fields() ([]schema.Field, error) {
+	var err error
 	var model T
+	nokocore.KeepVoid(err, model)
+
 	stmt := &gorm.Statement{
 		DB: b.DB,
 	}
 
-	// TODO: check available possible schema in database with some check any constraints fields
-	// TODO: connect with safe create and unsafe create
-
-	// parse model
 	if err = stmt.Parse(&model); err != nil {
 		return nil, err
 	}
 
 	// make unreferenced copy of fields
-	result := make([]schema.Field, len(stmt.Schema.Fields))
+	size := len(stmt.Schema.Fields)
+	temp := make([]schema.Field, size)
 	for i, field := range stmt.Schema.Fields {
-		result[i] = *field
+		temp[i] = *field
 		//field.PrimaryKey
 		//field.Unique
 		//field.HasDefaultValue
@@ -721,6 +881,5 @@ func (b *BaseRepository[T]) Fields() (fields []schema.Field, err error) {
 		//field.Updatable
 	}
 
-	// return
-	return result, nil
+	return temp, nil
 }

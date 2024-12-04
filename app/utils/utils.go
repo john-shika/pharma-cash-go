@@ -13,3 +13,13 @@ func ToShiftNameNorm(name string) string {
 	}
 	return name
 }
+
+func Modulo(value, m int) (extra int, div int) {
+	div = 0
+	extra = value
+	for extra >= m {
+		extra += -m
+		div += 1
+	}
+	return extra, div
+}

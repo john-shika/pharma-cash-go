@@ -4,11 +4,11 @@ import (
 	"gorm.io/gorm"
 	"nokowebapi/apis/factories"
 	"nokowebapi/sqlx"
-	"pharma-cash-go/app/models"
+	models2 "pharma-cash-go/app/models"
 )
 
 func ShiftFactory(DB *gorm.DB) []any {
-	shifts := []models.Shift{
+	shifts := []models2.Shift{
 		{
 			Name:      "Day Shift",
 			StartDate: sqlx.ParseTimeOnly("07:00:00"),
@@ -21,7 +21,7 @@ func ShiftFactory(DB *gorm.DB) []any {
 		},
 	}
 
-	temp := factories.BaseFactory[models.Shift](DB, shifts, "name = ?", func(shift models.Shift) []any {
+	temp := factories.BaseFactory[models2.Shift](DB, shifts, "name = ?", func(shift models2.Shift) []any {
 		return []any{
 			shift.Name,
 		}

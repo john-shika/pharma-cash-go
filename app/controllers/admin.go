@@ -110,8 +110,8 @@ func CreateEmployee(DB *gorm.DB) echo.HandlerFunc {
 				return errors.New("shift not found")
 			}
 
-			user = schemas2.ToUserModel(employeeBody)
-			if err = userRepository.SafeCreate(user); err != nil {
+			user = schemas2.ToUserModelFromEmployeeBody(employeeBody)
+			if err = userRepository.Create(user); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return errors.New("failed to create user")
 			}
@@ -128,7 +128,7 @@ func CreateEmployee(DB *gorm.DB) echo.HandlerFunc {
 				ShiftDate: shiftDate,
 			}
 
-			if err = employeeRepository.SafeCreate(employee); err != nil {
+			if err = employeeRepository.Create(employee); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return errors.New("failed to create employee")
 			}
@@ -166,11 +166,11 @@ func UpdateEmployee(DB *gorm.DB) echo.HandlerFunc {
 
 	return func(ctx echo.Context) error {
 		var err error
-		var userId string
-		var employeeId string
+		var userID string
+		var employeeID string
 		var user *models.User
 		var employee *models2.Employee
-		nokocore.KeepVoid(err, userId, employeeId, user, employee)
+		nokocore.KeepVoid(err, userID, employeeID, user, employee)
 
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
 
@@ -178,9 +178,24 @@ func UpdateEmployee(DB *gorm.DB) echo.HandlerFunc {
 			return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
 		}
 
-		if userId = extras.ParseQueryToString(ctx, "user_id"); userId == "" {
-			if employeeId = extras.ParseQueryToString(ctx, "employee_id"); employeeId == "" {
-				return extras.NewMessageBodyUnprocessableEntity(ctx, "Required parameter 'user_id' or 'employee_id' is missing.", nil)
+		userID = extras.ParseQueryToString(ctx, "user_id")
+		employeeID = extras.ParseQueryToString(ctx, "employee_id")
+
+		if userID == "" && employeeID == "" {
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Required parameter 'user_id' or 'employee_id' is missing.", nil)
+		}
+
+		if userID != "" {
+			if err = sqlx.ValidateUUID(userID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Invalid parameter 'user_id'.", nil)
+			}
+		}
+
+		if employeeID != "" {
+			if err = sqlx.ValidateUUID(employeeID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Invalid parameter 'employee_id'.", nil)
 			}
 		}
 
@@ -195,17 +210,17 @@ func UpdateEmployee(DB *gorm.DB) echo.HandlerFunc {
 			return err
 		}
 
-		if userId != "" {
+		if userID != "" {
 			preloads := []string{"Roles"}
-			if user, err = userRepository.SafePreFirst(preloads, "uuid = ?", userId); err != nil {
+			if user, err = userRepository.SafePreFirst(preloads, "uuid = ?", userID); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get user.", nil)
 			}
 		}
 
-		if user == nil && employeeId != "" {
+		if user == nil && employeeID != "" {
 			preloads := []string{"Shift", "User", "User.Roles"}
-			if employee, err = employeeRepository.SafePreFirst(preloads, "uuid = ?", employeeId); err != nil {
+			if employee, err = employeeRepository.SafePreFirst(preloads, "uuid = ?", employeeID); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get user.", nil)
 			}
@@ -241,7 +256,7 @@ func UpdateEmployee(DB *gorm.DB) echo.HandlerFunc {
 			}
 
 			var user2 *models.User
-			if user2, err = utils.CopyBaseModel(schemas2.ToUserModel(employeeBody), user); err != nil {
+			if user2, err = utils.CopyBaseModel(schemas2.ToUserModelFromEmployeeBody(employeeBody), user); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return errors.New("failed to copy base model")
 			}
@@ -399,37 +414,52 @@ func DeleteUser(DB *gorm.DB) echo.HandlerFunc {
 
 	return func(ctx echo.Context) error {
 		var err error
-		var userId string
-		var employeeId string
+		var userID string
+		var employeeID string
 		var user *models.User
 		var employee *models2.Employee
-		nokocore.KeepVoid(err, userId, employeeId, user, employee)
+		nokocore.KeepVoid(err, userID, employeeID, user, employee)
 
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
 
-		permanent := extras.ParseQueryToBool(ctx, "permanent")
+		forced := extras.ParseQueryToBool(ctx, "forced")
 
 		if !utils.RoleIsAdmin(jwtAuthInfo) {
 			return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
 		}
 
-		if userId = extras.ParseQueryToString(ctx, "user_id"); userId == "" {
-			if employeeId = extras.ParseQueryToString(ctx, "employee_id"); employeeId == "" {
-				return extras.NewMessageBodyUnprocessableEntity(ctx, "Required parameter 'user_id' or 'employee_id' is missing.", nil)
+		userID = extras.ParseQueryToString(ctx, "user_id")
+		employeeID = extras.ParseQueryToString(ctx, "employee_id")
+
+		if userID == "" && employeeID == "" {
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Required parameter 'user_id' or 'employee_id' is missing.", nil)
+		}
+
+		if userID != "" {
+			if err = sqlx.ValidateUUID(userID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Invalid parameter 'user_id'.", nil)
 			}
 		}
 
-		if userId != "" {
+		if employeeID != "" {
+			if err = sqlx.ValidateUUID(employeeID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Invalid parameter 'employee_id'.", nil)
+			}
+		}
+
+		if userID != "" {
 			preloads := []string{"Roles"}
-			if user, err = userRepository.PreFirst(preloads, "uuid = ?", userId); err != nil {
+			if user, err = userRepository.PreFirst(preloads, "uuid = ?", userID); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get user.", nil)
 			}
 		}
 
-		if user == nil && employeeId != "" {
+		if user == nil && employeeID != "" {
 			preloads := []string{"Shift", "User", "User.Roles"}
-			if employee, err = employeeRepository.PreFirst(preloads, "uuid = ?", employeeId); err != nil {
+			if employee, err = employeeRepository.PreFirst(preloads, "uuid = ?", employeeID); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get user.", nil)
 			}
@@ -450,7 +480,7 @@ func DeleteUser(DB *gorm.DB) echo.HandlerFunc {
 			"user": schemas.ToUserResult(user),
 		}
 
-		if !permanent && user.DeletedAt.Valid {
+		if !forced && user.DeletedAt.Valid {
 			return extras.NewMessageBodyOk(ctx, "User already deleted.", data)
 		}
 
@@ -462,7 +492,7 @@ func DeleteUser(DB *gorm.DB) echo.HandlerFunc {
 		}
 
 		if employee != nil {
-			if permanent {
+			if forced {
 				if err = employeeRepository.Delete(employee, "id = ?", employee.ID); err != nil {
 					console.Error(fmt.Sprintf("panic: %s", err.Error()))
 					return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete employee.", nil)
@@ -476,14 +506,14 @@ func DeleteUser(DB *gorm.DB) echo.HandlerFunc {
 			}
 		}
 
-		if permanent {
-			if err = userRepository.Delete(user, "uuid = ?", userId); err != nil {
+		if forced {
+			if err = userRepository.Delete(user, "uuid = ?", userID); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete user.", nil)
 			}
 
 		} else {
-			if err = userRepository.SafeDelete(user, "uuid = ?", userId); err != nil {
+			if err = userRepository.SafeDelete(user, "uuid = ?", userID); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete user.", nil)
 			}

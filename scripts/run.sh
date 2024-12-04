@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-set -x
+set -ex
 
 CurrWorkDir=$(pwd)
-ScriptDir=$(dirname "$0")
-cd "$ScriptDir" || exit 1
+ScriptRootDir=$(dirname "$0")
+cd "$ScriptRootDir" || exit 1
 cd ..
 
 AppExe="exe"

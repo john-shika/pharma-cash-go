@@ -437,3 +437,26 @@ func RandomRangeInt64(min, max int64) int64 {
 	random := NewRandom()
 	return min + random.Int63n(n)
 }
+
+func Modulo(value, m int) (extra int, div int) {
+	div = 0
+	extra = value
+	for extra >= m {
+		extra += -m
+		div += 1
+	}
+	return extra, div
+}
+
+func BigModulo(value, m *big.Int) (extra *big.Int, div *big.Int) {
+	extra = new(big.Int).Set(value)
+	div = big.NewInt(0)
+	one := big.NewInt(1)
+
+	for extra.Cmp(m) >= 0 {
+		extra.Sub(extra, m)
+		div.Add(div, one)
+	}
+
+	return extra, div
+}

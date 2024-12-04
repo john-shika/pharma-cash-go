@@ -8,6 +8,7 @@ import (
 	"nokowebapi/apis/schemas"
 	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
+	"strconv"
 )
 
 type EchoGroupImpl interface {
@@ -65,20 +66,19 @@ func EchoHTTPErrorHandler() echo.HTTPErrorHandler {
 	}
 }
 
-type URLQueryPagination struct {
+type SQLPagination struct {
 	Size   int
 	Page   int
 	Offset int
 	Limit  int
 }
 
-func NewURLQueryPagination(size int, page int) *URLQueryPagination {
+func NewSQLPagination(size int, page int) *SQLPagination {
 	var offset int
 	var limit int
 	nokocore.KeepVoid(offset, limit)
 
 	switch {
-	// FIXME: this call lots of resources
 	case size < 0:
 		size = -1
 		page = 1
@@ -99,7 +99,7 @@ func NewURLQueryPagination(size int, page int) *URLQueryPagination {
 		break
 	}
 
-	return &URLQueryPagination{
+	return &SQLPagination{
 		Size:   size,
 		Page:   page,
 		Offset: offset,
@@ -107,9 +107,22 @@ func NewURLQueryPagination(size int, page int) *URLQueryPagination {
 	}
 }
 
-func NewURLQueryPaginationFromEchoContext(ctx echo.Context) *URLQueryPagination {
-	size := ParseQueryToInt(ctx, "size")
+func NewURLQueryPaginationFromEchoContext(ctx echo.Context) *SQLPagination {
+	var err error
+	var size int
+	nokocore.KeepVoid(err, size)
+
+	value := ParseQueryToString(ctx, "size")
 	page := ParseQueryToInt(ctx, "page")
 
-	return NewURLQueryPagination(size, page)
+	if value != "" {
+		if size, err = strconv.Atoi(value); err != nil {
+			size = 0
+		}
+
+		return NewSQLPagination(size, page)
+	}
+
+	size = -1
+	return NewSQLPagination(size, page)
 }

@@ -55,7 +55,7 @@ func CreatePackage(DB *gorm.DB) echo.HandlerFunc {
 		}
 
 		packageModel = schemas2.ToPackageModel(packageBody)
-		if err = packageRepository.SafeCreate(packageModel); err != nil {
+		if err = packageRepository.Create(packageModel); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to create package.", nil)
 		}

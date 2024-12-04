@@ -27,20 +27,23 @@ func Factories(DB *gorm.DB) apis.FactoryData {
 	return apis.Factories(DB, []apis.FactoryHook{
 		factories2.UserFactory,
 		factories2.ShiftFactory,
+		factories2.PackageFactory,
+		factories2.UnitFactory,
+		factories2.ProductFactory,
 	})
 }
 
 func Migrations(DB *gorm.DB) error {
 	return apis.Migrations(DB, []any{
-		&models2.Barcode{},
-		&models2.Cart{},
-		&models2.Category{},
-		&models2.Employee{},
-		&models2.Package{},
-		&models2.Product{},
-		&models2.ProductCategory{},
-		&models2.Shift{},
-		&models2.Transaction{},
-		&models2.Unit{},
+		new(models2.Barcode),
+		new(models2.Cart),
+		new(models2.Category),
+		new(models2.Employee),
+		new(models2.Package),
+		new(models2.Product),
+		new(models2.ProductCategory),
+		new(models2.Shift),
+		new(models2.Transaction),
+		new(models2.Unit),
 	})
 }

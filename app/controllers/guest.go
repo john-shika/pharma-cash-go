@@ -84,7 +84,7 @@ func SetLogin(DB *gorm.DB) echo.HandlerFunc {
 			Expires:        expires,
 		}
 
-		if err = sessionRepository.SafeCreate(session); err != nil {
+		if err = sessionRepository.Create(session); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to create session.", nil)
 		}

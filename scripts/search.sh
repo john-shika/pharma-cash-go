@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 CurrWorkDir=$(pwd)
-ScriptDir=$(dirname "$0")
-cd "$ScriptDir" || exit 1
+ScriptRootDir=$(dirname "$0")
+cd "$ScriptRootDir" || exit 1
 cd ..
 
 FILES=$(find . -type f | grep -Ei '\.go$')

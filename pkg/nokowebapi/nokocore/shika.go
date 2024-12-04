@@ -2,6 +2,9 @@ package nokocore
 
 import (
 	"fmt"
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -483,7 +486,7 @@ func (shikaVarObject *ShikaVarObject) RemoveAttributeByName(name string) {
 	}
 }
 
-func PassPtrShikaObjectPropertyReflect(value any) ShikaObjectPropertyImpl {
+func GetPtrShikaObjectPropertyReflect(value any) ShikaObjectPropertyImpl {
 	val := GetValueReflect(value)
 	if !val.IsValid() {
 		return nil
@@ -511,6 +514,20 @@ func PassPtrShikaObjectPropertyReflect(value any) ShikaObjectPropertyImpl {
 func GetShikaObjectProperty(obj any) ShikaObjectPropertyImpl {
 	if obj == nil {
 		return NewShikaObjectProperty(nil, ShikaObjectDataTypeNull)
+	}
+
+	// should not pass reflect type
+	if val, ok := obj.(reflect.Type); ok {
+		KeepVoid(val)
+		return NewShikaObjectProperty(nil, ShikaObjectDataTypeNull)
+	}
+
+	if val, ok := obj.(ShikaObjectPropertyImpl); ok {
+		return val
+	}
+
+	if shikaObjectProperty := GetPtrShikaObjectPropertyReflect(obj); shikaObjectProperty != nil {
+		return shikaObjectProperty
 	}
 
 	if val, ok := obj.(StringConvertible); ok {
@@ -545,11 +562,6 @@ func GetShikaObjectProperty(obj any) ShikaObjectPropertyImpl {
 		return NewShikaObjectProperty(val.String(), ShikaObjectDataTypeString)
 
 	case reflect.Struct:
-
-		// ensure to use a proper pointer instead of a pseudo struct pointer.
-		if shikaObjectProperty := PassPtrShikaObjectPropertyReflect(obj); shikaObjectProperty != nil {
-			return shikaObjectProperty
-		}
 
 		// TODO: storing all converters in another struct
 
@@ -592,11 +604,30 @@ func GetShikaObjectProperty(obj any) ShikaObjectPropertyImpl {
 
 	case reflect.Array, reflect.Slice:
 		size := val.Len()
+		elem := val.Type().Elem()
+
+		switch elem.Kind() {
+		case reflect.Uint8:
+
+			// fix uuid array
+			if size == 16 {
+				var ok bool
+				var v uuid.UUID
+				if v, ok = val.Interface().(uuid.UUID); ok {
+					return NewShikaObjectProperty(v, ShikaObjectDataTypeUUID)
+				}
+			}
+
+		default:
+			break
+		}
+
 		values := make([]ShikaObjectPropertyImpl, size)
 		for i := 0; i < size; i++ {
 			elem := val.Index(i).Interface()
 			values[i] = GetShikaObjectProperty(elem)
 		}
+
 		return NewShikaObjectProperty(values, ShikaObjectDataTypeArray)
 
 	case reflect.Map:
@@ -619,8 +650,7 @@ func GetShikaObjectProperty(obj any) ShikaObjectPropertyImpl {
 
 func shikaJsonEncodeIndentPermutate(shikaObjectProperty ShikaObjectPropertyImpl, indent int, start int) string {
 	var err error
-	var t time.Time
-	KeepVoid(err, t)
+	KeepVoid(err)
 
 	end := start + indent
 	whiteSpaceStart := strings.Repeat(" ", start)
@@ -747,11 +777,32 @@ func shikaJsonEncodeIndentPermutate(shikaObjectProperty ShikaObjectPropertyImpl,
 		return "{}"
 
 	case ShikaObjectDataTypeTime:
-		if t, err = GetTimeUtcISO8601(shikaObjectProperty.GetValue()); err != nil {
+		var v time.Time
+		if v, err = GetTimeUtcISO8601(shikaObjectProperty.GetValue()); err != nil {
 			return "undefined"
 		}
-		v := ToTimeUtcStringISO8601(t)
-		return strconv.Quote(v)
+		return strconv.Quote(ToTimeUtcStringISO8601(v))
+
+	case ShikaObjectDataTypeURL:
+		var v *url.URL
+		if v, err = GetURL(shikaObjectProperty.GetValue()); err != nil {
+			return "undefined"
+		}
+		return strconv.Quote(v.String())
+
+	case ShikaObjectDataTypeUUID:
+		var v uuid.UUID
+		if v, err = GetUUID(shikaObjectProperty.GetValue()); err != nil {
+			return "undefined"
+		}
+		return strconv.Quote(v.String())
+
+	case ShikaObjectDataTypeDecimal:
+		var v decimal.Decimal
+		if v, err = GetDecimal(shikaObjectProperty.GetValue()); err != nil {
+			return "undefined"
+		}
+		return strconv.Quote(v.String())
 
 	default:
 		return "undefined"
@@ -769,8 +820,7 @@ func ShikaJsonEncode(obj any) string {
 
 func shikaYamlEncodeIndentPermutate(shikaObjectProperty ShikaObjectPropertyImpl, indent int, start int) string {
 	var err error
-	var t time.Time
-	KeepVoid(err, t)
+	KeepVoid(err)
 
 	end := start + indent
 	whiteSpaceStart := strings.Repeat(" ", start)
@@ -918,11 +968,32 @@ func shikaYamlEncodeIndentPermutate(shikaObjectProperty ShikaObjectPropertyImpl,
 		return "{}"
 
 	case ShikaObjectDataTypeTime:
-		if t, err = GetTimeUtcISO8601(shikaObjectProperty.GetValue()); err != nil {
+		var v time.Time
+		if v, err = GetTimeUtcISO8601(shikaObjectProperty.GetValue()); err != nil {
 			return "undefined"
 		}
-		v := ToTimeUtcStringISO8601(t)
-		return strconv.Quote(v)
+		return strconv.Quote(ToTimeUtcStringISO8601(v))
+
+	case ShikaObjectDataTypeURL:
+		var v *url.URL
+		if v, err = GetURL(shikaObjectProperty.GetValue()); err != nil {
+			return "undefined"
+		}
+		return strconv.Quote(v.String())
+
+	case ShikaObjectDataTypeUUID:
+		var v uuid.UUID
+		if v, err = GetUUID(shikaObjectProperty.GetValue()); err != nil {
+			return "undefined"
+		}
+		return strconv.Quote(v.String())
+
+	case ShikaObjectDataTypeDecimal:
+		var v decimal.Decimal
+		if v, err = GetDecimal(shikaObjectProperty.GetValue()); err != nil {
+			return "undefined"
+		}
+		return strconv.Quote(v.String())
 
 	default:
 		return "undefined"

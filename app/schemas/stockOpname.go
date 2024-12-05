@@ -45,7 +45,7 @@ type StockOpnameResultGet struct {
 	ProductName       string     `json:"productName"`
 	Brand             string     `json:"brand"`
 	PackageTotal      int        `json:"packageTotal"`
-	UnitAmount        int        `json:"unitAmount"`
+	UnitScale         int        `json:"unitScale"`
 	UnitExtra         int        `json:"unitExtra"`
 	UnitTotal         int        `json:"unitTotal"`
 	IsMatch           bool       `json:"isMatch"`
@@ -56,21 +56,21 @@ type StockOpnameResultGet struct {
 }
 
 type StockOpnameResultGetVerify struct {
-	ProductUUID        uuid.UUID  `json:"productId"`
-	Barcode            string     `json:"barcode"`
-	ProductName        string     `json:"productName"`
-	Brand              string     `json:"brand"`
-	SystemPackageTotal int        `json:"systemPackageTotal"`
-	SystemUnitScale    int        `json:"systemUnitScale"`
-	SystemUnitExtra    int        `json:"systemUnitExtra"`
-	SystemUnitTotal    int        `json:"systemUnitTotal"`
-	IsMatch            bool       `json:"isMatch"`
-	NotMatchReason     string     `json:"notMatchReason"`
-	RealPackageTotal   int        `json:"realPackageTotal"`
-	RealUnitExtra      int        `json:"realUnitExtra"`
-	RealUnitTotal      int        `json:"realUnitTotal"`
-	CreatedAt          time.Time  `json:"createdAt"`
-	UpdatedAt          time.Time  `json:"updatedAt"`
+	ProductUUID        uuid.UUID `json:"productId"`
+	Barcode            string    `json:"barcode"`
+	ProductName        string    `json:"productName"`
+	Brand              string    `json:"brand"`
+	SystemPackageTotal int       `json:"systemPackageTotal"`
+	SystemUnitScale    int       `json:"systemUnitScale"`
+	SystemUnitExtra    int       `json:"systemUnitExtra"`
+	SystemUnitTotal    int       `json:"systemUnitTotal"`
+	IsMatch            bool      `json:"isMatch"`
+	NotMatchReason     string    `json:"notMatchReason"`
+	RealPackageTotal   int       `json:"realPackageTotal"`
+	RealUnitExtra      int       `json:"realUnitExtra"`
+	RealUnitTotal      int       `json:"realUnitTotal"`
+	CreatedAt          time.Time `json:"createdAt"`
+	UpdatedAt          time.Time `json:"updatedAt"`
 }
 
 type CartVerificationOpnameResult struct {
@@ -132,13 +132,13 @@ func ToCartVerificationOpnameResult(cartVerificationOpname *models2.CartVerifica
 			IsMatch:                  cartVerificationOpname.IsMatch,
 			NotMatchReason:           cartVerificationOpname.NotMatchReason,
 			PackageTotal:             cartVerificationOpname.Product.PackageTotal,
-			UnitScale:                cartVerificationOpname.Product.UnitAmount,
+			UnitScale:                cartVerificationOpname.Product.UnitScale,
 			UnitExtra:                cartVerificationOpname.Product.UnitExtra,
-			UnitTotal:                (cartVerificationOpname.Product.PackageTotal * cartVerificationOpname.Product.UnitAmount) + cartVerificationOpname.Product.UnitExtra,
+			UnitTotal:                (cartVerificationOpname.Product.PackageTotal * cartVerificationOpname.Product.UnitScale) + cartVerificationOpname.Product.UnitExtra,
 			Warehouse: WarehouseInfo{
 				RealPackageTotal: cartVerificationOpname.RealPackageTotal,
 				RealUnitExtra:    cartVerificationOpname.RealUnitExtra,
-				RealUnitTotal:    (cartVerificationOpname.RealPackageTotal * cartVerificationOpname.Product.UnitAmount) + cartVerificationOpname.RealUnitExtra,
+				RealUnitTotal:    (cartVerificationOpname.RealPackageTotal * cartVerificationOpname.Product.UnitScale) + cartVerificationOpname.RealUnitExtra,
 				NotMatchReason:   cartVerificationOpname.NotMatchReason,
 			},
 			CreatedBy: cartVerificationOpname.User.UUID,

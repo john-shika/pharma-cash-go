@@ -37,7 +37,7 @@ type Product struct {
 	PackageID        uint            `db:"package_id" gorm:"index;not null;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;" mapstructure:"package_id" json:"packageId"`
 	PackageTotal     int             `db:"package_total" gorm:"index;not null;" mapstructure:"package_total" json:"packageTotal"`
 	UnitID           uint            `db:"unit_id" gorm:"index;not null;" mapstructure:"unit_id" json:"unitId"`
-	UnitScale        int             `db:"unit_scale" gorm:"index;not null;" mapstructure:"unit_amount" json:"unitAmount"`
+	UnitScale        int             `db:"unit_scale" gorm:"index;not null;" mapstructure:"unit_scale" json:"unitScale"`
 	UnitExtra        int             `db:"unit_extra" gorm:"index;not null;" mapstructure:"unit_extra" json:"unitExtra"`
 
 	Categories []Category `db:"-" gorm:"many2many:product_categories;" mapstructure:"categories" json:"categories"`

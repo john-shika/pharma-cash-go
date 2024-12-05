@@ -133,9 +133,9 @@ func GetAllStockOpnames(DB *gorm.DB) echo.HandlerFunc {
 				p.product_name,
 				p.brand,
 				p.package_total,
-				p.unit_amount,
+				p.unit_scale,
 				p.unit_extra,
-				(p.package_total * p.unit_amount) + p.unit_extra AS unit_total,
+				(p.package_total * p.unit_scale) + p.unit_extra AS unit_total,
 				COALESCE(cvo.is_match, TRUE) AS is_match,
 				COALESCE(cvo.uuid, NULL) AS cart_stock_opname_id,
 				COALESCE(cvo.not_match_reason, NULL) AS not_match_reason,
@@ -215,7 +215,7 @@ func NotMatchVerification(DB *gorm.DB) echo.HandlerFunc {
 		}
 
 		// insert: to table cart_verification_opnames
-		if err = cartVerificationOpnameRepository.SafeCreate(&models2.CartVerificationOpname{
+		if err = cartVerificationOpnameRepository.Create(&models2.CartVerificationOpname{
 			UserID:           uint(jwtAuthInfo.User.ID),
 			ProductID:        product.ID,
 			IsMatch:          false,
@@ -358,15 +358,15 @@ func VerifyStockOpname(DB *gorm.DB) echo.HandlerFunc {
 				p.product_name,
 				p.brand,
 				p.package_total AS system_package_total,
-				p.unit_amount AS system_unit_scale,
+				p.unit_scale AS system_unit_scale,
 				p.unit_extra AS system_unit_extra,
-				(p.package_total * p.unit_amount) + p.unit_extra AS system_unit_total,
+				(p.package_total * p.unit_scale) + p.unit_extra AS system_unit_total,
 				COALESCE(cvo.is_match, TRUE) AS is_match,
 				COALESCE(cvo.uuid, NULL) AS cart_stock_opname_id,
 				COALESCE(cvo.not_match_reason, NULL) AS not_match_reason,
 				COALESCE(cvo.real_package_total, NULL) AS real_package_total,
 				COALESCE(cvo.real_unit_extra, NULL) AS real_unit_extra,
-				(real_package_total * p.unit_amount) + real_unit_extra AS real_unit_total,
+				(real_package_total * p.unit_scale) + real_unit_extra AS real_unit_total,
 				p.created_at,
 				p.updated_at
 			FROM

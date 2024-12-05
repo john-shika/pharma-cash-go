@@ -21,6 +21,7 @@ func Controllers(group *echo.Group, DB *gorm.DB) {
 	controllers2.UnitController(auth, DB)
 	controllers2.PackagingController(auth, DB)
 	controllers2.ShopController(auth, DB)
+	controllers2.StokOpnameController(auth, DB)
 }
 
 func Factories(DB *gorm.DB) apis.FactoryData {
@@ -45,5 +46,8 @@ func Migrations(DB *gorm.DB) error {
 		new(models2.Shift),
 		new(models2.Transaction),
 		new(models2.Unit),
+		&models2.StockOpname{},
+		&models2.CartVerificationOpname{},
+		&models2.VerificationOpname{},
 	})
 }

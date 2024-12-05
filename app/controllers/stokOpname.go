@@ -10,6 +10,7 @@ import (
 	models2 "pharma-cash-go/app/models"
 	repositories2 "pharma-cash-go/app/repositories"
 	schemas2 "pharma-cash-go/app/schemas"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
@@ -137,6 +138,7 @@ func GetAllStockOpnames(DB *gorm.DB) echo.HandlerFunc {
 				(p.package_total * p.unit_amount) + p.unit_extra AS unit_total,
 				COALESCE(cvo.is_match, TRUE) AS is_match,
 				COALESCE(cvo.uuid, NULL) AS cart_stock_opname_id,
+				COALESCE(cvo.not_match_reason, NULL) AS not_match_reason,
 				p.created_at,
 				p.updated_at
 			FROM
@@ -235,7 +237,6 @@ func NotMatchVerification(DB *gorm.DB) echo.HandlerFunc {
 
 		cartVerificationOpnameResult := schemas2.ToCartVerificationOpnameResult(newCartVerificationOpname)
 		return extras.NewMessageBodyOk(ctx, "Successfully create cart_verification_opnames data.", cartVerificationOpnameResult)
-
 	}
 }
 
@@ -252,7 +253,7 @@ func GetNotMatchVerificationByCartVerificationOpnameId(DB *gorm.DB) echo.Handler
 
 		if err = DB.Preload("User").Preload("Product").First(&cartVerificationOpnames, "uuid = ?", cartVerificationOpnameId).Error; err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyInternalServerError(ctx, "Failed to load cart_verification_opnames data with related cartVerificationOpnameId.", err.Error())
+			return extras.NewMessageBodyBadRequest(ctx, "Failed to load cart_verification_opnames data with related cartVerificationOpnameId.", err.Error())
 		}
 
 		cartVerificationOpnameResult := schemas2.ToCartVerificationOpnameResult(cartVerificationOpnames)
@@ -286,7 +287,7 @@ func UpdateNotMatchVerificationByCartVerificationOpnameId(DB *gorm.DB) echo.Hand
 		cartVerificationOpnames.RealPackageTotal = cartVerificationOpnameBody.RealPackageTotal
 		cartVerificationOpnames.RealUnitExtra = cartVerificationOpnameBody.RealUnitExtra
 
-		if err = DB.Model(&cartVerificationOpnames).Update("is_match", true).Error; err != nil {
+		if err = DB.Save(&cartVerificationOpnames).Error; err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to update cart_verification_opnames data with related cartVerificationOpnameId.", err.Error())
 		}
@@ -321,6 +322,124 @@ func DeleteCartVerificationOpnameByCartVerificationOpnameId(DB *gorm.DB) echo.Ha
 	}
 }
 
+func VerifyStockOpname(DB *gorm.DB) echo.HandlerFunc {
+	return func(ctx echo.Context) error {
+		var err error
+		var verificationOpnames []*models2.VerificationOpname
+		var stockOpnamesResultGetVerfies []schemas2.StockOpnameResultGetVerify
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+
+		if !utils.RoleIsAdmin(jwtAuthInfo) && !utils.RoleIs(jwtAuthInfo, nokocore.RoleOfficer) {
+			return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
+		}
+
+		// // check: is table cart_verification_opname empty
+		// if err = DB.Find(&cartVerificationOpnames).Error; err != nil {
+		// 	console.Error(fmt.Sprintf("panic: %s", err.Error()))
+		// 	return extras.NewMessageBodyInternalServerError(ctx, "Failed to get cart_verification_opnames data.", err.Error())
+		// }
+
+		// if len(cartVerificationOpnames) == 0 {
+		// 	return extras.NewMessageBodyBadRequest(ctx, "Failed to verify stock opname, there is not cart_verification_opnames data.", nil)
+		// }
+
+		// check:is there no table stock_opname data with isVerified == false
+		var stockOpname models2.StockOpname
+		if err = DB.First(&stockOpname, "is_verified = ?", false).Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyBadRequest(ctx, "There is no stock_opnames data, create checkpoint first.", err.Error())
+		}
+
+		// get all
+		query := `
+			SELECT
+				p.uuid AS product_uuid,
+				p.barcode,
+				p.product_name,
+				p.brand,
+				p.package_total AS system_package_total,
+				p.unit_amount AS system_unit_scale,
+				p.unit_extra AS system_unit_extra,
+				(p.package_total * p.unit_amount) + p.unit_extra AS system_unit_total,
+				COALESCE(cvo.is_match, TRUE) AS is_match,
+				COALESCE(cvo.uuid, NULL) AS cart_stock_opname_id,
+				COALESCE(cvo.not_match_reason, NULL) AS not_match_reason,
+				COALESCE(cvo.real_package_total, NULL) AS real_package_total,
+				COALESCE(cvo.real_unit_extra, NULL) AS real_unit_extra,
+				(real_package_total * p.unit_amount) + real_unit_extra AS real_unit_total,
+				p.created_at,
+				p.updated_at
+			FROM
+				products p
+			LEFT JOIN
+				cart_verification_opnames cvo
+			ON
+				p.id = cvo.product_id;
+		`
+
+		if err = DB.Raw(query).Scan(&stockOpnamesResultGetVerfies).Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get stock_opnames.", err.Error())
+		}
+
+		// // CREATE CART
+		// // select all: from table prodcuts
+		// if err = DB.Find(&products).Error; err != nil {
+		// 	console.Error(fmt.Sprintf("panic: %s", err.Error()))
+		// 	return errors.New("failed to get all products data")
+		// }
+
+		err = DB.Transaction(func(tx *gorm.DB) error {
+
+			// prepared data
+			for _, stockOpnamesResultGetVerify := range stockOpnamesResultGetVerfies {
+				verificationOpnames = append(verificationOpnames, &models2.VerificationOpname{
+					ProductID:          stockOpnamesResultGetVerify.ProductUUID,
+					StockOpnameID:      stockOpname.ID,
+					SystemPackageTotal: stockOpnamesResultGetVerify.SystemPackageTotal,
+					SystemUnitExtra:    stockOpnamesResultGetVerify.SystemUnitExtra,
+					SystemUnitTotal:    stockOpnamesResultGetVerify.SystemUnitTotal,
+					IsMatch:            stockOpnamesResultGetVerify.IsMatch,
+					NotMatchReason:     stockOpnamesResultGetVerify.NotMatchReason,
+					RealPackageTotal:   stockOpnamesResultGetVerify.RealPackageTotal,
+					RealUnitExtra:      stockOpnamesResultGetVerify.RealUnitExtra,
+					RealUnitTotal:      stockOpnamesResultGetVerify.RealUnitTotal,
+					UserID:             jwtAuthInfo.User.ID,
+				})
+			}
+
+			// insert: to table cart_verification_opnames
+			if err = DB.Create(&verificationOpnames).Error; err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return errors.New("failed to create cart_verification_opnames data")
+			}
+
+			// empty: delete all data from table cart_verification_opnames
+			if err = DB.Unscoped().Where("1 = 1").Delete(&models2.CartVerificationOpname{}).Error; err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return errors.New("failed to delete all cart_verification_opnames data")
+			}
+
+			// update: submited_at and is_verified from table stock_opname
+			if err = DB.Model(&stockOpname).Updates(map[string]interface{}{"submited_at": time.Now(), "is_verified": true}).Error; err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return errors.New("failed to update submited_at and is_verified from table stock_opname")
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Failed to verify all stock opname.", err.Error())
+		}
+
+		return extras.NewMessageBodyOk(ctx, "Successfully update verify all product in table product and all nor match product in cart_verification_opnames, then inserted to verification_opname.", &nokocore.MapAny{
+			"lengthProductVerified": len(verificationOpnames),
+		})
+	}
+}
+
 func StokOpnameController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
 	group.POST("/warehouse/checkpoint", CreateCheckpointOpnameCart(DB))
@@ -330,6 +449,7 @@ func StokOpnameController(group *echo.Group, DB *gorm.DB) *echo.Group {
 	group.GET("/warehouse/cart/not-match/:cartVerificationOpnameId", GetNotMatchVerificationByCartVerificationOpnameId(DB))
 	group.PUT("/warehouse/cart/not-match/:cartVerificationOpnameId", UpdateNotMatchVerificationByCartVerificationOpnameId(DB))
 	group.DELETE("/warehouse/cart/not-match/:cartVerificationOpnameId", DeleteCartVerificationOpnameByCartVerificationOpnameId(DB))
+	group.POST("/warehouse/cart/verify", VerifyStockOpname(DB))
 
 	return group
 }

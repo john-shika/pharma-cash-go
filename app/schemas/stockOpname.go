@@ -40,18 +40,37 @@ type StockOpnameResultCreate struct {
 }
 
 type StockOpnameResultGet struct {
-	ProductUUID       string     `json:"productId"`
+	ProductUUID       uuid.UUID  `json:"productId"`
 	Barcode           string     `json:"barcode"`
 	ProductName       string     `json:"productName"`
 	Brand             string     `json:"brand"`
 	PackageTotal      int        `json:"packageTotal"`
-	UnitAmount        float64    `json:"unitAmount"`
-	UnitExtra         float64    `json:"unitExtra"`
-	UnitTotal         float64    `json:"unitTotal"`
+	UnitAmount        int        `json:"unitAmount"`
+	UnitExtra         int        `json:"unitExtra"`
+	UnitTotal         int        `json:"unitTotal"`
 	IsMatch           bool       `json:"isMatch"`
 	CartStockOpnameId *uuid.UUID `json:"cartStockOpnameId"`
+	NotMatchReason    string     `json:"notMatchReason"`
 	CreatedAt         time.Time  `json:"createdAt"`
 	UpdatedAt         time.Time  `json:"updatedAt"`
+}
+
+type StockOpnameResultGetVerify struct {
+	ProductUUID        uuid.UUID  `json:"productId"`
+	Barcode            string     `json:"barcode"`
+	ProductName        string     `json:"productName"`
+	Brand              string     `json:"brand"`
+	SystemPackageTotal int        `json:"systemPackageTotal"`
+	SystemUnitScale    int        `json:"systemUnitScale"`
+	SystemUnitExtra    int        `json:"systemUnitExtra"`
+	SystemUnitTotal    int        `json:"systemUnitTotal"`
+	IsMatch            bool       `json:"isMatch"`
+	NotMatchReason     string     `json:"notMatchReason"`
+	RealPackageTotal   int        `json:"realPackageTotal"`
+	RealUnitExtra      int        `json:"realUnitExtra"`
+	RealUnitTotal      int        `json:"realUnitTotal"`
+	CreatedAt          time.Time  `json:"createdAt"`
+	UpdatedAt          time.Time  `json:"updatedAt"`
 }
 
 type CartVerificationOpnameResult struct {

@@ -2,6 +2,7 @@ package schemas
 
 import (
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"nokowebapi/nokocore"
 	models2 "pharma-cash-go/app/models"
 	utils2 "pharma-cash-go/app/utils"
@@ -47,14 +48,16 @@ func ToCartModelWithProductModel(cart *CartBody, product *models2.Product) *mode
 }
 
 type CartResult struct {
-	UUID         uuid.UUID     `mapstructure:"uuid" json:"uuid"`
-	ProductID    uuid.UUID     `mapstructure:"product_id" json:"productId"`
-	Product      ProductResult `mapstructure:"product" json:"product"`
-	PackageTotal int           `mapstructure:"package_total" json:"packageTotal"`
-	UnitExtra    int           `mapstructure:"unit_extra" json:"unitExtra"`
-	CreatedAt    string        `mapstructure:"created_at" json:"createdAt"`
-	UpdatedAt    string        `mapstructure:"updated_at" json:"updatedAt"`
-	DeletedAt    string        `mapstructure:"deleted_at" json:"deletedAt,omitempty"`
+	UUID         uuid.UUID       `mapstructure:"uuid" json:"uuid"`
+	ProductID    uuid.UUID       `mapstructure:"product_id" json:"productId"`
+	Product      ProductResult   `mapstructure:"product" json:"product"`
+	PackageTotal int             `mapstructure:"package_total" json:"packageTotal"`
+	UnitExtra    int             `mapstructure:"unit_extra" json:"unitExtra"`
+	SubTotal     decimal.Decimal `mapstructure:"sub_total" json:"subTotal"`
+	Closed       bool            `mapstructure:"closed" json:"closed"`
+	CreatedAt    string          `mapstructure:"created_at" json:"createdAt"`
+	UpdatedAt    string          `mapstructure:"updated_at" json:"updatedAt"`
+	DeletedAt    string          `mapstructure:"deleted_at" json:"deletedAt,omitempty"`
 }
 
 func ToCartResult(cart *models2.Cart) CartResult {
@@ -71,6 +74,8 @@ func ToCartResult(cart *models2.Cart) CartResult {
 			Product:      ToProductResult(&cart.Product),
 			PackageTotal: cart.PackageTotal,
 			UnitExtra:    cart.UnitExtra,
+			SubTotal:     cart.SubTotal,
+			Closed:       cart.Closed,
 			CreatedAt:    createdAt,
 			UpdatedAt:    updatedAt,
 			DeletedAt:    deletedAt,

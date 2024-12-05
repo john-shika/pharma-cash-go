@@ -58,7 +58,6 @@ func ProductCheckout(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	productRepository := repositories2.NewProductRepository(DB)
-	cartRepository := repositories2.NewCartRepository(DB)
 	transactionRepository := repositories2.NewTransactionRepository(DB)
 
 	return func(ctx echo.Context) error {
@@ -67,7 +66,8 @@ func ProductCheckout(DB *gorm.DB) echo.HandlerFunc {
 		var transactionID string
 		var product *models2.Product
 		var transaction *models2.Transaction
-		nokocore.KeepVoid(err, transactionID, product, transaction)
+		var carts []models2.Cart
+		nokocore.KeepVoid(err, transactionID, product, transaction, carts)
 
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
 		user := jwtAuthInfo.User
@@ -108,8 +108,6 @@ func ProductCheckout(DB *gorm.DB) echo.HandlerFunc {
 			cartBody.TransactionID = uuid.MustParse(transactionID)
 		}
 
-		fmt.Println(nokocore.ShikaYamlEncode(cartBody))
-
 		if err = ctx.Validate(cartBody); err != nil {
 			return err
 		}
@@ -149,7 +147,7 @@ func ProductCheckout(DB *gorm.DB) echo.HandlerFunc {
 		if transaction == nil {
 			transaction = &models2.Transaction{
 				UserID: userID,
-				Pay:    decimal.NewFromInt(0),
+				Total:  decimal.NewFromInt(0),
 				Signed: false,
 				Closed: false,
 			}
@@ -160,65 +158,85 @@ func ProductCheckout(DB *gorm.DB) echo.HandlerFunc {
 			}
 		}
 
-		cart := schemas2.ToCartModelWithProductModel(cartBody, product)
+		err = DB.Transaction(func(tx *gorm.DB) error {
+			cartRepository := repositories2.NewCartRepository(tx)
+			transactionRepository := repositories2.NewTransactionRepository(tx)
 
-		// set owner and transaction
-		cart.UserID = userID
-		cart.TransactionID = transaction.ID
+			cart := schemas2.ToCartModelWithProductModel(cartBody, product)
 
-		unitTotal := product.UnitScale * cart.PackageTotal
-		unitTotal += cart.UnitExtra
+			// set owner and transaction
+			cart.UserID = userID
+			cart.TransactionID = transaction.ID
 
-		// inject current product
-		cart.ProductID = product.ID
-		cart.Product = *product
+			unitTotal := product.UnitScale * cart.PackageTotal
+			unitTotal += cart.UnitExtra
 
-		var check *models2.Cart
+			// inject current product
+			cart.ProductID = product.ID
+			cart.Product = *product
 
-		if check, err = cartRepository.SafeFirst("user_id = ? AND product_id = ? AND closed = FALSE", userID, product.ID); err != nil {
-			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get cart.", nil)
-		}
+			qty := decimal.NewFromInt(int64(unitTotal))
+			pay := product.SalePrice.Mul(qty)
+			cart.SubTotal = pay
 
-		status := "add"
+			statusText := "add"
 
-		if check != nil {
-			// inject base model values
-			cart.ID = check.ID
-			cart.UUID = check.UUID
-			cart.CreatedAt = check.CreatedAt
+			var check *models2.Cart
 
-			if err = cartRepository.SafeUpdate(cart, "id = ?", cart.ID); err != nil {
-				console.Error(fmt.Sprintf("panic: %s", err.Error()))
-				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to update cart.", nil)
+			if check, err = cartRepository.SafeFirst("user_id = ? AND product_id = ? AND closed = FALSE", userID, product.ID); err != nil {
+				return err
 			}
 
-			status = "update"
+			if check != nil {
+				// inject base model values
+				cart.ID = check.ID
+				cart.UUID = check.UUID
+				cart.CreatedAt = check.CreatedAt
 
-		} else {
-			if err = cartRepository.Create(cart); err != nil {
-				console.Error(fmt.Sprintf("panic: %s", err.Error()))
-				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to create cart.", nil)
+				if err = cartRepository.SafeUpdate(cart, "id = ?", cart.ID); err != nil {
+					return err
+				}
+
+				statusText = "update"
+
+			} else {
+				if err = cartRepository.Create(cart); err != nil {
+					return err
+				}
 			}
-		}
 
-		qty := decimal.NewFromInt(int64(unitTotal))
-		pay := product.SalePrice.Mul(qty)
+			total := decimal.NewFromInt(0)
 
-		transaction.Pay = pay
-		if err = transactionRepository.SafeUpdate(transaction, "id = ?", transaction.ID); err != nil {
+			if carts, err = cartRepository.SafeMany(0, -1, "user_id = ? AND transaction_id = ? AND closed = FALSE", userID, transaction.ID); err != nil {
+				return err
+			}
+
+			for i, cart := range carts {
+				nokocore.KeepVoid(i)
+				total = total.Add(cart.SubTotal)
+			}
+
+			transaction.Total = total
+			if err = transactionRepository.SafeUpdate(transaction, "id = ?", transaction.ID); err != nil {
+				return err
+			}
+
+			cartResult := schemas2.ToCartResult(cart)
+			transactionResult := schemas2.ToTransactionResult(transaction)
+			return extras.NewMessageBodyOk(ctx, fmt.Sprintf("Successfully %s cart.", statusText), &nokocore.MapAny{
+				"cart":        cartResult,
+				"transaction": transactionResult,
+				"unitTotal":   unitTotal,
+				"total":       total,
+			})
+		})
+
+		if err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to update transaction.", nil)
 		}
 
-		cartResult := schemas2.ToCartResult(cart)
-		transactionResult := schemas2.ToTransactionResult(transaction)
-		return extras.NewMessageBodyOk(ctx, fmt.Sprintf("Successfully %s cart.", status), &nokocore.MapAny{
-			"cart":        cartResult,
-			"transaction": transactionResult,
-			"unitTotal":   unitTotal,
-			"pay":         pay,
-		})
+		return nil
 	}
 }
 

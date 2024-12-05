@@ -7,10 +7,9 @@ import (
 
 type Transaction struct {
 	models.BaseModel
-	UserID uint            `db:"user_id" gorm:"index;not null;" mapstructure:"user_id" json:"userId"`
-	Total  decimal.Decimal `db:"total" gorm:"index;not null;" mapstructure:"total" json:"total"`
-	Signed bool            `db:"signed" gorm:"index;not null;" mapstructure:"signed" json:"signed"`
-	Closed bool            `db:"closed" gorm:"index;not null;" mapstructure:"closed" json:"closed"`
+	UserID   uint            `db:"user_id" gorm:"index;not null;" mapstructure:"user_id" json:"userId"`
+	Total    decimal.Decimal `db:"total" gorm:"index;not null;" mapstructure:"total" json:"total"`
+	Verified bool            `db:"verified" gorm:"index;not null;" mapstructure:"verified" json:"verified"`
 
 	Carts []Cart      `db:"-" gorm:"foreignKey:TransactionID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" mapstructure:"carts" json:"carts"`
 	User  models.User `db:"-" gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" mapstructure:"user" json:"user"`

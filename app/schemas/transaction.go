@@ -10,16 +10,12 @@ import (
 type TransactionBody struct {
 	UserID uuid.UUID `mapstructure:"user_id" json:"userId" form:"user_id" validate:"uuid"`
 	Total  string    `mapstructure:"total" json:"total" form:"total" validate:"decimal"`
-	Signed bool      `mapstructure:"signed" json:"signed" form:"signed" validate:"boolean,omitempty"`
-	Closed bool      `mapstructure:"closed" json:"closed" form:"closed" validate:"boolean,omitempty"`
 }
 
 func ToTransactionModel(transaction *TransactionBody) *models2.Transaction {
 	if transaction != nil {
 		return &models2.Transaction{
-			Total:  decimal.RequireFromString(transaction.Total),
-			Signed: transaction.Signed,
-			Closed: transaction.Closed,
+			Total: decimal.RequireFromString(transaction.Total),
 		}
 	}
 
@@ -29,8 +25,7 @@ func ToTransactionModel(transaction *TransactionBody) *models2.Transaction {
 type TransactionResult struct {
 	UUID      uuid.UUID       `mapstructure:"uuid" json:"uuid"`
 	Total     decimal.Decimal `mapstructure:"total" json:"total"`
-	Signed    bool            `mapstructure:"signed" json:"signed"`
-	Closed    bool            `mapstructure:"closed" json:"closed"`
+	Verified  bool            `mapstructure:"verified" json:"verified"`
 	CreatedAt string          `mapstructure:"created_at" json:"createdAt"`
 	UpdatedAt string          `mapstructure:"updated_at" json:"updatedAt"`
 	DeletedAt string          `mapstructure:"deleted_at" json:"deletedAt,omitempty"`
@@ -47,8 +42,7 @@ func ToTransactionResult(transaction *models2.Transaction) TransactionResult {
 		return TransactionResult{
 			UUID:      transaction.UUID,
 			Total:     transaction.Total,
-			Signed:    transaction.Signed,
-			Closed:    transaction.Closed,
+			Verified:  transaction.Verified,
 			CreatedAt: createdAt,
 			UpdatedAt: updatedAt,
 			DeletedAt: deletedAt,

@@ -20,11 +20,14 @@ func GetAllCarts(DB *gorm.DB) echo.HandlerFunc {
 	nokocore.KeepVoid(DB)
 
 	cartRepository := repositories2.NewCartRepository(DB)
+	transactionRepository := repositories2.NewTransactionRepository(DB)
 
 	return func(ctx echo.Context) error {
 		var err error
+		var transactionID string
+		var transaction *models2.Transaction
 		var carts []models2.Cart
-		nokocore.KeepVoid(err, carts)
+		nokocore.KeepVoid(err, transactionID, carts)
 
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
 
@@ -33,23 +36,60 @@ func GetAllCarts(DB *gorm.DB) echo.HandlerFunc {
 		}
 
 		user := jwtAuthInfo.User
+		userID := user.ID
+
+		if transactionID = extras.ParseQueryToString(ctx, "transaction_id"); transactionID != "" {
+			if err = sqlx.ValidateUUID(transactionID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Invalid parameter 'transaction_id'.", nil)
+			}
+		}
+
+		if transactionID != "" {
+			if transaction, err = transactionRepository.SafeFirst("uuid = ? AND user_id = ? AND verified = FALSE", transactionID, userID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get transaction.", nil)
+			}
+
+			if transaction == nil {
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Transaction not found.", nil)
+			}
+		}
+
+		if transaction == nil {
+			if transaction, err = transactionRepository.SafeFirst("user_id = ? AND verified = FALSE", userID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get transaction.", nil)
+			}
+		}
+
+		cartResults := make([]schemas2.CartResult, 0)
+		if transaction == nil {
+			return extras.NewMessageBodyOk(ctx, "Successfully get carts.", &nokocore.MapAny{
+				"carts":       cartResults,
+				"transaction": nil,
+			})
+		}
+
 		pagination := extras.NewURLQueryPaginationFromEchoContext(ctx)
 		preloads := []string{"Product", "Product.Categories", "Product.Package", "Product.Unit"}
-		if carts, err = cartRepository.SafePreMany(preloads, pagination.Offset, pagination.Limit, "user_id = ? AND closed = FALSE", user.ID); err != nil {
+		if carts, err = cartRepository.SafePreMany(preloads, pagination.Offset, pagination.Limit, "user_id = ? AND  transaction_id = ? AND closed = FALSE", userID, transaction.ID); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get carts.", nil)
 		}
 
 		size := len(carts)
-		cartResults := make([]schemas2.CartResult, size)
+		cartResults = make([]schemas2.CartResult, size)
 		for i, cart := range carts {
 			nokocore.KeepVoid(i)
 			cartResult := schemas2.ToCartResult(&cart)
 			cartResults[i] = cartResult
 		}
 
+		transactionResult := schemas2.ToTransactionResult(transaction)
 		return extras.NewMessageBodyOk(ctx, "Successfully get carts.", &nokocore.MapAny{
-			"carts": cartResults,
+			"carts":       cartResults,
+			"transaction": transactionResult,
 		})
 	}
 }
@@ -123,7 +163,7 @@ func ProductCheckout(DB *gorm.DB) echo.HandlerFunc {
 		}
 
 		if transactionID != "" {
-			if transaction, err = transactionRepository.SafeFirst("uuid = ? AND closed = FALSE", transactionID); err != nil {
+			if transaction, err = transactionRepository.SafeFirst("uuid = ? AND user_id = ? AND verified = FALSE", transactionID, userID); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get transaction.", nil)
 			}
@@ -131,14 +171,10 @@ func ProductCheckout(DB *gorm.DB) echo.HandlerFunc {
 			if transaction == nil {
 				return extras.NewMessageBodyUnprocessableEntity(ctx, "Transaction not found.", nil)
 			}
-
-			if transaction.UserID != userID {
-				return extras.NewMessageBodyUnprocessableEntity(ctx, "Transaction not found.", nil)
-			}
 		}
 
 		if transaction == nil {
-			if transaction, err = transactionRepository.SafeFirst("user_id = ? AND closed = FALSE", userID); err != nil {
+			if transaction, err = transactionRepository.SafeFirst("user_id = ? AND verified = FALSE", userID); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get transaction.", nil)
 			}
@@ -146,10 +182,9 @@ func ProductCheckout(DB *gorm.DB) echo.HandlerFunc {
 
 		if transaction == nil {
 			transaction = &models2.Transaction{
-				UserID: userID,
-				Total:  decimal.NewFromInt(0),
-				Signed: false,
-				Closed: false,
+				UserID:   userID,
+				Total:    decimal.NewFromInt(0),
+				Verified: false,
 			}
 
 			if err = transactionRepository.Create(transaction); err != nil {

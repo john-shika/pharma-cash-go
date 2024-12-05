@@ -36,7 +36,7 @@ func ToEmployeeModel(employee *EmployeeBody, user *models.User, shift *models2.S
 	return nil
 }
 
-func ToUserBody(employee *EmployeeBody) *schemas.UserBody {
+func ToUserBodyFromEmployeeBody(employee *EmployeeBody) *schemas.UserBody {
 	if employee != nil {
 		return &schemas.UserBody{
 			FullName: employee.FullName,
@@ -54,8 +54,8 @@ func ToUserBody(employee *EmployeeBody) *schemas.UserBody {
 	return nil
 }
 
-func ToUserModel(employee *EmployeeBody) *models.User {
-	return schemas.ToUserModel(ToUserBody(employee))
+func ToUserModelFromEmployeeBody(employee *EmployeeBody) *models.User {
+	return schemas.ToUserModel(ToUserBodyFromEmployeeBody(employee))
 }
 
 type EmployeeResult struct {

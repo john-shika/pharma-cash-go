@@ -1086,6 +1086,7 @@ func ValidateUUID(value any) error {
 	nokocore.KeepVoid(ok, err, check)
 
 	val := nokocore.PassValueIndirectReflect(value)
+
 	if !val.IsValid() {
 		return errors.New("invalid value")
 	}
@@ -1110,6 +1111,19 @@ func ValidateUUID(value any) error {
 
 	case reflect.Array, reflect.Slice:
 		size := val.Len()
+
+		// fix uuid array
+		if size == 16 {
+			var v uuid.UUID
+			nokocore.KeepVoid(v)
+
+			if v, ok = val.Interface().(uuid.UUID); ok {
+				return nil
+			}
+
+			return errors.New("invalid UUID format, please using 00000000-0000-0000-0000-000000000000")
+		}
+
 		for i := 0; i < size; i++ {
 			temp := val.Index(i)
 			if err = ValidateUUID(temp); err != nil {

@@ -1,8 +1,8 @@
 #!pwsh
 
 $CurrWorkDir = Get-Location
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-Set-Location $ScriptDir -ErrorAction Stop
+$ScriptRootDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
+Set-Location $ScriptRootDir -ErrorAction Stop
 Set-Location ..
 
 Get-ChildItem -Path . -Recurse -Filter "*.go" | ForEach-Object {

@@ -55,7 +55,7 @@ func CreateUnit(DB *gorm.DB) echo.HandlerFunc {
 		}
 
 		unit = schemas2.ToUnitModel(unitBody)
-		if err = unitRepository.SafeCreate(unit); err != nil {
+		if err = unitRepository.Create(unit); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to create unit.", nil)
 		}

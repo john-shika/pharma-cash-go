@@ -27,7 +27,7 @@ type Product struct {
 	Brand            string          `db:"brand" gorm:"index;not null;" mapstructure:"brand" json:"brand"`
 	ProductName      string          `db:"product_name" gorm:"index;not null;" mapstructure:"product_name" json:"productName"`
 	Supplier         string          `db:"supplier" gorm:"index;not null;" mapstructure:"supplier" json:"supplier"`
-	Description      string          `db:"description" gorm:"index;not null;" mapstructure:"description" json:"description"`
+	Description      string          `db:"description" gorm:"index;null;" mapstructure:"description" json:"description"`
 	Expires          sqlx.DateOnly   `db:"expires" gorm:"index;not null;" mapstructure:"expires" json:"expires"`
 	PurchasePrice    decimal.Decimal `db:"purchase_price" gorm:"index;not null;" mapstructure:"purchase_price" json:"purchasePrice"`
 	SalePrice        decimal.Decimal `db:"sale_price" gorm:"index;not null;" mapstructure:"sale_price" json:"salePrice"`
@@ -37,7 +37,7 @@ type Product struct {
 	PackageID        uint            `db:"package_id" gorm:"index;not null;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;" mapstructure:"package_id" json:"packageId"`
 	PackageTotal     int             `db:"package_total" gorm:"index;not null;" mapstructure:"package_total" json:"packageTotal"`
 	UnitID           uint            `db:"unit_id" gorm:"index;not null;" mapstructure:"unit_id" json:"unitId"`
-	UnitAmount       int             `db:"unit_amount" gorm:"index;not null;" mapstructure:"unit_amount" json:"unitAmount"`
+	UnitScale        int             `db:"unit_scale" gorm:"index;not null;" mapstructure:"unit_amount" json:"unitAmount"`
 	UnitExtra        int             `db:"unit_extra" gorm:"index;not null;" mapstructure:"unit_extra" json:"unitExtra"`
 
 	Categories []Category `db:"-" gorm:"many2many:product_categories;" mapstructure:"categories" json:"categories"`

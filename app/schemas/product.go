@@ -6,6 +6,7 @@ import (
 	"nokowebapi/nokocore"
 	"nokowebapi/sqlx"
 	models2 "pharma-cash-go/app/models"
+	utils2 "pharma-cash-go/app/utils"
 )
 
 type ProductBody struct {
@@ -13,20 +14,20 @@ type ProductBody struct {
 	Brand            string   `mapstructure:"brand" json:"brand" form:"brand"`
 	ProductName      string   `mapstructure:"product_name" json:"productName" form:"product_name"`
 	Supplier         string   `mapstructure:"supplier" json:"supplier" form:"supplier"`
-	Description      string   `mapstructure:"description" json:"description" form:"description"`
+	Description      string   `mapstructure:"description" json:"description" form:"description" validate:"ascii,omitempty"`
 	Expires          string   `mapstructure:"expires" json:"expires" form:"expires" validate:"dateOnly"`
-	PurchasePrice    string   `mapstructure:"purchase_price" json:"purchasePrice" form:"purchase_price" validate:"decimal,min=0"`
-	SupplierDiscount int      `mapstructure:"supplier_discount" json:"supplierDiscount" form:"supplier_discount" validate:"numeric,min=0"`
-	VAT              int      `mapstructure:"vat" json:"tax" form:"vat" validate:"numeric,min=0"` // input "tax"
-	ProfitMargin     int      `mapstructure:"profit_margin" json:"profitMargin" form:"profit_margin" validate:"numeric,min=0"`
+	PurchasePrice    string   `mapstructure:"purchase_price" json:"purchasePrice" form:"purchase_price" validate:"decimal"`
+	SupplierDiscount int      `mapstructure:"supplier_discount" json:"supplierDiscount" form:"supplier_discount" validate:"numeric"`
+	VAT              int      `mapstructure:"vat" json:"tax" form:"tax" validate:"numeric"` // tax
+	ProfitMargin     int      `mapstructure:"profit_margin" json:"profitMargin" form:"profit_margin" validate:"numeric"`
 	PackageID        string   `mapstructure:"package_id" json:"packageId" form:"package_id" validate:"uuid,omitempty"`
 	PackageType      string   `mapstructure:"package_type" json:"packageType" form:"package_type" validate:"omitempty"`
-	PackageTotal     int      `mapstructure:"package_total" json:"packageTotal" form:"package_total" validate:"number,min=0"`
+	PackageTotal     int      `mapstructure:"package_total" json:"packageTotal" form:"package_total" validate:"number"`
 	UnitID           string   `mapstructure:"unit_id" json:"unitId" form:"unit_id" validate:"uuid,omitempty"`
 	UnitType         string   `mapstructure:"unit_type" json:"unitType" form:"unit_type" validate:"omitempty"`
-	UnitAmount       int      `mapstructure:"unit_amount" json:"unitAmount" form:"unit_amount" validate:"number,min=0"`
-	UnitExtra        int      `mapstructure:"unit_extra" json:"unitExtra" form:"unit_extra" validate:"omitempty"`
-	Categories       []string `mapstructure:"categories" json:"categories" form:"categories" validate:"ascii,min=1,omitempty"`
+	UnitScale        int      `mapstructure:"unit_scale" json:"unitScale" form:"unit_scale" validate:"number"`
+	UnitExtra        int      `mapstructure:"unit_extra" json:"unitExtra" form:"unit_extra" validate:"number"`
+	Categories       []string `mapstructure:"categories" json:"categories" form:"categories" validate:"ascii,omitempty"`
 	Category         string   `mapstructure:"category" json:"category" form:"category" validate:"ascii,omitempty"`
 }
 
@@ -51,6 +52,11 @@ func ToProductModel(product *ProductBody) *models2.Product {
 		discount := float64(product.SupplierDiscount) / 100
 		vat := float64(product.VAT) / 100
 		margin := float64(product.ProfitMargin) / 100
+
+		extra, div := utils2.Modulo(product.UnitExtra, product.UnitScale)
+		product.PackageTotal += div
+		product.UnitExtra = extra
+
 		return &models2.Product{
 			Barcode:          product.Barcode,
 			Brand:            product.Brand,
@@ -63,7 +69,7 @@ func ToProductModel(product *ProductBody) *models2.Product {
 			VAT:              vat,
 			ProfitMargin:     margin,
 			PackageTotal:     product.PackageTotal,
-			UnitAmount:       product.UnitAmount,
+			UnitScale:        product.UnitScale,
 			UnitExtra:        product.UnitExtra,
 			Categories:       categories,
 		}
@@ -83,15 +89,16 @@ type ProductResult struct {
 	PurchasePrice    decimal.Decimal `mapstructure:"purchase_price" json:"purchasePrice"`
 	SalePrice        decimal.Decimal `mapstructure:"sale_price" json:"salePrice"`
 	SupplierDiscount int             `mapstructure:"supplier_discount" json:"supplierDiscount"`
-	VAT              int             `mapstructure:"vat" json:"tax"` // output "tax"
+	VAT              int             `mapstructure:"vat" json:"tax"` // tax
 	ProfitMargin     int             `mapstructure:"profit_margin" json:"profitMargin"`
 	PackageId        uuid.UUID       `mapstructure:"package_id" json:"packageId"`
 	PackageType      string          `mapstructure:"package_type" json:"packageType"`
 	PackageTotal     int             `mapstructure:"package_total" json:"packageTotal"`
 	UnitID           uuid.UUID       `mapstructure:"unit_id" json:"unitId"`
 	UnitType         string          `mapstructure:"unit_type" json:"unitType"`
-	UnitAmount       int             `mapstructure:"unit_amount" json:"unitAmount"`
+	UnitScale        int             `mapstructure:"unit_scale" json:"unitScale"`
 	UnitExtra        int             `mapstructure:"unit_extra" json:"unitExtra"`
+	UnitTotal        int             `mapstructure:"unit_total" json:"unitTotal"`
 	CreatedAt        string          `mapstructure:"created_at" json:"createdAt"`
 	UpdatedAt        string          `mapstructure:"updated_at" json:"updatedAt"`
 	DeletedAt        string          `mapstructure:"deleted_at" json:"deletedAt,omitempty"`
@@ -119,6 +126,10 @@ func ToProductResult(product *models2.Product) ProductResult {
 		discount := product.SupplierDiscount * 100
 		vat := product.VAT * 100
 		margin := product.ProfitMargin * 100
+
+		unitTotal := product.UnitScale * product.PackageTotal
+		unitTotal += product.UnitExtra
+
 		return ProductResult{
 			UUID:             product.UUID,
 			Barcode:          product.Barcode,
@@ -137,8 +148,9 @@ func ToProductResult(product *models2.Product) ProductResult {
 			PackageTotal:     product.PackageTotal,
 			UnitID:           product.Unit.UUID,
 			UnitType:         product.Unit.UnitType,
-			UnitAmount:       product.UnitAmount,
+			UnitScale:        product.UnitScale,
 			UnitExtra:        product.UnitExtra,
+			UnitTotal:        unitTotal,
 			CreatedAt:        createdAt,
 			UpdatedAt:        updatedAt,
 			DeletedAt:        deletedAt,

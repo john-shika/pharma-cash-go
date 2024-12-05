@@ -73,8 +73,8 @@ func GetAllSessions(DB *gorm.DB) echo.HandlerFunc {
 			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get sessions.", nil)
 		}
 
-		sessionId := session.ID
-		
+		sessionID := session.ID
+
 		size := len(sessions)
 		sessionResults := make([]schemas.SessionResult, size)
 		for i, session := range sessions {
@@ -82,7 +82,7 @@ func GetAllSessions(DB *gorm.DB) echo.HandlerFunc {
 
 			session.User = *user
 			sessionResult := schemas.ToSessionResult(&session)
-			sessionResult.Used = session.ID == sessionId
+			sessionResult.Used = session.ID == sessionID
 			sessionResults[i] = sessionResult
 		}
 
@@ -101,8 +101,8 @@ func SetLogout(DB *gorm.DB) echo.HandlerFunc {
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
 		session := jwtAuthInfo.Session
 
-		sessionId := session.UUID
-		if err := sessionRepository.SafeDelete(session, "uuid = ?", sessionId); err != nil {
+		sessionID := session.UUID
+		if err := sessionRepository.SafeDelete(session, "uuid = ?", sessionID); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to log out.", nil)
 		}
@@ -131,7 +131,7 @@ func GetRefreshToken(DB *gorm.DB) echo.HandlerFunc {
 		// get user roles
 		roles := utils.ToUserRolesArrayString(user.Roles)
 
-		sessionId := session.UUID
+		sessionID := session.UUID
 		timeUtcNow := nokocore.GetTimeUtcNow()
 		expires := timeUtcNow.Add(expiresIn)
 
@@ -142,7 +142,7 @@ func GetRefreshToken(DB *gorm.DB) echo.HandlerFunc {
 		jwtClaimsDataAccess.SetIssuedAt(timeUtcNow)
 		jwtClaimsDataAccess.SetExpiresAt(expires)
 		jwtClaimsDataAccess.SetUser(user.Username)
-		jwtClaimsDataAccess.SetSessionID(sessionId.String())
+		jwtClaimsDataAccess.SetSessionID(sessionID.String())
 		jwtClaimsDataAccess.SetRoles(roles)
 		jwtClaimsDataAccess.SetAdmin(user.Admin)
 		jwtClaimsDataAccess.SetLevel(user.Level)
@@ -180,9 +180,9 @@ func DeleteOwnUser(DB *gorm.DB) echo.HandlerFunc {
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
 		user := jwtAuthInfo.User
 
-		permanent := extras.ParseQueryToBool(ctx, "permanent")
+		forced := extras.ParseQueryToBool(ctx, "forced")
 
-		if !permanent && user.DeletedAt.Valid {
+		if !forced && user.DeletedAt.Valid {
 			return extras.NewMessageBodyOk(ctx, "User already deleted.", nil)
 		}
 
@@ -193,7 +193,7 @@ func DeleteOwnUser(DB *gorm.DB) echo.HandlerFunc {
 		}
 
 		if employee != nil {
-			if permanent {
+			if forced {
 				if err = employeeRepository.Delete(employee, "user_id = ?", user.ID); err != nil {
 					console.Error(fmt.Sprintf("panic: %s", err.Error()))
 					return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete employee.", nil)
@@ -207,7 +207,7 @@ func DeleteOwnUser(DB *gorm.DB) echo.HandlerFunc {
 			}
 		}
 
-		if permanent {
+		if forced {
 			if err := userRepository.Delete(user, "id = ?", user.ID); err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to delete user.", nil)

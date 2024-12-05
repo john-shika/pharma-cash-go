@@ -1,8 +1,8 @@
 #!pwsh
 
 $CurrWorkDir = Get-Location
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-Set-Location $ScriptDir
+$ScriptRootDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location $ScriptRootDir
 Set-Location ..
 
 $ZIPFILE = "app.zip"

@@ -9,6 +9,7 @@ import (
 	"nokowebapi/apis/utils"
 	"nokowebapi/console"
 	"nokowebapi/nokocore"
+	"nokowebapi/sqlx"
 	models2 "pharma-cash-go/app/models"
 	repositories2 "pharma-cash-go/app/repositories"
 	schemas2 "pharma-cash-go/app/schemas"
@@ -62,7 +63,7 @@ func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
 					packageModel = &models2.Package{
 						PackageType: packageType,
 					}
-					if err = packageRepository.SafeCreate(packageModel); err != nil {
+					if err = packageRepository.Create(packageModel); err != nil {
 						console.Error(fmt.Sprintf("panic: %s", err.Error()))
 						return extras.NewMessageBodyInternalServerError(ctx, "Failed create package.", nil)
 					}
@@ -95,7 +96,7 @@ func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
 					unit = &models2.Unit{
 						UnitType: unitType,
 					}
-					if err = unitRepository.SafeCreate(unit); err != nil {
+					if err = unitRepository.Create(unit); err != nil {
 						console.Error(fmt.Sprintf("panic: %s", err.Error()))
 						return extras.NewMessageBodyInternalServerError(ctx, "Failed create unit.", nil)
 					}
@@ -120,7 +121,7 @@ func CreateProduct(DB *gorm.DB) echo.HandlerFunc {
 		tax := product.PurchasePrice.Mul(decimal.NewFromFloat(product.VAT))
 		product.SalePrice = product.PurchasePrice.Add(margin).Add(tax)
 
-		if err = productRepository.SafeCreate(product); err != nil {
+		if err = productRepository.Create(product); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to create product.", nil)
 		}
@@ -173,10 +174,15 @@ func GetProductDetailByProductId(DB *gorm.DB) echo.HandlerFunc {
 
 	return func(ctx echo.Context) error {
 		var err error
+		var productID string
 		var product *models2.Product
-		nokocore.KeepVoid(err, product)
+		nokocore.KeepVoid(err, productID, product)
 
-		productID := ctx.Param("productId")
+		productID = ctx.Param("productId")
+		if err = sqlx.ValidateUUID(productID); err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Invalid parameter 'product_id'.", nil)
+		}
 
 		preloads := []string{"Categories", "Package", "Unit"}
 		if product, err = productRepository.SafePreFirst(preloads, "uuid = ?", productID); err != nil {
@@ -199,13 +205,18 @@ func UpdateProduct(DB *gorm.DB) echo.HandlerFunc {
 
 	return func(ctx echo.Context) error {
 		var err error
+		var productID string
 		var product *models2.Product
 		var newProduct *models2.Product
 		var packageModel *models2.Package
 		var unit *models2.Unit
-		nokocore.KeepVoid(err, product, packageModel, unit)
+		nokocore.KeepVoid(err, productID, product, packageModel, unit)
 
-		productID := ctx.Param("productId")
+		productID = ctx.Param("productId")
+		if err = sqlx.ValidateUUID(productID); err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Invalid parameter 'product_id'.", nil)
+		}
 
 		productBody := new(schemas2.ProductBody)
 		if err = ctx.Bind(productBody); err != nil {
@@ -244,7 +255,7 @@ func UpdateProduct(DB *gorm.DB) echo.HandlerFunc {
 						PackageType: packageType,
 					}
 
-					if err = packageRepository.SafeCreate(packageModel); err != nil {
+					if err = packageRepository.Create(packageModel); err != nil {
 						console.Error(fmt.Sprintf("panic: %s", err.Error()))
 						return extras.NewMessageBodyInternalServerError(ctx, "Failed to create package.", err.Error())
 					}
@@ -276,7 +287,7 @@ func UpdateProduct(DB *gorm.DB) echo.HandlerFunc {
 						UnitType: productBody.UnitType,
 					}
 
-					if err = unitRepository.SafeCreate(unit); err != nil {
+					if err = unitRepository.Create(unit); err != nil {
 						console.Error(fmt.Sprintf("panic: %s", err.Error()))
 						return extras.NewMessageBodyInternalServerError(ctx, "Failed to create unit.", err.Error())
 					}
@@ -289,6 +300,7 @@ func UpdateProduct(DB *gorm.DB) echo.HandlerFunc {
 		newProduct.UnitID = unit.ID
 		newProduct.Unit = *unit
 
+		// inject base model values
 		newProduct.ID = product.ID
 		newProduct.UUID = product.UUID
 		newProduct.CreatedAt = product.CreatedAt
@@ -310,29 +322,35 @@ func DeleteProduct(DB *gorm.DB) echo.HandlerFunc {
 
 	return func(ctx echo.Context) error {
 		var err error
+		var productID string
 		var product *models2.Product
-		nokocore.KeepVoid(err, product)
+		nokocore.KeepVoid(err, productID, product)
 
-		productId := ctx.Param("productId")
-		permanent := extras.ParseQueryToBool(ctx, "permanent")
+		forced := extras.ParseQueryToBool(ctx, "forced")
 
-		if product, err = productRepository.First("uuid = ?", productId); err != nil {
+		productID = ctx.Param("productId")
+		if err = sqlx.ValidateUUID(productID); err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Invalid parameter 'product_id'.", nil)
+		}
+
+		if product, err = productRepository.First("uuid = ?", productID); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to get product.", nil)
 		}
 
-		if !permanent && product.DeletedAt.Valid {
+		if !forced && product.DeletedAt.Valid {
 			return extras.NewMessageBodyOk(ctx, "Product already deleted.", nil)
 		}
 
 		if product != nil {
-			if !permanent {
-				if err = productRepository.SafeDelete(product, "uuid = ?", productId); err != nil {
+			if !forced {
+				if err = productRepository.SafeDelete(product, "uuid = ?", productID); err != nil {
 					console.Error(fmt.Sprintf("panic: %s", err.Error()))
 					return extras.NewMessageBodyInternalServerError(ctx, "Failed to delete product.", nil)
 				}
 			} else {
-				if err = productRepository.Delete(product, "uuid = ?", productId); err != nil {
+				if err = productRepository.Delete(product, "uuid = ?", productID); err != nil {
 					console.Error(fmt.Sprintf("panic: %s", err.Error()))
 					return extras.NewMessageBodyInternalServerError(ctx, "Failed to delete product.", nil)
 				}

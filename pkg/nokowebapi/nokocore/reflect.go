@@ -3,6 +3,7 @@ package nokocore
 import (
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"iter"
 	"reflect"
@@ -392,10 +393,19 @@ func ToStringReflect(value any) string {
 		return val.String()
 
 	case reflect.Array:
+		size := val.Len()
 		elem := val.Type().Elem()
+
 		switch elem.Kind() {
 		case reflect.Uint8:
-			size := val.Len()
+
+			// fix uuid array
+			if size == 16 {
+				if UUID, ok := val.Interface().(uuid.UUID); ok {
+					return UUID.String()
+				}
+			}
+
 			temp := make([]byte, size)
 			for i := 0; i < size; i++ {
 				temp[i] = byte(val.Index(i).Uint())
@@ -409,6 +419,7 @@ func ToStringReflect(value any) string {
 
 	case reflect.Slice:
 		elem := val.Type().Elem()
+
 		switch elem.Kind() {
 		case reflect.Uint8:
 			return fmt.Sprintf("%s", val.Bytes())
@@ -427,10 +438,6 @@ func ToStringReflect(value any) string {
 
 		if IsURL(val) {
 			return ToURLString(val)
-		}
-
-		if IsUUID(val) {
-			return ToUUIDString(val)
 		}
 
 		if IsDecimal(val) {
@@ -949,8 +956,10 @@ func GetArrayValueReflect(value any) []any {
 
 	switch val.Kind() {
 	case reflect.Array, reflect.Slice, reflect.String:
-		temp := make([]any, val.Len())
-		for i := 0; i < val.Len(); i++ {
+		size := val.Len()
+		temp := make([]any, size)
+
+		for i := 0; i < size; i++ {
 			temp[i] = val.Index(i).Interface()
 		}
 
@@ -1262,6 +1271,12 @@ func GetValueWithSuperKey(data any, key string) any {
 	var token string
 	KeepVoid(token)
 
+	// should not pass reflect type
+	if val, ok := data.(reflect.Type); ok {
+		KeepVoid(val)
+		return nil
+	}
+
 	val := PassValueIndirectReflect(data)
 
 	if !val.IsValid() {
@@ -1328,6 +1343,12 @@ func GetValueWithSuperKeyReflect(data any, key string) reflect.Value {
 	var idx int
 	var token string
 	KeepVoid(err, idx, token)
+
+	// should not pass reflect type
+	if val, ok := data.(reflect.Type); ok {
+		KeepVoid(val)
+		return reflect.Value{}
+	}
 
 	// ensure the field is set immediately, first order
 	defaultValueReflect(data)
@@ -1417,6 +1438,12 @@ func defaultValueReflect(value any) any {
 }
 
 func SetValueReflect(field any, value any) error {
+	// should not pass reflect type
+	if val, ok := field.(reflect.Type); ok {
+		KeepVoid(val)
+		return errors.New("should not pass reflect type")
+	}
+
 	// ensure the field is set immediately, first order
 	defaultValueReflect(field)
 
@@ -2078,11 +2105,15 @@ type ForEachStructFieldsOptions struct {
 	// Validation indicates whether the field should be matched.
 	// Validation is matching ignored, omitempty, required attributes.
 	Validation bool `mapstructure:"validation" json:"validation" yaml:"validation"`
+
+	// ExportedOnly indicates whether the field should be exported.
+	ExportedOnly bool `mapstructure:"exported_only" json:"exportedOnly" yaml:"exported_only"`
 }
 
 func NewForEachStructFieldsOptions() *ForEachStructFieldsOptions {
 	return &ForEachStructFieldsOptions{
-		Validation: false,
+		Validation:   false,
+		ExportedOnly: true,
 	}
 }
 
@@ -2110,7 +2141,7 @@ func ForEachStructFieldsReflect(value any, options *ForEachStructFieldsOptions, 
 			sTag := sField.Tag
 
 			// can't be exported
-			if !sField.IsExported() {
+			if options.ExportedOnly && !sField.IsExported() {
 				continue
 			}
 

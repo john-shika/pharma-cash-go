@@ -33,17 +33,19 @@ func SqlValueIsNull(value any) bool {
 			elem := val.Type().Elem()
 
 			// fix uuid array
-			if size == 16 {
-				switch elem.Kind() {
-				case reflect.Uint8:
+			switch elem.Kind() {
+			case reflect.Uint8:
+				if size == 16 {
 					if UUID, ok := val.Interface().(uuid.UUID); ok {
 						return UUID == uuid.Nil
 					}
-
-				default:
-					return false
 				}
+
+			default:
+				break
 			}
+
+			return false
 
 		default:
 			return false

@@ -51,7 +51,7 @@ func CreateCheckpointOpnameCart(DB *gorm.DB) echo.HandlerFunc {
 		}
 
 		if stockOpname != nil {
-			stockOpnameResult := schemas2.ToStockOpnameResult(stockOpname)
+			stockOpnameResult := schemas2.ToStockOpnameResultCreate(stockOpname)
 			return extras.NewMessageBodyBadRequest(ctx, "Data has not been verified yet.", &nokocore.MapAny{
 				"stockOpname": stockOpnameResult,
 			})
@@ -108,9 +108,77 @@ func CreateCheckpointOpnameCart(DB *gorm.DB) echo.HandlerFunc {
 			return extras.NewMessageBodyInternalServerError(ctx, "Failed to load related user.", nil)
 		}
 
-		stockOpnameResult := schemas2.ToStockOpnameResult(stockOpnameNew)
+		stockOpnameResult := schemas2.ToStockOpnameResultCreate(stockOpnameNew)
 		return extras.NewMessageBodyOk(ctx, "Successfully create checkpoint opname cart.", &nokocore.MapAny{
 			"stockOpname": stockOpnameResult,
+		})
+	}
+}
+
+func GetAllStockOpnames(DB *gorm.DB) echo.HandlerFunc {
+	return func(ctx echo.Context) error {
+		var err error
+		var stockOpnamesResultGet []schemas2.StockOpnameResultGet
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+
+		if !utils.RoleIsAdmin(jwtAuthInfo) && !utils.RoleIs(jwtAuthInfo, nokocore.RoleOfficer) {
+			return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
+		}
+
+		query := `
+			SELECT
+				p.uuid AS product_uuid,
+				p.barcode,
+				p.product_name,
+				p.brand,
+				p.package_total,
+				p.unit_amount,
+				p.unit_extra,
+				(p.package_total * p.unit_amount) + p.unit_extra AS unit_total,
+				COALESCE(cvo.is_match, TRUE) AS is_match,
+				COALESCE(cvo.uuid, NULL) AS cart_stock_opname_id,
+				p.created_at,
+				p.updated_at
+			FROM
+				products p
+			LEFT JOIN
+				cart_verification_opnames cvo
+			ON
+				p.id = cvo.product_id;
+		`
+
+		if err = DB.Raw(query).Scan(&stockOpnamesResultGet).Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get stock_opnames.", nil)
+		}
+
+		// stockOpnamesResult := schemas2.ToStockOpnamesResult(stockOpnames)
+		return extras.NewMessageBodyOk(ctx, "Successfully get all stock_opnames.", &nokocore.MapAny{
+			"stockOpnames": stockOpnamesResultGet,
+		})
+	}
+}
+
+func GetProductDetailForPopUpNotMatchVerification(DB *gorm.DB) echo.HandlerFunc {
+	return func(ctx echo.Context) error {
+		var err error
+		var product *models2.Product
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+
+		productID := ctx.Param("productId")
+
+		if !utils.RoleIsAdmin(jwtAuthInfo) && !utils.RoleIs(jwtAuthInfo, nokocore.RoleOfficer) {
+			return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
+		}
+
+		if err = DB.Preload("Package").Preload("Unit").First(&product, "UUID = ?", productID).Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyBadRequest(ctx, "Unable to get product data.", err.Error())
+		}
+
+		productResult := schemas2.ToProductResult(product)
+		return extras.NewMessageBodyOk(ctx, "Successfully get product detail for pop up not match.", &nokocore.MapAny{
+			"product": productResult,
 		})
 	}
 }
@@ -123,7 +191,7 @@ func NotMatchVerification(DB *gorm.DB) echo.HandlerFunc {
 		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
 
 		productID := ctx.Param("productId")
-		fmt.Println("productID", productID)
+
 		cartVerificationOpnameRepository := repositories2.NewCartVerificationOpnameRepository(DB)
 
 		// check: is productId exist
@@ -149,9 +217,10 @@ func NotMatchVerification(DB *gorm.DB) echo.HandlerFunc {
 			UserID:           uint(jwtAuthInfo.User.ID),
 			ProductID:        product.ID,
 			IsMatch:          false,
+			NotMatchReason:   cartVerificationOpnameBody.NotMatchReason,
 			RealPackageTotal: cartVerificationOpnameBody.RealPackageTotal,
 			RealUnitExtra:    cartVerificationOpnameBody.RealUnitExtra,
-			RealUnitTotal:    (cartVerificationOpnameBody.RealPackageTotal * product.UnitAmount) + cartVerificationOpnameBody.RealUnitExtra,
+			// RealUnitTotal:    (cartVerificationOpnameBody.RealPackageTotal * product.UnitAmount) + cartVerificationOpnameBody.RealUnitExtra,
 		}); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyUnprocessableEntity(ctx, "Failed to create cart_verification_opnames data.", err.Error())
@@ -170,10 +239,97 @@ func NotMatchVerification(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
+func GetNotMatchVerificationByCartVerificationOpnameId(DB *gorm.DB) echo.HandlerFunc {
+	return func(ctx echo.Context) error {
+		var err error
+		var cartVerificationOpnames *models2.CartVerificationOpname
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+		cartVerificationOpnameId := ctx.Param("cartVerificationOpnameId")
+
+		if !utils.RoleIsAdmin(jwtAuthInfo) && !utils.RoleIs(jwtAuthInfo, nokocore.RoleOfficer) {
+			return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
+		}
+
+		if err = DB.Preload("User").Preload("Product").First(&cartVerificationOpnames, "uuid = ?", cartVerificationOpnameId).Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to load cart_verification_opnames data with related cartVerificationOpnameId.", err.Error())
+		}
+
+		cartVerificationOpnameResult := schemas2.ToCartVerificationOpnameResult(cartVerificationOpnames)
+		return extras.NewMessageBodyOk(ctx, "Successfully load cart_verification_opnames data.", cartVerificationOpnameResult)
+
+	}
+}
+
+func UpdateNotMatchVerificationByCartVerificationOpnameId(DB *gorm.DB) echo.HandlerFunc {
+	return func(ctx echo.Context) error {
+		var err error
+		var cartVerificationOpnames *models2.CartVerificationOpname
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+		cartVerificationOpnameId := ctx.Param("cartVerificationOpnameId")
+
+		if !utils.RoleIsAdmin(jwtAuthInfo) && !utils.RoleIs(jwtAuthInfo, nokocore.RoleOfficer) {
+			return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
+		}
+
+		if err = DB.Preload("User").Preload("Product").First(&cartVerificationOpnames, "uuid = ?", cartVerificationOpnameId).Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to load cart_verification_opnames data with related cartVerificationOpnameId.", err.Error())
+		}
+
+		cartVerificationOpnameBody := new(schemas2.CartVerificationOpnameBody)
+		if err = ctx.Bind(&cartVerificationOpnameBody); err != nil {
+			return extras.NewMessageBodyBadRequest(ctx, "Invalid request body.", err)
+		}
+
+		cartVerificationOpnames.NotMatchReason = cartVerificationOpnameBody.NotMatchReason
+		cartVerificationOpnames.RealPackageTotal = cartVerificationOpnameBody.RealPackageTotal
+		cartVerificationOpnames.RealUnitExtra = cartVerificationOpnameBody.RealUnitExtra
+
+		if err = DB.Model(&cartVerificationOpnames).Update("is_match", true).Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to update cart_verification_opnames data with related cartVerificationOpnameId.", err.Error())
+		}
+
+		cartVerificationOpnameResult := schemas2.ToCartVerificationOpnameResult(cartVerificationOpnames)
+		return extras.NewMessageBodyOk(ctx, "Successfully update cart_verification_opnames data with related cartVerificationOpnameId.", cartVerificationOpnameResult)
+	}
+}
+
+func DeleteCartVerificationOpnameByCartVerificationOpnameId(DB *gorm.DB) echo.HandlerFunc {
+	return func(ctx echo.Context) error {
+		var err error
+		var cartVerificationOpnames *models2.CartVerificationOpname
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+		cartVerificationOpnameId := ctx.Param("cartVerificationOpnameId")
+
+		if !utils.RoleIsAdmin(jwtAuthInfo) && !utils.RoleIs(jwtAuthInfo, nokocore.RoleOfficer) {
+			return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
+		}
+
+		if err = DB.Preload("User").Preload("Product").First(&cartVerificationOpnames, "uuid = ?", cartVerificationOpnameId).Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to load cart_verification_opnames data with related cartVerificationOpnameId.", err.Error())
+		}
+
+		if err = DB.Unscoped().Delete(&cartVerificationOpnames).Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyInternalServerError(ctx, "Failed to delete cart_verification_opnames data with related cartVerificationOpnameId.", err.Error())
+		}
+
+		return extras.NewMessageBodyOk(ctx, "Successfully delete cart_verification_opnames data with related cartVerificationOpnameId.", nil)
+	}
+}
+
 func StokOpnameController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
 	group.POST("/warehouse/checkpoint", CreateCheckpointOpnameCart(DB))
+	group.GET("/warehouse/cart", GetAllStockOpnames(DB))
+	group.GET("/warehouse/stock/:productId", GetProductDetailForPopUpNotMatchVerification(DB))
 	group.POST("/warehouse/cart/not-match/:productId", NotMatchVerification(DB))
+	group.GET("/warehouse/cart/not-match/:cartVerificationOpnameId", GetNotMatchVerificationByCartVerificationOpnameId(DB))
+	group.PUT("/warehouse/cart/not-match/:cartVerificationOpnameId", UpdateNotMatchVerificationByCartVerificationOpnameId(DB))
+	group.DELETE("/warehouse/cart/not-match/:cartVerificationOpnameId", DeleteCartVerificationOpnameByCartVerificationOpnameId(DB))
 
 	return group
 }

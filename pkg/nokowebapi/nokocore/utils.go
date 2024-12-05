@@ -315,3 +315,13 @@ func LimitTextContent(s string, length int) string {
 
 	return s
 }
+
+func ToSliceAny[T any](values []T) []any {
+	size := len(values)
+	temp := make([]any, size)
+	for i := 0; i < size; i++ {
+		temp[i] = values[i]
+	}
+
+	return temp
+}

@@ -72,13 +72,8 @@ func SetUserRoles[T UserOrJwtAuthInfoImpl](DB *gorm.DB, userOrJwtAuthInfo T, rol
 	nokocore.KeepVoid(err)
 
 	if user := GetUser(userOrJwtAuthInfo); user != nil {
-		association := DB.Model(user).Association("Roles")
-		if err = association.Clear(); err != nil {
-			return err
-		}
-
 		temp := ToUserRoles(roles)
-		if err = association.Append(temp); err != nil {
+		if err = DB.Model(user).Association("Roles").Replace(temp); err != nil {
 			return err
 		}
 

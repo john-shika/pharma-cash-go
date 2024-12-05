@@ -575,10 +575,6 @@ func GetShikaObjectProperty(obj any) ShikaObjectPropertyImpl {
 			return NewShikaObjectProperty(ToURLString(val), ShikaObjectDataTypeURL)
 		}
 
-		if IsUUID(val) {
-			return NewShikaObjectProperty(ToUUIDString(val), ShikaObjectDataTypeUUID)
-		}
-
 		if IsDecimal(val) {
 			return NewShikaObjectProperty(ToDecimalString(val), ShikaObjectDataTypeDecimal)
 		}
@@ -611,10 +607,8 @@ func GetShikaObjectProperty(obj any) ShikaObjectPropertyImpl {
 
 			// fix uuid array
 			if size == 16 {
-				var ok bool
-				var v uuid.UUID
-				if v, ok = val.Interface().(uuid.UUID); ok {
-					return NewShikaObjectProperty(v, ShikaObjectDataTypeUUID)
+				if UUID, ok := val.Interface().(uuid.UUID); ok {
+					return NewShikaObjectProperty(UUID, ShikaObjectDataTypeUUID)
 				}
 			}
 
@@ -624,8 +618,8 @@ func GetShikaObjectProperty(obj any) ShikaObjectPropertyImpl {
 
 		values := make([]ShikaObjectPropertyImpl, size)
 		for i := 0; i < size; i++ {
-			elem := val.Index(i).Interface()
-			values[i] = GetShikaObjectProperty(elem)
+			temp := val.Index(i).Interface()
+			values[i] = GetShikaObjectProperty(temp)
 		}
 
 		return NewShikaObjectProperty(values, ShikaObjectDataTypeArray)

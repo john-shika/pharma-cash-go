@@ -3,6 +3,7 @@ package factories
 import (
 	"gorm.io/gorm"
 	"nokowebapi/apis/factories"
+	"nokowebapi/nokocore"
 	models2 "pharma-cash-go/app/models"
 )
 
@@ -19,11 +20,5 @@ func UnitFactory(DB *gorm.DB) []any {
 		}
 	})
 
-	size := len(temp)
-	result := make([]any, size)
-	for i := 0; i < size; i++ {
-		result[i] = temp[i]
-	}
-
-	return result
+	return nokocore.ToSliceAny(temp)
 }

@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"github.com/google/uuid"
 	"nokowebapi/nokocore"
 	"reflect"
 )
@@ -26,6 +27,23 @@ func SqlValueIsNull(value any) bool {
 			}))
 
 			return !valid
+
+		case reflect.Array, reflect.Slice:
+			size := val.Len()
+			elem := val.Type().Elem()
+
+			// fix uuid array
+			if size == 16 {
+				switch elem.Kind() {
+				case reflect.Uint8:
+					if UUID, ok := val.Interface().(uuid.UUID); ok {
+						return UUID == uuid.Nil
+					}
+
+				default:
+					return false
+				}
+			}
 
 		default:
 			return false

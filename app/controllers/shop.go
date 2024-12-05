@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -132,7 +133,6 @@ func ProductCheckout(DB *gorm.DB) echo.HandlerFunc {
 		}
 
 		cartBody := new(schemas2.CartBody)
-
 		if err = ctx.Bind(cartBody); err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to bind cart.", nil)
@@ -214,8 +214,7 @@ func ProductCheckout(DB *gorm.DB) echo.HandlerFunc {
 			pay := product.SalePrice.Mul(qty)
 			cart.SubTotal = pay
 
-			statusText := "add"
-
+			var statusText string
 			var check *models2.Cart
 
 			if check, err = cartRepository.SafeFirst("user_id = ? AND product_id = ? AND closed = FALSE", userID, product.ID); err != nil {
@@ -228,15 +227,31 @@ func ProductCheckout(DB *gorm.DB) echo.HandlerFunc {
 				cart.UUID = check.UUID
 				cart.CreatedAt = check.CreatedAt
 
-				if err = cartRepository.SafeUpdate(cart, "id = ?", cart.ID); err != nil {
-					return err
+				if unitTotal > 0 {
+					if err = cartRepository.SafeUpdate(cart, "id = ?", cart.ID); err != nil {
+						return err
+					}
+
+					statusText = "update"
+
+				} else {
+					if err = cartRepository.SafeDelete(cart, "id = ?", cart.ID); err != nil {
+						return err
+					}
+
+					statusText = "delete"
 				}
 
-				statusText = "update"
-
 			} else {
-				if err = cartRepository.Create(cart); err != nil {
-					return err
+				if unitTotal > 0 {
+					if err = cartRepository.Create(cart); err != nil {
+						return err
+					}
+
+					statusText = "add"
+				} else {
+
+					statusText = "skip"
 				}
 			}
 
@@ -275,10 +290,112 @@ func ProductCheckout(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
+func TransactionVerification(DB *gorm.DB) echo.HandlerFunc {
+	nokocore.KeepVoid(DB)
+
+	transactionRepository := repositories2.NewTransactionRepository(DB)
+
+	return func(ctx echo.Context) error {
+		var err error
+		var transactionID string
+		var transaction *models2.Transaction
+		var carts []models2.Cart
+		nokocore.KeepVoid(err, transactionID, transaction, carts)
+
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+		user := jwtAuthInfo.User
+		userID := user.ID
+
+		nokocore.KeepVoid(transactionRepository, userID)
+
+		if !utils.RoleIsAdmin(jwtAuthInfo) && !utils.RoleIs(jwtAuthInfo, nokocore.RoleOfficer) {
+			return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
+		}
+
+		if transactionID = extras.ParseQueryToString(ctx, "transaction_id"); transactionID != "" {
+			if err = sqlx.ValidateUUID(transactionID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Invalid parameter 'transaction_id'.", nil)
+			}
+		}
+
+		transactionBody := new(schemas2.TransactionBody)
+		if err = ctx.Bind(transactionBody); err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to bind request body.", nil)
+		}
+
+		if err = ctx.Validate(transactionBody); err != nil {
+			return err
+		}
+
+		if transactionID != "" {
+			if transaction, err = transactionRepository.SafeFirst("uuid = ? AND user_id = ? AND verified = FALSE", transactionID, userID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get transaction.", nil)
+			}
+		}
+
+		if transaction == nil {
+			if transaction, err = transactionRepository.SafeFirst("user_id = ? AND verified = FALSE", userID); err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to get transaction.", nil)
+			}
+		}
+
+		if transaction == nil {
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Transaction not found.", nil)
+		}
+
+		pay := decimal.RequireFromString(transactionBody.Pay)
+		exchange := pay.Sub(transaction.Total)
+		zero := decimal.NewFromInt(0)
+
+		if exchange.LessThan(zero) {
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Invalid transaction pay.", nil)
+		}
+
+		err = DB.Transaction(func(tx *gorm.DB) error {
+			transactionRepository := repositories2.NewTransactionRepository(tx)
+
+			stmt := DB.Model(&models2.Cart{}).Where("user_id = ? AND transaction_id = ? AND closed = FALSE", userID, transaction.ID).Update("closed", true)
+			if err = stmt.Error; err != nil {
+				return err
+			}
+
+			if stmt.RowsAffected == 0 {
+				return errors.New("no rows affected")
+			}
+
+			transaction.Pay = pay
+			transaction.Exchange = exchange
+			transaction.Verified = true
+			if err = transactionRepository.SafeUpdate(transaction, "id = ?", transaction.ID); err != nil {
+				return err
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Unable to update transaction.", nil)
+		}
+
+		transactionResult := schemas2.ToTransactionResult(transaction)
+		return extras.NewMessageBodyOk(ctx, "Successfully verified transaction.", &nokocore.MapAny{
+			"transaction": transactionResult,
+			"exchange":    exchange,
+			"pay":         pay,
+		})
+	}
+}
+
 func ShopController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
 	group.GET("/carts", GetAllCarts(DB))
 	group.POST("/product/checkout", ProductCheckout(DB))
+	group.POST("/transaction/verify", TransactionVerification(DB))
 
 	return group
 }

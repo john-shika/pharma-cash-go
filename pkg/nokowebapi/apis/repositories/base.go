@@ -812,26 +812,35 @@ func (b *BaseRepository[T]) makeStmtWithConstraintFields(model *T) (*stmtConstra
 		}
 
 		size := 0
-		values := make([]any, 0)
-		queries := make([]string, 0)
+		var values []any
+		var queries []string
 		for i, field := range fields {
 			nokocore.KeepVoid(i)
 
 			dbName := field.DBName
-			fieldName := field.Name
+			fieldName := nokocore.ToSnakeCase(field.Name)
 			isConstraint := field.PrimaryKey || field.Unique
-			if isConstraint && dbName != "id" && dbName != "uuid" {
-				value := nokocore.GetValueWithSuperKey(model, nokocore.ToSnakeCase(fieldName))
-				if utils.SqlValueIsNull(value) {
-					if field.NotNull {
-						return nil, errors.New(fmt.Sprintf("field '%s' is required", fieldName))
-					}
+			if isConstraint {
+				var value any
+				if dbName != "id" && dbName != "uuid" {
+					value = nokocore.GetValueWithSuperKey(model, fieldName)
+					if utils.SqlValueIsNull(value) {
+						if field.NotNull {
+							return nil, errors.New(fmt.Sprintf("field '%s' is required", fieldName))
+						}
 
-					continue
+						continue
+					}
+				} else {
+					fieldName = fmt.Sprintf("BaseModel.%s", fieldName)
+					value = nokocore.GetValueWithSuperKey(model, fieldName)
+					if utils.SqlValueIsNull(value) {
+						continue
+					}
 				}
 
-				values = append(values, value)
 				queries = append(queries, fmt.Sprintf("%s = ?", dbName))
+				values = append(values, value)
 				size += 1
 			}
 		}

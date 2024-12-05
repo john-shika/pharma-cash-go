@@ -53,25 +53,14 @@ func RoleIs[T RoleTypedOrStringImpl](roles string, expected ...T) bool {
 
 func RolesContains[T1, T2 RoleTypedOrStringImpl](roles []T1, expected ...T2) bool {
 	if len(expected) > 0 {
-		for i, role2 := range expected {
-			KeepVoid(i)
-
-			found := false
-			for j, role1 := range roles {
-				KeepVoid(j)
-
+		for i, role1 := range roles {
+			for j, role2 := range expected {
+				KeepVoid(i, j)
 				if strings.EqualFold(string(role1), string(role2)) {
-					found = true
-					break
+					return true
 				}
 			}
-
-			if !found {
-				return false
-			}
 		}
-
-		return true
 	}
 
 	return false

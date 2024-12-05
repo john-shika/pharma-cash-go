@@ -401,10 +401,8 @@ func ToStringReflect(value any) string {
 
 			// fix uuid array
 			if size == 16 {
-				var ok bool
-				var v uuid.UUID
-				if v, ok = val.Interface().(uuid.UUID); ok {
-					return v.String()
+				if UUID, ok := val.Interface().(uuid.UUID); ok {
+					return UUID.String()
 				}
 			}
 
@@ -421,6 +419,7 @@ func ToStringReflect(value any) string {
 
 	case reflect.Slice:
 		elem := val.Type().Elem()
+
 		switch elem.Kind() {
 		case reflect.Uint8:
 			return fmt.Sprintf("%s", val.Bytes())
@@ -439,10 +438,6 @@ func ToStringReflect(value any) string {
 
 		if IsURL(val) {
 			return ToURLString(val)
-		}
-
-		if IsUUID(val) {
-			return ToUUIDString(val)
 		}
 
 		if IsDecimal(val) {
@@ -961,8 +956,10 @@ func GetArrayValueReflect(value any) []any {
 
 	switch val.Kind() {
 	case reflect.Array, reflect.Slice, reflect.String:
-		temp := make([]any, val.Len())
-		for i := 0; i < val.Len(); i++ {
+		size := val.Len()
+		temp := make([]any, size)
+
+		for i := 0; i < size; i++ {
 			temp[i] = val.Index(i).Interface()
 		}
 

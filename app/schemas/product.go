@@ -25,7 +25,7 @@ type ProductBody struct {
 	PackageTotal     int      `mapstructure:"package_total" json:"packageTotal" form:"package_total" validate:"number"`
 	UnitID           string   `mapstructure:"unit_id" json:"unitId" form:"unit_id" validate:"uuid,omitempty"`
 	UnitType         string   `mapstructure:"unit_type" json:"unitType" form:"unit_type" validate:"omitempty"`
-	UnitScale        int      `mapstructure:"unit_scale" json:"unitScale" form:"unit_scale" validate:"number"`
+	UnitScale        int      `mapstructure:"unit_scale" json:"unitScale" form:"unit_scale" validate:"number,min=1"`
 	UnitExtra        int      `mapstructure:"unit_extra" json:"unitExtra" form:"unit_extra" validate:"number"`
 	Categories       []string `mapstructure:"categories" json:"categories" form:"categories" validate:"ascii,omitempty"`
 	Category         string   `mapstructure:"category" json:"category" form:"category" validate:"ascii,omitempty"`

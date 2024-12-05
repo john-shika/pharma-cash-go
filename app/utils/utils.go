@@ -17,9 +17,29 @@ func ToShiftNameNorm(name string) string {
 func Modulo(value, m int) (extra int, div int) {
 	div = 0
 	extra = value
-	for extra >= m {
-		extra += -m
-		div += 1
+
+	switch {
+	case value > 0 && m > 0:
+		for extra >= m {
+			extra += -m
+			div += 1
+		}
+
+	case value < 0 && m > 0:
+		extra, div = Modulo(-value, m)
+		extra = m - extra
+
+	case value > 0 && m < 0:
+		extra, div = Modulo(value, -m)
+		extra = m + extra
+
+	case value < 0 && m < 0:
+		extra, div = Modulo(-value, -m)
+		extra = -extra
+
+	default:
+		panic("division by zero")
 	}
+
 	return extra, div
 }

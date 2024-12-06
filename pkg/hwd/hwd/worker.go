@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"go.bug.st/serial"
+	"nokowebapi/globals"
 	"nokowebapi/nokocore"
 	"nokowebapi/task"
 	"os"
@@ -61,7 +62,9 @@ func watch(stdin *os.File, stdout *os.File) {
 func NewWorker() {
 	var process *exec.Cmd
 
-	serialName := "COM4"
+	config := globals.GetConfigGlobals[Config]()
+
+	serialName := config.Scanner.Serial
 	args := []string{"/scan", "/serial", serialName}
 
 	pipeIn, stdin := nokocore.Unwrap2(os.Pipe())

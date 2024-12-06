@@ -38,7 +38,9 @@ func Modulo(value, m int) (extra int, div int) {
 		extra = -extra
 
 	default:
-		panic("division by zero")
+		//pass away
+		//panic("division by zero")
+		return 0, 0
 	}
 
 	return extra, div

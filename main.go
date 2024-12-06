@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/spf13/viper"
-	"hwd/hwd"
 	"nokowebapi/globals"
 	"nokowebapi/nokocore"
 	"nokowebapi/task"
@@ -23,7 +22,7 @@ func main() {
 	}
 
 	pTasksHandler := func(pTasks task.ProcessTasksImpl) {
-		go hwd.NewWorker()
+		//go hwd.NewWorker()
 
 		tasks := globals.GetTasks()
 		nokocore.NoErr(pTasks.Execute(tasks))

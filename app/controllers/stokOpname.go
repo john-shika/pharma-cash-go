@@ -216,7 +216,7 @@ func NotMatchVerification(DB *gorm.DB) echo.HandlerFunc {
 
 		// insert: to table cart_verification_opnames
 		if err = cartVerificationOpnameRepository.Create(&models2.CartVerificationOpname{
-			UserID:           uint(jwtAuthInfo.User.ID),
+			UserID:           jwtAuthInfo.User.ID,
 			ProductID:        product.ID,
 			IsMatch:          false,
 			NotMatchReason:   cartVerificationOpnameBody.NotMatchReason,

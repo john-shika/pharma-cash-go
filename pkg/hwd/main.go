@@ -68,8 +68,8 @@ func main() {
 
 	//beta.SessionPrinter()
 
-	//args := []string{"/scan", "/serial", "COM4"}
-	args := []string{"/print", "/name", "PANDA ESCPOS"}
+	args := []string{"/scan", "/serial", "COM4"}
+	//args := []string{"/print", "/name", "PANDA ESCPOS"}
 
 	pipeIn, stdin := nokocore.Unwrap2(os.Pipe())
 	stdout, pipeOut := nokocore.Unwrap2(os.Pipe())

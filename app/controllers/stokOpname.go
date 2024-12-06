@@ -10,8 +10,10 @@ import (
 	models2 "pharma-cash-go/app/models"
 	repositories2 "pharma-cash-go/app/repositories"
 	schemas2 "pharma-cash-go/app/schemas"
+	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 )
@@ -216,7 +218,7 @@ func NotMatchVerification(DB *gorm.DB) echo.HandlerFunc {
 
 		// insert: to table cart_verification_opnames
 		if err = cartVerificationOpnameRepository.Create(&models2.CartVerificationOpname{
-			UserID:           jwtAuthInfo.User.ID,
+			UserID:           uint(jwtAuthInfo.User.ID),
 			ProductID:        product.ID,
 			IsMatch:          false,
 			NotMatchReason:   cartVerificationOpnameBody.NotMatchReason,
@@ -392,7 +394,18 @@ func VerifyStockOpname(DB *gorm.DB) echo.HandlerFunc {
 		err = DB.Transaction(func(tx *gorm.DB) error {
 
 			// prepared data
+			//
+			ids := []uuid.UUID{}
+			casesPackageTotal := "CASE uuid"
+			casesUnitExtra := "CASE uuid"
+			//
 			for _, stockOpnamesResultGetVerify := range stockOpnamesResultGetVerfies {
+				if !stockOpnamesResultGetVerify.IsMatch {
+					ids = append(ids, stockOpnamesResultGetVerify.ProductUUID)
+					casesPackageTotal += fmt.Sprintf(" WHEN '%s' THEN '%d'", stockOpnamesResultGetVerify.ProductUUID, stockOpnamesResultGetVerify.RealPackageTotal)
+					casesUnitExtra += fmt.Sprintf(" WHEN '%s' THEN '%d'", stockOpnamesResultGetVerify.ProductUUID, stockOpnamesResultGetVerify.RealUnitExtra)
+
+				}
 				verificationOpnames = append(verificationOpnames, &models2.VerificationOpname{
 					ProductID:          stockOpnamesResultGetVerify.ProductUUID,
 					StockOpnameID:      stockOpname.ID,
@@ -406,12 +419,39 @@ func VerifyStockOpname(DB *gorm.DB) echo.HandlerFunc {
 					RealUnitTotal:      stockOpnamesResultGetVerify.RealUnitTotal,
 					UserID:             jwtAuthInfo.User.ID,
 				})
-			}
 
-			// insert: to table cart_verification_opnames
+			}
+			casesPackageTotal += " END"
+			casesUnitExtra += " END"
+
+			var idList []string
+			for _, id := range ids {
+				idList = append(idList, fmt.Sprintf("'%s'", id))
+			}
+			idsString := strings.Join(idList, ",")
+
+			// insert: to table verification_opnames
 			if err = DB.Create(&verificationOpnames).Error; err != nil {
 				console.Error(fmt.Sprintf("panic: %s", err.Error()))
 				return errors.New("failed to create cart_verification_opnames data")
+			}
+
+			// bulk update: change the package_total and unit_extra from table products
+			updatedAt := time.Now().UTC().Format("2006-01-02 15:04:05.9999999-07:00")
+			rawQuery := fmt.Sprintf(`
+				UPDATE products
+				SET 
+					package_total = %s,
+					unit_extra = %s,
+					updated_at = '%s'
+				WHERE uuid IN (%s) 
+			`,
+				casesPackageTotal, casesUnitExtra, updatedAt, idsString)
+			fmt.Println("= rawQuery: ", rawQuery)
+
+			if err := DB.Exec(rawQuery).Error; err != nil {
+				console.Error(fmt.Sprintf("panic: %s", err.Error()))
+				return errors.New("failed to update product package_total and unit_extra data")
 			}
 
 			// empty: delete all data from table cart_verification_opnames

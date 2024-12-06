@@ -11,3 +11,5 @@ go.work.sum
 nokowebapi.yaml
 !nokowebapi.yaml.example
 example.sqlite3
+.air.toml
+tmp/build-errors.log

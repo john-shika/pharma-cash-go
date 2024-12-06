@@ -480,8 +480,67 @@ func VerifyStockOpname(DB *gorm.DB) echo.HandlerFunc {
 	}
 }
 
+func GetHistoryStockOpnameDates(DB *gorm.DB) echo.HandlerFunc {
+	return func(ctx echo.Context) error {
+		var err error
+		jwtAuthInfo := extras.GetJwtAuthInfoFromEchoContext(ctx)
+
+		if !utils.RoleIsAdmin(jwtAuthInfo) && !utils.RoleIs(jwtAuthInfo, nokocore.RoleOfficer) {
+			return extras.NewMessageBodyUnauthorized(ctx, "Unauthorized access attempt.", nil)
+		}
+
+		type DateEntry struct {
+			StockOpnameId uuid.UUID `json:"stockOpnameId"`
+			Date          string    `json:"date"`
+		}
+
+		type YearlyData struct {
+			Year  string      `json:"year"`
+			Dates []DateEntry `json:"dates"`
+		}
+
+		startDate := ctx.QueryParam("startDate")
+		endDate := ctx.QueryParam("endDate")
+
+		query := DB.Table("stock_opnames").Select("strftime('%Y', created_at) AS year, uuid AS stock_opname_id, created_at AS date")
+		if startDate != "" && endDate != "" {
+			query = query.Where("date(created_at) BETWEEN ? AND ?", startDate, endDate)
+		}
+
+		var rawResults []struct {
+			Year          string
+			StockOpnameId uuid.UUID
+			Date          string
+		}
+
+		if err = query.Find(&rawResults).Error; err != nil {
+			console.Error(fmt.Sprintf("panic: %s", err.Error()))
+			return extras.NewMessageBodyUnprocessableEntity(ctx, "Failed to get history stock opname dates.", err.Error())
+		}
+		fmt.Println("= rawResults: ", rawResults)
+		groupedData := make(map[string][]DateEntry)
+		for _, row := range rawResults {
+			groupedData[row.Year] = append(groupedData[row.Year], DateEntry{
+				StockOpnameId: row.StockOpnameId,
+				Date:          row.Date,
+			})
+		}
+
+		var result []YearlyData
+		for year, dates := range groupedData {
+			result = append(result, YearlyData{
+				Year:  year,
+				Dates: dates,
+			})
+		}
+
+		return extras.NewMessageBodyOk(ctx, "Successfully get history stock opname dates.", result)
+	}
+}
+
 func StokOpnameController(group *echo.Group, DB *gorm.DB) *echo.Group {
 
+	// submenu verification
 	group.POST("/warehouse/checkpoint", CreateCheckpointOpnameCart(DB))
 	group.GET("/warehouse/cart", GetAllStockOpnames(DB))
 	group.GET("/warehouse/stock/:productId", GetProductDetailForPopUpNotMatchVerification(DB))
@@ -490,6 +549,9 @@ func StokOpnameController(group *echo.Group, DB *gorm.DB) *echo.Group {
 	group.PUT("/warehouse/cart/not-match/:cartVerificationOpnameId", UpdateNotMatchVerificationByCartVerificationOpnameId(DB))
 	group.DELETE("/warehouse/cart/not-match/:cartVerificationOpnameId", DeleteCartVerificationOpnameByCartVerificationOpnameId(DB))
 	group.POST("/warehouse/cart/verify", VerifyStockOpname(DB))
+
+	// submenu history
+	group.GET("/warehouse/history/dates", GetHistoryStockOpnameDates(DB))
 
 	return group
 }

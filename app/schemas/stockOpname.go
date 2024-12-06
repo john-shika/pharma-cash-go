@@ -96,6 +96,10 @@ type WarehouseInfo struct {
 	NotMatchReason   string `mapstructure:"not_match_reason" json:"notMatchReason"`
 }
 
+type StockOpnameResultDates struct {
+	
+}
+
 func ToStockOpnameResultCreate(stockOpname *models2.StockOpname) StockOpnameResultCreate {
 	if stockOpname != nil {
 		createdAt := nokocore.ToTimeUtcStringISO8601(stockOpname.CreatedAt)

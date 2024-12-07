@@ -44,7 +44,11 @@ type StockOpnameResultGet struct {
 	Barcode           string     `json:"barcode"`
 	ProductName       string     `json:"productName"`
 	Brand             string     `json:"brand"`
+	PackageUUID       uuid.UUID  `json:"packageId"`
+	PackageType       string     `json:"packageType"`
 	PackageTotal      int        `json:"packageTotal"`
+	UnitUUID          uuid.UUID  `json:"unitId"`
+	UnitType          string     `json:"unitType"`
 	UnitScale         int        `json:"unitScale"`
 	UnitExtra         int        `json:"unitExtra"`
 	UnitTotal         int        `json:"unitTotal"`
@@ -94,6 +98,9 @@ type WarehouseInfo struct {
 	RealUnitExtra    int    `mapstructure:"real_unit_extra" json:"realUnitExtra"`
 	RealUnitTotal    int    `mapstructure:"real_unit_total" json:"realUnitTotal"`
 	NotMatchReason   string `mapstructure:"not_match_reason" json:"notMatchReason"`
+}
+
+type StockOpnameResultDates struct {
 }
 
 func ToStockOpnameResultCreate(stockOpname *models2.StockOpname) StockOpnameResultCreate {

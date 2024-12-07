@@ -134,7 +134,11 @@ func GetAllStockOpnames(DB *gorm.DB) echo.HandlerFunc {
 				p.barcode,
 				p.product_name,
 				p.brand,
+				pkg.uuid AS package_uuid,
+				pkg.package_type AS package_type,
 				p.package_total,
+				u.uuid AS unit_uuid,
+    			u.unit_type AS unit_type,
 				p.unit_scale,
 				p.unit_extra,
 				(p.package_total * p.unit_scale) + p.unit_extra AS unit_total,
@@ -146,14 +150,16 @@ func GetAllStockOpnames(DB *gorm.DB) echo.HandlerFunc {
 			FROM
 				products p
 			LEFT JOIN
-				cart_verification_opnames cvo
-			ON
-				p.id = cvo.product_id;
+				cart_verification_opnames cvo ON p.id = cvo.product_id
+			LEFT JOIN
+				packages pkg ON p.package_id = pkg.id
+			LEFT JOIN 
+    			units u ON p.unit_id = u.id;
 		`
 
 		if err = DB.Raw(query).Scan(&stockOpnamesResultGet).Error; err != nil {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
-			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get stock_opnames.", nil)
+			return extras.NewMessageBodyInternalServerError(ctx, "Unable to get stock_opnames.", err.Error())
 		}
 
 		// stockOpnamesResult := schemas2.ToStockOpnamesResult(stockOpnames)
@@ -499,12 +505,13 @@ func GetHistoryStockOpnameDates(DB *gorm.DB) echo.HandlerFunc {
 			Dates []DateEntry `json:"dates"`
 		}
 
-		startDate := ctx.QueryParam("startDate")
-		endDate := ctx.QueryParam("endDate")
+		// Mendapatkan parameter year dari query
+		year := ctx.QueryParam("year")
 
+		// Konstruksi kueri
 		query := DB.Table("stock_opnames").Select("strftime('%Y', created_at) AS year, uuid AS stock_opname_id, created_at AS date")
-		if startDate != "" && endDate != "" {
-			query = query.Where("date(created_at) BETWEEN ? AND ?", startDate, endDate)
+		if year != "" {
+			query = query.Where("strftime('%Y', created_at) = ?", year)
 		}
 
 		var rawResults []struct {
@@ -517,7 +524,7 @@ func GetHistoryStockOpnameDates(DB *gorm.DB) echo.HandlerFunc {
 			console.Error(fmt.Sprintf("panic: %s", err.Error()))
 			return extras.NewMessageBodyUnprocessableEntity(ctx, "Failed to get history stock opname dates.", err.Error())
 		}
-		fmt.Println("= rawResults: ", rawResults)
+
 		groupedData := make(map[string][]DateEntry)
 		for _, row := range rawResults {
 			groupedData[row.Year] = append(groupedData[row.Year], DateEntry{
